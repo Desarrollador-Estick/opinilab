@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/automation",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/invoices/run-monthly",
+      "schedule": "0 5 1 * *"
+    }
+  ]
+}
