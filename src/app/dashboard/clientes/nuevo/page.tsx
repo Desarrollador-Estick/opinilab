@@ -22,6 +22,30 @@ export default function NuevoClientePage() {
         <p className="text-gray-500">Añade un nuevo cliente al sistema</p>
       </div>
 
+      {state.accountCreated && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm">
+          <p className="font-semibold text-emerald-800">
+            ✓ Cliente creado con acceso al portal
+          </p>
+          <p className="mt-2 text-emerald-800">
+            Usuario: <span className="font-semibold">{state.email}</span>
+            <br />
+            Contraseña:{" "}
+            <span className="font-mono font-semibold">{state.generatedPassword}</span>
+          </p>
+          <p className="mt-2 text-emerald-700">
+            Se ha enviado un email con estas credenciales al cliente.
+          </p>
+        </div>
+      )}
+      {state.success && !state.accountCreated && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          <p className="font-semibold">✓ Cliente creado correctamente</p>
+          {state.accountNotice && (
+            <p className="mt-1 text-emerald-700">{state.accountNotice}</p>
+          )}
+        </div>
+      )}
       {state.error && (
         <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}
