@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { formatDateTime, formatDate, getStatusColor } from "@/lib/utils"
+import { convertLeadToClientAction } from "@/app/dashboard/leads/actions"
 
 interface Lead {
   id: string
@@ -151,39 +152,17 @@ export default function LeadDetailPage() {
   async function convertToClient() {
     if (!lead) return
     setConverting(true)
-    const { data, error: insertError } = await supabase
-      .from("clients")
-      .insert({
-        business_name: lead.business_name,
-        contact_name: lead.contact_name || "",
-        email: lead.email || "",
-        phone: lead.phone,
-        website: lead.website,
-        city: lead.city,
-        industry: lead.industry,
-        lead_source: lead.source,
-        notes: lead.notes,
-        status: "active" as const,
-      })
-      .select("id")
-      .single()
+    setError("")
 
-    if (insertError) {
-      setError(insertError.message)
+    const result = await convertLeadToClientAction(lead.id)
+
+    if (!result.ok || !result.clientId) {
+      setError(result.error || "No se pudo convertir el lead a cliente.")
       setConverting(false)
       return
     }
 
-    await supabase
-      .from("leads")
-      .update({
-        status: "won",
-        converted_client_id: data.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", leadId)
-
-    router.push(`/dashboard/clientes/${data.id}`)
+    router.push(`/dashboard/clientes/${result.clientId}`)
   }
 
   async function handleDelete() {

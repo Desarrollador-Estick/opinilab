@@ -4,9 +4,8 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createClientRecord, updateClient, deleteClient } from "@/lib/supabase/queries"
-import { sendEmail } from "@/lib/email/send"
 import { provisionClientAccess } from "./account-actions"
-import { derivePasswordFromNif } from "@/lib/nif-password"
+import { sendClientCredentialsEmail } from "@/lib/email/client-credentials"
 import { Database } from "@/types/database"
 
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"]
@@ -17,7 +16,6 @@ export type CreateClientState = {
   success?: boolean
   accountCreated?: boolean
   email?: string
-  generatedPassword?: string
   accountNotice?: string
 }
 
@@ -53,41 +51,28 @@ export async function createClientAction(
   }
 
   let accountCreated = false
-  let generatedPassword: string | undefined
   let accountNotice: string | undefined
 
-  // Crear automáticamente el acceso del cliente con email + NIF.
+  // Crear automáticamente el acceso del cliente: contraseña temporal aleatoria.
   if (created?.id && data.email) {
-    const password = derivePasswordFromNif(data.nif_cif)
-    if (password) {
-      const provision = await provisionClientAccess({
-        clientId: created.id,
-        email: data.email,
-        password,
-        fullName: data.contact_name || data.business_name,
-      })
-      if (provision.ok) {
-        accountCreated = true
-        generatedPassword = password
-        // Enviar credenciales por email (nunca rompe el flujo).
-        await sendEmail({
-          to: data.email,
-          template: "client-welcome",
-          subject: "Tus credenciales de acceso al portal de OpiniLab",
+    const provision = await provisionClientAccess({
+      clientId: created.id,
+      email: data.email,
+      fullName: data.contact_name || data.business_name,
+    })
+    if (provision.ok) {
+      accountCreated = true
+      // Enviar credenciales temporales por email (nunca rompe el flujo).
+      if (provision.temporaryPassword) {
+        await sendClientCredentialsEmail({
+          email: data.email,
+          temporaryPassword: provision.temporaryPassword,
+          fullName: data.contact_name || data.business_name,
           clientId: created.id,
-          html: welcomeEmailHtml({
-            businessName: data.contact_name || data.business_name,
-            email: data.email,
-            password,
-            portalUrl: `${process.env.NEXT_PUBLIC_APP_URL || ""}/portal/login`,
-          }),
         })
-      } else {
-        accountNotice = provision.error
       }
     } else {
-      accountNotice =
-        "El cliente se creó, pero no se pudo generar la contraseña (NIF/DNI sin letra final). Crea el acceso manualmente desde la ficha del cliente."
+      accountNotice = provision.error
     }
   }
 
@@ -99,7 +84,6 @@ export async function createClientAction(
       success: true,
       accountCreated: true,
       email: data.email,
-      generatedPassword,
     }
   }
 
@@ -107,36 +91,6 @@ export async function createClientAction(
     success: true,
     accountNotice,
   }
-}
-
-function welcomeEmailHtml(opts: {
-  businessName: string
-  email: string
-  password: string
-  portalUrl: string
-}) {
-  return `
-    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;padding:24px;color:#111827">
-      <h2 style="margin:0 0 16px">Hola ${opts.businessName}</h2>
-      <p style="line-height:1.6;margin:0 0 16px">
-        Te damos la bienvenida al portal de cliente de <strong>OpiniLab</strong>.
-        Desde aquí podrás consultar tu contrato, tus facturas (y pagarlas) y la evolución de tu cuenta.
-      </p>
-      <p style="line-height:1.6;margin:0 0 16px">Tus credenciales de acceso son:</p>
-      <table style="border-collapse:collapse;margin:0 0 16px">
-        <tr>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb;color:#6b7280">Usuario</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">${opts.email}</td>
-        </tr>
-        <tr>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb;color:#6b7280">Contraseña</td>
-          <td style="padding:8px 12px;border:1px solid #e5e7eb;font-weight:600">${opts.password}</td>
-        </tr>
-      </table>
-      <a href="${opts.portalUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none">Acceder al portal</a>
-      <p style="margin:16px 0 0;font-size:12px;color:#9ca3af">Por seguridad, te recomendamos cambiar la contraseña tras el primer acceso.</p>
-    </div>
-  `
 }
 
 export async function updateClientAction(id: string, formData: FormData) {

@@ -1,17 +1,15 @@
-export function derivePasswordFromNif(nif: string | null | undefined): string | null {
-  if (!nif) return null
-  const cleaned = nif.replace(/\s+/g, "")
-  if (cleaned.length === 0) return null
+import { randomInt } from "node:crypto"
 
-  const last = cleaned[cleaned.length - 1]
-  const isLetterEnd = /[A-Za-z]/.test(last)
-
-  const body = cleaned.slice(0, -1)
-  const digits = [...body].filter((c) => /[0-9A-Za-z]/.test(c))
-  const lastFive = digits.slice(-5).join("")
-
-  if (!isLetterEnd) return null
-  if (lastFive.length < 5) return null
-
-  return `${lastFive}${last.toUpperCase()}`
+/**
+ * Genera una contraseña temporal aleatoria y segura.
+ * Evita caracteres ambiguos (0/O, 1/I/l) para que sea fácil de copiar.
+ */
+export function generateTemporaryPassword(length = 10): string {
+  // Sin caracteres ambiguos: 0, O, 1, I, l
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+  let result = ""
+  for (let i = 0; i < length; i++) {
+    result += alphabet[randomInt(alphabet.length)]
+  }
+  return result
 }

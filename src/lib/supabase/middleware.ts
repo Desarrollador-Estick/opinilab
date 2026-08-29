@@ -48,7 +48,7 @@ export async function updateSession(request: NextRequest) {
   // Con sesión: averiguar el rol del usuario desde profiles.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, client_id')
+    .select('role, client_id, must_change_password')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -76,6 +76,15 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone()
       url.pathname = '/portal'
       return NextResponse.redirect(url)
+    }
+    // Con contraseña temporal debe cambiarla antes de usar el resto del portal.
+    if (profile?.must_change_password) {
+      const isAllowed = pathname === '/portal/cambiar-password' || pathname === '/auth/logout'
+      if (!isAllowed) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/portal/cambiar-password'
+        return NextResponse.redirect(url)
+      }
     }
     return supabaseResponse
   }

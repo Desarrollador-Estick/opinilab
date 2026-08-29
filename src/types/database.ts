@@ -16,6 +16,7 @@ export interface Database {
           full_name: string | null
           role: 'admin' | 'manager' | 'member' | 'client'
           client_id: string | null
+          must_change_password: boolean
           avatar_url: string | null
           phone: string | null
           created_at: string
@@ -27,6 +28,7 @@ export interface Database {
           full_name?: string | null
           role?: 'admin' | 'manager' | 'member' | 'client'
           client_id?: string | null
+          must_change_password?: boolean
           avatar_url?: string | null
           phone?: string | null
           created_at?: string
@@ -38,6 +40,7 @@ export interface Database {
           full_name?: string | null
           role?: 'admin' | 'manager' | 'member' | 'client'
           client_id?: string | null
+          must_change_password?: boolean
           avatar_url?: string | null
           phone?: string | null
           created_at?: string

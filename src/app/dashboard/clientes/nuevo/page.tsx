@@ -28,13 +28,12 @@ export default function NuevoClientePage() {
             ✓ Cliente creado con acceso al portal
           </p>
           <p className="mt-2 text-emerald-800">
-            Usuario: <span className="font-semibold">{state.email}</span>
-            <br />
-            Contraseña:{" "}
-            <span className="font-mono font-semibold">{state.generatedPassword}</span>
+            Se ha generado una contraseña temporal y se ha enviado por email a{" "}
+            <span className="font-semibold">{state.email}</span>.
           </p>
           <p className="mt-2 text-emerald-700">
-            Se ha enviado un email con estas credenciales al cliente.
+            El cliente deberá revisar su correo para obtener sus credenciales. Al
+            entrar por primera vez tendrá que crear una contraseña nueva.
           </p>
         </div>
       )}
