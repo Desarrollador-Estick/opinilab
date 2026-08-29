@@ -5,7 +5,8 @@ import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { createClientRecord, updateClient, deleteClient } from "@/lib/supabase/queries"
 import { sendEmail } from "@/lib/email/send"
-import { provisionClientAccess, derivePasswordFromNif } from "./account-actions"
+import { provisionClientAccess } from "./account-actions"
+import { derivePasswordFromNif } from "@/lib/nif-password"
 import { Database } from "@/types/database"
 
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"]

@@ -9,32 +9,6 @@ export type CreateClientAccountState = {
   success?: boolean
 }
 
-/**
- * Deriva la contraseña de acceso del cliente a partir de su NIF/DNI:
- * las 5 últimas cifras + la letra final.
- * Ej: 12345678Z -> 45678Z
- * Devuelve null si no se puede derivar (sin letra final, vacío...).
- */
-export function derivePasswordFromNif(nif: string | null | undefined): string | null {
-  if (!nif) return null
-  const cleaned = nif.replace(/\s+/g, "")
-  if (cleaned.length === 0) return null
-
-  // Último carácter (debe ser una letra para DNI/NIF de persona).
-  const last = cleaned[cleaned.length - 1]
-  const isLetterEnd = /[A-Za-z]/.test(last)
-
-  // Los últimos 5 caracteres que sean dígitos o letras antes del final.
-  const body = cleaned.slice(0, -1)
-  const digits = [...body].filter((c) => /[0-9A-Za-z]/.test(c))
-  const lastFive = digits.slice(-5).join("")
-
-  if (!isLetterEnd) return null
-  if (lastFive.length < 5) return null
-
-  return `${lastFive}${last.toUpperCase()}`
-}
-
 export type ProvisionResult = {
   ok: boolean
   error?: string
