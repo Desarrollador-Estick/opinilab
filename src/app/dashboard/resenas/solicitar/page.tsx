@@ -73,7 +73,7 @@ export default function SolicitarResenaPage() {
 
     if (data.success) {
       setSuccess(true)
-      setTimeout(() => router.push("/dashboard/reseñas"), 2000)
+      setTimeout(() => router.push("/dashboard/resenas"), 2000)
     } else {
       setError(data.error || "Error al enviar la solicitud")
     }
@@ -96,7 +96,7 @@ Tu equipo de marketing`
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <Link
-          href="/dashboard/reseñas"
+          href="/dashboard/resenas"
           className="text-sm text-blue-600 hover:text-blue-800"
         >
           ← Volver a Reseñas
@@ -191,7 +191,7 @@ Tu equipo de marketing`
               {loading ? "Enviando..." : "Enviar Solicitud"}
             </button>
             <Link
-              href="/dashboard/reseñas"
+              href="/dashboard/resenas"
               className="px-6 py-2 rounded-lg border hover:bg-gray-50 transition"
             >
               Cancelar

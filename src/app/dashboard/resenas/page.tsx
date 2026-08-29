@@ -100,7 +100,7 @@ export default function ResenasPage() {
           <p className="text-gray-500">Monitorea y responde reseñas de tus clientes</p>
         </div>
         <Link
-          href="/dashboard/reseñas/solicitar"
+          href="/dashboard/resenas/solicitar"
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
         >
           Enviar Solicitud de Reseña

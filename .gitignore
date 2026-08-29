@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Documento de acceso local (no subir al repo por seguridad)
+ACCESSO.md

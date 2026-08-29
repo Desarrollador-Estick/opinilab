@@ -9,7 +9,7 @@ const navigation = [
   { name: "Clientes", href: "/dashboard/clientes", icon: "👥" },
   { name: "Leads", href: "/dashboard/leads", icon: "🎯" },
   { name: "Servicios", href: "/dashboard/servicios", icon: "🧩" },
-  { name: "Reseñas", href: "/dashboard/reseñas", icon: "⭐" },
+  { name: "Reseñas", href: "/dashboard/resenas", icon: "⭐" },
   { name: "Marketing", href: "/dashboard/marketing", icon: "📱" },
   { name: "Contratos", href: "/dashboard/contratos", icon: "📋" },
   { name: "Facturas", href: "/dashboard/facturas", icon: "💰" },
