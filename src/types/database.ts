@@ -15,6 +15,7 @@ export interface Database {
           email: string
           full_name: string | null
           role: 'admin' | 'manager' | 'member' | 'client'
+          client_id: string | null
           avatar_url: string | null
           phone: string | null
           created_at: string
@@ -25,6 +26,7 @@ export interface Database {
           email: string
           full_name?: string | null
           role?: 'admin' | 'manager' | 'member' | 'client'
+          client_id?: string | null
           avatar_url?: string | null
           phone?: string | null
           created_at?: string
@@ -35,12 +37,21 @@ export interface Database {
           email?: string
           full_name?: string | null
           role?: 'admin' | 'manager' | 'member' | 'client'
+          client_id?: string | null
           avatar_url?: string | null
           phone?: string | null
           created_at?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_client_id_fkey",
+            columns: ["client_id"],
+            isOneToOne: false,
+            referencedRelation: "clients",
+            referencedColumns: ["id"]
+          }
+        ]
       }
       clients: {
         Row: {

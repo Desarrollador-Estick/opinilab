@@ -2,10 +2,9 @@
 
 import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 
-export default function LoginPage() {
+export default function PortalLoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -29,7 +28,7 @@ export default function LoginPage() {
       return
     }
 
-    // Determinar el rol para enviar a /dashboard (agencia) o /portal (cliente).
+    // Determinar rol: clientes van al portal; agencia al dashboard.
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -37,20 +36,11 @@ export default function LoginPage() {
 
     const role = profile?.role ?? "client"
 
-    // Respetar la URL de origen si el rol lo permite.
     const params = new URLSearchParams(window.location.search)
     const redirectedFrom = params.get("redirectedFrom")
-    if (redirectedFrom) {
-      const clientArea = redirectedFrom.startsWith("/portal")
-      const isClient = role === "client"
-      if (clientArea === isClient) {
-        router.push(redirectedFrom)
-        router.refresh()
-        return
-      }
-    }
-
-    if (role === "client") {
+    if (redirectedFrom && redirectedFrom.startsWith("/portal")) {
+      router.push(redirectedFrom)
+    } else if (role === "client") {
       router.push("/portal")
     } else {
       router.push("/dashboard")
@@ -59,18 +49,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-gray-100 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-gray-900">
-            🚀 Agencia Marketing
-          </Link>
-          <p className="text-gray-500 mt-2">Inicia sesión en tu panel</p>
+          <div className="text-5xl mb-3">🚀</div>
+          <h1 className="text-2xl font-bold text-gray-900">OpiniLab</h1>
+          <p className="text-gray-500 mt-1">Portal de cliente</p>
         </div>
 
-        <div className="bg-white rounded-xl border p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border shadow-sm p-6">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
               {error}
             </div>
           )}
@@ -82,8 +71,8 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded-lg px-4 py-2 text-sm"
-                placeholder="tu@email.com"
+                className="w-full border rounded-xl px-4 py-2 text-sm"
+                placeholder="tu@empresa.com"
                 required
               />
             </div>
@@ -93,7 +82,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-lg px-4 py-2 text-sm"
+                className="w-full border rounded-xl px-4 py-2 text-sm"
                 placeholder="••••••••"
                 required
                 minLength={6}
@@ -102,21 +91,15 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="w-full bg-blue-600 text-white py-2.5 rounded-xl hover:bg-blue-700 transition font-medium disabled:opacity-50"
             >
-              {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
+              {loading ? "Accediendo..." : "Acceder al portal"}
             </button>
           </form>
 
-          <div className="mt-4 text-center text-sm text-gray-500">
-            ¿Acceso de cliente? Tu cuenta la crea tu agencia.
-          </div>
-        </div>
-
-        <div className="mt-4 text-center">
-          <Link href="/" className="text-sm text-gray-500 hover:text-gray-700">
-            ← Volver a la web
-          </Link>
+          <p className="mt-4 text-xs text-gray-400 text-center">
+            Si no tienes acceso, contacta con tu agencia.
+          </p>
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/supabase/queries"
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils"
 import { DeleteClientButton } from "./delete-button"
+import { CreateClientAccountButton } from "./create-client-account-button"
 
 export default async function ClienteDetailPage({
   params,
@@ -43,6 +44,12 @@ export default async function ClienteDetailPage({
     .filter((inv) => inv.status === "paid")
     .reduce((sum, inv) => sum + Number(inv.total), 0)
 
+  const { data: linkedAccount } = await supabase
+    .from("profiles")
+    .select("email, created_at")
+    .eq("client_id", id)
+    .maybeSingle()
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -56,20 +63,31 @@ export default async function ClienteDetailPage({
           <h2 className="text-2xl font-bold mt-2">{client.business_name}</h2>
           <p className="text-gray-500">{client.contact_name} · {client.email}</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={`/dashboard/clientes/${client.id}/pagar`}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
-          >
-            💳 Cobrar
-          </Link>
-          <Link
-            href={`/dashboard/clientes/${client.id}/editar`}
-            className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition"
-          >
-            Editar
-          </Link>
-          <DeleteClientButton clientId={client.id} />
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex gap-2">
+            <Link
+              href={`/dashboard/clientes/${client.id}/pagar`}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition"
+            >
+              💳 Cobrar
+            </Link>
+            <Link
+              href={`/dashboard/clientes/${client.id}/editar`}
+              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition"
+            >
+              Editar
+            </Link>
+            <DeleteClientButton clientId={client.id} />
+          </div>
+          {linkedAccount ? (
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-2 rounded-lg text-xs">
+              <span>✓ Portal activo</span>
+              <span className="text-emerald-500">·</span>
+              <span className="font-medium">{linkedAccount.email}</span>
+            </div>
+          ) : (
+            <CreateClientAccountButton clientId={client.id} />
+          )}
         </div>
       </div>
 
