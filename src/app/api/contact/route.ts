@@ -121,15 +121,21 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    // Onboarding: welcome email + guide (fire-and-forget, do not fail the request)
+    // Onboarding: welcome + guía + informe GBP. TODO se espera (await) para
+    // garantizar que se completan en entornos serverless (Netlify) donde el
+    // trabajo fire-and-forget se puede cortar al devolver la respuesta.
+    // Los errores no rompen la petición: se registran y continúa.
     const emailData = { businessName: business, contactName: name }
-    sendEmail(email, "welcome", emailData, data.id)
-      .then(() => sendEmail(email, "onboardingGuide", emailData, data.id))
-      .catch((e) => console.error("Onboarding email error:", e))
+    try {
+      await sendEmail(email, "welcome", emailData, data.id)
+      await sendEmail(email, "onboardingGuide", emailData, data.id)
+    } catch (e) {
+      console.error("Onboarding email error:", e)
+    }
 
-    // Informe GBP: se genera con IA y se envía por email, sin bloquear la respuesta.
-    if (data.id) {
-      sendGbpReport(
+    // Informe GBP: se genera con IA y se envía por email tras la bienvenida.
+    try {
+      await sendGbpReport(
         email,
         {
           businessName: business,
@@ -139,6 +145,8 @@ export async function POST(request: Request) {
         },
         data.id
       )
+    } catch (e) {
+      console.error("GBP report email error:", e)
     }
 
     return NextResponse.json({
