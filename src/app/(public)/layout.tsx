@@ -36,6 +36,12 @@ export default function PublicLayout({
               ))}
             </div>
             <div className="flex items-center gap-3">
+              <Link
+                href="/portal/login"
+                className="hidden sm:inline-flex text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] font-medium transition-colors px-3 py-2"
+              >
+                Iniciar sesión
+              </Link>
               <a
                 href="#contacto"
                 className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] text-white px-5 py-2 rounded-lg text-sm font-semibold hover:from-[var(--color-primary-dark)] hover:to-[var(--color-primary)] transition-all duration-300 shadow-md shadow-blue-200/50 cursor-pointer"
