@@ -9,6 +9,7 @@ export default function ContactForm() {
     phone: "",
     business: "",
     message: "",
+    googleMapsUrl: "",
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -33,7 +34,7 @@ export default function ContactForm() {
       }
 
       setSuccess(true)
-      setFormData({ name: "", email: "", phone: "", business: "", message: "" })
+      setFormData({ name: "", email: "", phone: "", business: "", message: "", googleMapsUrl: "" })
     } catch (err: any) {
       setError(err.message || "Error al enviar el formulario")
     } finally {
@@ -95,6 +96,13 @@ export default function ContactForm() {
           required
         />
       </div>
+      <input
+        type="url"
+        placeholder="Enlace de tu negocio en Google Maps (opcional)"
+        value={formData.googleMapsUrl}
+        onChange={(e) => setFormData({ ...formData, googleMapsUrl: e.target.value })}
+        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 transition"
+      />
       <textarea
         rows={3}
         placeholder="¿En qué te podemos ayudar?"
