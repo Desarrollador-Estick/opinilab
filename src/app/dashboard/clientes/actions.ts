@@ -139,3 +139,108 @@ export async function deleteClientAction(id: string) {
   revalidatePath("/dashboard")
   redirect("/dashboard/clientes")
 }
+
+type ClientServiceInsert = Database["public"]["Tables"]["client_services"]["Insert"]
+type ClientServiceUpdate = Database["public"]["Tables"]["client_services"]["Update"]
+
+export type ClientServiceState = {
+  error?: string
+  success?: boolean
+}
+
+// Asigna un servicio del catálogo a un cliente (lo activa y registra la fecha de inicio).
+export async function addClientServiceAction(
+  clientId: string,
+  serviceId: string
+): Promise<ClientServiceState> {
+  const supabase = await createClient()
+
+  // Evitar duplicados: si ya existe la asignación, no la vuelve a crear.
+  const { data: existing } = await supabase
+    .from("client_services")
+    .select("id, status")
+    .eq("client_id", clientId)
+    .eq("service_id", serviceId)
+    .maybeSingle()
+
+  if (existing) {
+    if (existing.status === "cancelled") {
+      const { error } = await supabase
+        .from("client_services")
+        .update({ status: "active", end_date: null })
+        .eq("id", existing.id)
+      if (error) return { error: error.message }
+      revalidatePath(`/dashboard/clientes/${clientId}`)
+      return { success: true }
+    }
+    return { error: "El cliente ya tiene este servicio asignado" }
+  }
+
+  const data: ClientServiceInsert = {
+    client_id: clientId,
+    service_id: serviceId,
+    status: "active",
+    custom_price: null,
+    start_date: new Date().toISOString(),
+  }
+
+  const { error } = await supabase.from("client_services").insert(data)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/dashboard/clientes/${clientId}`)
+  return { success: true }
+}
+
+// Quita la asignación del servicio al cliente (borrado físico).
+export async function removeClientServiceAction(
+  clientServiceId: string
+): Promise<ClientServiceState> {
+  const supabase = await createClient()
+
+  const { data: cs, error: fetchError } = await supabase
+    .from("client_services")
+    .select("client_id")
+    .eq("id", clientServiceId)
+    .single()
+  if (fetchError || !cs) return { error: "Asignación no encontrada" }
+
+  const { error } = await supabase
+    .from("client_services")
+    .delete()
+    .eq("id", clientServiceId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/dashboard/clientes/${cs.client_id}`)
+  return { success: true }
+}
+
+// Activa / pausa un servicio asignado a un cliente.
+export async function toggleClientServiceStatusAction(
+  clientServiceId: string,
+  status: ClientServiceUpdate["status"]
+): Promise<ClientServiceState> {
+  const supabase = await createClient()
+
+  const { data: cs, error: fetchError } = await supabase
+    .from("client_services")
+    .select("id, client_id, status")
+    .eq("id", clientServiceId)
+    .single()
+  if (fetchError || !cs) return { error: "Asignación no encontrada" }
+
+  const next =
+    status === "active" ? "paused" : status === "paused" ? "active" : status
+
+  const update: ClientServiceUpdate = { status: next }
+  if (next === "active") update.end_date = null
+  if (next === "paused") update.end_date = new Date().toISOString()
+
+  const { error } = await supabase
+    .from("client_services")
+    .update(update)
+    .eq("id", clientServiceId)
+  if (error) return { error: error.message }
+
+  revalidatePath(`/dashboard/clientes/${cs.client_id}`)
+  return { success: true }
+}

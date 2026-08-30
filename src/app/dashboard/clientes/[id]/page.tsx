@@ -11,6 +11,7 @@ import {
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils"
 import { DeleteClientButton } from "./delete-button"
 import { CreateClientAccountButton } from "./create-client-account-button"
+import { ServicesPanel } from "./services-panel"
 
 export default async function ClienteDetailPage({
   params,
@@ -39,6 +40,14 @@ export default async function ClienteDetailPage({
   const invoices = invoicesResult.data ?? []
   const contracts = contractsResult.data ?? []
   const reviews = reviewsResult.data ?? []
+
+  const { data: catalogResult } = await supabase
+    .from("services")
+    .select("id, name, category, base_price, billing_cycle")
+    .eq("is_active", true)
+    .order("category", { ascending: true })
+    .order("name", { ascending: true })
+  const catalog = catalogResult ?? []
 
   const totalRevenue = invoices
     .filter((inv) => inv.status === "paid")
@@ -148,44 +157,7 @@ export default async function ClienteDetailPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">Servicios</h3>
-          </div>
-          {services.length === 0 ? (
-            <p className="text-gray-500 text-center py-4 text-sm">
-              Sin servicios asignados
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {services.map((cs) => (
-                <div
-                  key={cs.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                >
-                  <div>
-                    <p className="font-medium text-sm">
-                      {cs.services?.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {cs.services?.category}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-sm">
-                      {formatCurrency(cs.custom_price ?? cs.services?.base_price ?? 0)}
-                    </p>
-                    <span
-                      className={`text-xs ${getStatusColor(cs.status)}`}
-                    >
-                      {cs.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ServicesPanel clientId={client.id} services={services} catalog={catalog} />
 
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">
