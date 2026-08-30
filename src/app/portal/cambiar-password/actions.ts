@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { createServerAdminClient } from "@/lib/supabase/admin"
 
 export type ChangePasswordState = {
   error?: string
@@ -50,7 +51,13 @@ export async function changePasswordAction(
   }
 
   // Marcar que ya no hace falta cambiar la contraseña.
-  const { error: profileErr } = await supabase
+  // Se usa el cliente admin (service role) porque la RLS de `profiles`
+  // no permite a un cliente actualizar su propia fila (solo la agencia
+  // la gestiona); con el cliente normal el UPDATE devolvería 0 filas sin
+  // error y el flag seguiría en `true`, provocando un redirección en bucle
+  // hacia /portal/cambiar-password.
+  const admin = await createServerAdminClient()
+  const { error: profileErr } = await admin
     .from("profiles")
     .update({ must_change_password: false })
     .eq("id", user.id)
