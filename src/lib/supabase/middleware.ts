@@ -32,9 +32,12 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
-  // Si no hay sesión, solo se protegen las rutas internas (dashboard y portal).
+  // Si no hay sesión, solo se protegen las rutas internas (dashboard y portal),
+  // pero nunca las pantallas de login (evitar bucles de redirección).
   if (!user) {
-    const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/portal')
+    const isLoginPage = pathname === '/login' || pathname === '/portal/login'
+    const isProtected =
+      (pathname.startsWith('/dashboard') || pathname.startsWith('/portal')) && !isLoginPage
     if (isProtected) {
       const target = pathname.startsWith('/portal') ? '/portal/login' : '/login'
       const url = request.nextUrl.clone()

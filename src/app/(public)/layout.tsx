@@ -37,7 +37,7 @@ export default function PublicLayout({
             </div>
             <div className="flex items-center gap-3">
               <Link
-                href="/portal/login"
+                href="/login"
                 className="hidden sm:inline-flex text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)] font-medium transition-colors px-3 py-2"
               >
                 Iniciar sesión
