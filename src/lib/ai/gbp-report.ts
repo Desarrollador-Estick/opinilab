@@ -1,10 +1,11 @@
-import { groqChat } from "@/lib/ai/groq"
+import { groqChat, GroqUsage } from "@/lib/ai/groq"
 
 export type GbpReportInput = {
   businessName: string
   contactName: string
   googleMapsUrl: string | null
   message: string | null
+  usage?: GroqUsage
 }
 
 export type GbpReportResult = {
@@ -49,7 +50,7 @@ Longitud: concisa, máximo 350 palabras. En español formal y cercano.`
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
       ],
-      { temperature: 0.7, maxTokens: 900 }
+      { temperature: 0.7, maxTokens: 900, usage: input.usage }
     )
     return { ok: true, content }
   } catch (e) {

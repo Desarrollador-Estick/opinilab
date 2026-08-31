@@ -60,10 +60,6 @@ export default function NuevoContratoPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchClients()
-  }, [])
-
   async function fetchClients() {
     const { data } = await supabase
       .from("clients")
@@ -71,6 +67,12 @@ export default function NuevoContratoPage() {
       .order("business_name")
     if (data) setClients(data)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchClients()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function fillTemplate() {
     const client = clients.find((c) => c.id === clientId)

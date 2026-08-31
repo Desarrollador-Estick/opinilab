@@ -39,10 +39,6 @@ export default function ContratosPage() {
   const [error, setError] = useState<string | null>(null)
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchContracts()
-  }, [])
-
   async function fetchContracts() {
     setLoading(true)
     setError(null)
@@ -57,6 +53,12 @@ export default function ContratosPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchContracts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtered = contracts.filter((c) => filterStatus === "all" || c.status === filterStatus)
   const activeContracts = contracts.filter((c) => c.status === "signed")

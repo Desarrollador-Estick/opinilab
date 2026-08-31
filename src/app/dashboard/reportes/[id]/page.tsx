@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
 import { formatDate, formatCurrency } from "@/lib/utils"
@@ -61,15 +61,10 @@ function extractSections(content: Record<string, unknown> | null): ReportSection
 export default function ReportDetailPage() {
   const supabase = createClient()
   const params = useParams()
-  const router = useRouter()
   const id = params.id as string
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-
-  useEffect(() => {
-    loadReport()
-  }, [id])
 
   async function loadReport() {
     const { data } = await supabase
@@ -80,6 +75,12 @@ export default function ReportDetailPage() {
     setReport(data as Report | null)
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadReport()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
 
   async function handleSend() {
     if (!report) return

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
+import { sendEmail } from "@/lib/email/send"
+import { paymentReminder, followUpEmail } from "@/lib/email/templates"
 
 interface AutomationLog {
   action: string
@@ -36,7 +38,7 @@ export async function GET() {
         const { data: existingReminder } = await supabase
           .from("email_sends")
           .select("id")
-          .eq("template", "reminder")
+          .eq("template", "paymentReminder")
           .eq("to", invoice.clients?.email)
           .gte("created_at", new Date(now.toDateString()).toISOString())
           .limit(1)
@@ -47,28 +49,29 @@ export async function GET() {
 
         if (invoice.clients?.email) {
           try {
-            const emailRes = await fetch(
-              `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/email`,
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  to: invoice.clients.email,
-                  template: "reminder",
-                  data: {
-                    client_name: invoice.clients.business_name,
-                    invoice_number: invoice.invoice_number,
-                    total: invoice.total,
-                    overdue_days: overdueDays,
-                  },
-                }),
-              }
+            const reminder = paymentReminder(
+              invoice.invoice_number,
+              Number(invoice.total),
+              overdueDays,
+              invoice.clients?.business_name || "cliente"
             )
-            const emailResult = await emailRes.json()
+            const emailResult = await sendEmail({
+              to: invoice.clients.email,
+              template: "paymentReminder",
+              subject: reminder.subject,
+              html: reminder.html,
+              clientId: invoice.client_id,
+              data: {
+                invoiceNumber: invoice.invoice_number,
+                total: Number(invoice.total),
+                daysOverdue: overdueDays,
+                clientName: invoice.clients?.business_name || "cliente",
+              },
+            })
 
             logs.push({
               action: "invoice_reminder",
-              details: `Sent reminder for ${invoice.invoice_number} to ${invoice.clients.email} (${overdueDays} days overdue). Result: ${emailResult.success ? "success" : "failed"}`,
+              details: `Sent reminder for ${invoice.invoice_number} to ${invoice.clients.email} (${overdueDays} days overdue). Result: ${emailResult.ok ? "success" : "failed"}`,
               timestamp: now.toISOString(),
             })
           } catch (err) {
@@ -102,7 +105,7 @@ export async function GET() {
         const { data: existingFollowUp } = await supabase
           .from("email_sends")
           .select("id")
-          .eq("template", "follow_up")
+          .eq("template", "followUp")
           .eq("to", lead.email)
           .gte("created_at", new Date(now.toDateString()).toISOString())
           .limit(1)
@@ -112,22 +115,21 @@ export async function GET() {
         }
 
         try {
-          const emailRes = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/email`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                to: lead.email,
-                template: "follow_up",
-                data: {
-                  lead_name: lead.contact_name || lead.business_name,
-                  lead_business: lead.business_name,
-                },
-              }),
-            }
+          const follow = followUpEmail(
+            lead.contact_name || lead.business_name,
+            lead.business_name
           )
-          const emailResult = await emailRes.json()
+          const emailResult = await sendEmail({
+            to: lead.email,
+            template: "followUp",
+            subject: follow.subject,
+            html: follow.html,
+            leadId: lead.id,
+            data: {
+              leadName: lead.contact_name || lead.business_name,
+              businessName: lead.business_name,
+            },
+          })
 
           // Update next_follow_up_at to 7 days from now
           const nextFollowUp = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -141,7 +143,7 @@ export async function GET() {
 
           logs.push({
             action: "lead_follow_up",
-            details: `Sent follow-up to ${lead.business_name} (${lead.email}). Result: ${emailResult.success ? "success" : "failed"}`,
+            details: `Sent follow-up to ${lead.business_name} (${lead.email}). Result: ${emailResult.ok ? "success" : "failed"}`,
             timestamp: now.toISOString(),
           })
         } catch (err) {

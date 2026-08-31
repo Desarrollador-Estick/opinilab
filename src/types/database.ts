@@ -6,6 +6,8 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type Tables = Database["public"]["Tables"]
+
 export interface Database {
   public: {
     Tables: {
@@ -1003,6 +1005,64 @@ export interface Database {
           created_at?: string
         }
         Relationships: []
+      }
+      usage_logs: {
+        Row: {
+          id: string
+          provider: string
+          model: string | null
+          category: string | null
+          input_tokens: number
+          output_tokens: number
+          estimated_tokens: number
+          client_id: string | null
+          lead_id: string | null
+          status: string
+          error_message: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          provider?: string
+          model?: string | null
+          category?: string | null
+          input_tokens?: number
+          output_tokens?: number
+          estimated_tokens?: number
+          client_id?: string | null
+          lead_id?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          provider?: string
+          model?: string | null
+          category?: string | null
+          input_tokens?: number
+          output_tokens?: number
+          estimated_tokens?: number
+          client_id?: string | null
+          lead_id?: string | null
+          status?: string
+          error_message?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'usage_logs_client_id_fkey',
+            columns: ['client_id'],
+            referencedRelation: 'clients',
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'usage_logs_lead_id_fkey',
+            columns: ['lead_id'],
+            referencedRelation: 'leads',
+            referencedColumns: ['id']
+          }
+        ]
       }
       settings: {
         Row: {

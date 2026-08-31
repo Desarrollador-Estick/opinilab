@@ -53,3 +53,13 @@ next-env.d.ts
 
 # Documento de acceso local (no subir al repo por seguridad)
 ACCESSO.md
+
+# Configuración local de opencode / agentes locales (no forma parte del proyecto)
+.opencode/
+my-agent.md
+
+# Notas locales de pruebas que pueden contener credenciales (no subir)
+E2E_PRODUCCION_NOTAS.md
+
+# Assets sueltos / temporales
+*.jfif

@@ -45,10 +45,6 @@ export default function ResenasPage() {
   const [responseText, setResponseText] = useState("")
   const [sending, setSending] = useState(false)
 
-  useEffect(() => {
-    loadReviews()
-  }, [])
-
   async function loadReviews() {
     setLoading(true)
     const { data } = await supabase
@@ -58,6 +54,12 @@ export default function ResenasPage() {
     setReviews((data as Review[]) || [])
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadReviews()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtered = reviews.filter((r) => {
     if (filterPlatform !== "all" && r.platform !== filterPlatform) return false

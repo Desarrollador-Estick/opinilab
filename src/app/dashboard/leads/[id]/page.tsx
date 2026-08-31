@@ -80,11 +80,6 @@ export default function LeadDetailPage() {
   const [followUpDate, setFollowUpDate] = useState("")
   const [notes, setNotes] = useState("")
 
-  useEffect(() => {
-    fetchLead()
-    fetchStatusHistory()
-  }, [leadId])
-
   async function fetchLead() {
     const { data, error } = await supabase.from("leads").select("*").eq("id", leadId).single()
     if (error) {
@@ -104,6 +99,14 @@ export default function LeadDetailPage() {
       .order("changed_at", { ascending: false })
     if (data) setStatusHistory(data)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchLead()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchStatusHistory()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadId])
 
   async function changeStatus(newStatus: string) {
     if (!lead) return

@@ -1,7 +1,85 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 import ContactForm from "@/components/contact-form"
+import { createClient } from "@/lib/supabase/server"
 
-export default function LandingPage() {
+const serviceStyles: Record<string, { gradient: string; icon: ReactNode }> = {
+  reviews: {
+    gradient: "from-amber-400 to-orange-500",
+    icon: (
+      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+      </svg>
+    ),
+  },
+  social_media: {
+    gradient: "from-pink-500 to-purple-600",
+    icon: (
+      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 7a5 5 0 100 10 5 5 0 000-10zm0 8.2a3.2 3.2 0 110-6.4 3.2 3.2 0 010 6.4zm5.3-8.4a1.2 1.2 0 110-2.4 1.2 1.2 0 010 2.4z" />
+      </svg>
+    ),
+  },
+  seo: {
+    gradient: "from-sky-500 to-blue-600",
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    ),
+  },
+  ads: {
+    gradient: "from-emerald-500 to-teal-600",
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+      </svg>
+    ),
+  },
+  email: {
+    gradient: "from-indigo-500 to-blue-600",
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+  },
+  branding: {
+    gradient: "from-fuchsia-500 to-pink-600",
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 16v-2m4-8h2M6 12H4m13.66-5.66l-1.41 1.41M7.76 16.24l-1.41 1.41M17.66 17.66l-1.41-1.41M7.76 7.76L6.35 6.35M12 9a3 3 0 100 6 3 3 0 000-6z" />
+      </svg>
+    ),
+  },
+  web: {
+    gradient: "from-cyan-500 to-blue-500",
+    icon: (
+      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4.03 3-9S14.66 3 13 3m0 18c-1.66 0-3-4.03-3-9S11.34 3 13 3m-9 9a9 9 0 019-9" />
+      </svg>
+    ),
+  },
+}
+
+const defaultServiceStyle: { gradient: string; icon: ReactNode } = {
+  gradient: "from-blue-500 to-cyan-500",
+  icon: (
+    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  ),
+}
+
+export default async function LandingPage() {
+  const supabase = await createClient()
+  const { data: services, error } = await supabase
+    .from("services")
+    .select("*")
+    .eq("is_active", true)
+    .order("name", { ascending: true })
+  const serviceList = error ? [] : (services ?? [])
+
   return (
     <>
       {/* Hero */}
@@ -174,112 +252,36 @@ export default function LandingPage() {
               Servicios de marketing digital pensados para negocios locales. Sin permanencias ocultas ni sorpresas.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
-                ),
-                title: "Gestión de Reseñas Google",
-                description: "Captamos reseñas positivas de tus clientes satisfechos y gestionamos las negativas con profesionalidad. Más estrellas, más confianza, más clientes.",
-                price: "199€/mes",
-                featured: true,
-                gradient: "from-yellow-400 to-orange-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m-9 0h10m-10 0H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2" />
-                  </svg>
-                ),
-                title: "Community Management",
-                description: "Nos hacemos cargo de tus redes sociales: contenido, planificación y publicación. Tu marca siempre activa y profesional.",
-                price: "499€/mes",
-                gradient: "from-pink-500 to-rose-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                ),
-                title: "SEO & Posicionamiento",
-                description: "Aparece en los primeros resultados de Google cuando tus clientes te buscan. Posicionamiento local y nacional.",
-                price: "Desde 299€/mes",
-                gradient: "from-green-500 to-emerald-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                ),
-                title: "Publicidad Online",
-                description: "Google Ads y Meta Ads gestionados por expertos. Cada euro invertido rinde al máximo para atraer clientes.",
-                price: "399€/mes",
-                gradient: "from-blue-500 to-cyan-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                ),
-                title: "Email Marketing",
-                description: "Convierte a tus clientes en repetición. Campañas y newsletters que fidelizan y generan ventas.",
-                price: "249€/mes",
-                gradient: "from-violet-500 to-purple-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
-                  </svg>
-                ),
-                title: "Landing Pages",
-                description: "Páginas diseñadas para convertir visitas en clientes. Ideales para campañas publicitarias y captación de leads.",
-                price: "599€ · Una vez",
-                gradient: "from-indigo-500 to-blue-500",
-              },
-              {
-                icon: (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                  </svg>
-                ),
-                title: "Branding",
-                description: "Logo, imagen y identidad de marca profesional. Que tu negocio transmita la confianza que merece.",
-                price: "Desde 799€",
-                gradient: "from-pink-500 to-rose-500",
-              },
-            ].map((service) => (
-              <div
-                key={service.title}
-                className={`group relative bg-white border rounded-2xl p-6 transition-all duration-300 cursor-pointer ${
-                  service.featured
-                    ? "border-2 border-[var(--color-primary)] shadow-xl shadow-blue-100/60"
-                    : "border-[var(--color-border)] hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/50"
-                }`}
-              >
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.gradient} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform duration-300`}
-                >
-                  {service.icon}
-                </div>
-                <h3 className="text-lg font-semibold text-[var(--color-foreground)] mb-2 font-[family-name:var(--font-heading)]">
-                  {service.title}
-                </h3>
-                <p className="text-sm text-[var(--color-muted-foreground)] leading-relaxed mb-4">
-                  {service.description}
-                </p>
-                <p className="text-lg font-bold text-[var(--color-primary)] font-[family-name:var(--font-heading)]">
-                  {service.price}
-                </p>
-              </div>
-            ))}
-          </div>
+          {serviceList.length === 0 ? (
+            <p className="text-gray-500 text-center">No hay servicios activos en este momento</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {serviceList.map((service) => {
+                const style = serviceStyles[service.category ?? ""] ?? defaultServiceStyle
+                return (
+                  <div
+                    key={service.id}
+                    className={`group relative bg-white border rounded-2xl p-6 transition-all duration-300 cursor-pointer border-[var(--color-border)] hover:border-blue-300 hover:shadow-xl hover:shadow-blue-100/50`}
+                  >
+                    <div
+                      className={`w-12 h-12 rounded-xl bg-gradient-to-br ${style.gradient} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform duration-300`}
+                    >
+                      {style.icon}
+                    </div>
+                    <h3 className="text-lg font-semibold text-[var(--color-foreground)] mb-2 font-[family-name:var(--font-heading)]">
+                      {service.name}
+                    </h3>
+                    <p className="text-sm text-[var(--color-muted-foreground)] leading-relaxed mb-4">
+                      {service.description}
+                    </p>
+                    <p className="text-lg font-bold text-[var(--color-primary)] font-[family-name:var(--font-heading)]">
+                      {service.base_price ? `${service.base_price}€/mes` : "Precio bajo consulta"}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          )}
           <p className="text-center text-sm text-[var(--color-muted-foreground)] mt-10">
             ¿No sabes qué necesitas? Pide una <a href="#contacto" className="text-[var(--color-primary)] font-medium hover:underline cursor-pointer">auditoría gratuita de tu negocio</a>.
           </p>

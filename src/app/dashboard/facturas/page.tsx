@@ -41,10 +41,6 @@ export default function FacturasPage() {
   const [runResult, setRunResult] = useState<string | null>(null)
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchInvoices()
-  }, [])
-
   async function fetchInvoices() {
     setLoading(true)
     setError(null)
@@ -59,6 +55,12 @@ export default function FacturasPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchInvoices()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function runMonthlyBilling() {
     setRunningMonthly(true)

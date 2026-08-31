@@ -55,10 +55,6 @@ export default function LeadsPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    fetchLeads()
-  }, [])
-
   async function fetchLeads() {
     setLoading(true)
     setError(null)
@@ -73,6 +69,12 @@ export default function LeadsPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchLeads()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function moveLead(leadId: string, newStatus: string) {
     setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)))

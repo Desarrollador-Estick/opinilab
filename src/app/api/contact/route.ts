@@ -2,86 +2,43 @@ import { NextResponse } from "next/server"
 import { Resend } from "resend"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
-import { welcomeEmail, onboardingGuideEmail } from "@/lib/email/templates"
 import { generateGbpReport } from "@/lib/ai/gbp-report"
-import { gbpReportEmail } from "@/lib/email/gbp-report"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
-type FormEmailKey = "welcome" | "onboardingGuide" | "gbpReport"
-
 async function sendEmail(
   to: string,
-  template: FormEmailKey,
-  data: { businessName: string; contactName: string; reportContent?: string },
-  leadId?: string
+  subject: string,
+  html: string,
+  fromEmail?: string
 ) {
-  let email
-  if (template === "welcome") {
-    email = welcomeEmail(data.businessName, data.contactName)
-  } else if (template === "onboardingGuide") {
-    email = onboardingGuideEmail(data.businessName, data.contactName)
-  } else {
-    email = gbpReportEmail(data.contactName, data.businessName, data.reportContent || "")
-  }
-
-  const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev"
+  const emailFrom = fromEmail || (process.env.EMAIL_FROM || "onboarding@resend.dev")
 
   const { data: emailData, error } = await resend.emails.send({
-    from: fromEmail,
+    from: emailFrom,
     to: [to],
-    subject: email.subject,
-    html: email.html,
+    subject,
+    html,
   })
 
   if (error) return { ok: false, error }
 
-  // Los inserts de email_sends/leads se hacen con service role: el formulario
-  // público no tiene sesión de usuario y RLS (ahora restringido a
-  // `authenticated`) lo bloquearía con la clave anon.
+  // Registrar en Supabase con service role
   const supabase = isServiceRoleConfigured()
     ? await createServerAdminClient()
     : await createClient()
   await supabase.from("email_sends").insert({
     to,
-    from: fromEmail,
-    subject: email.subject,
-    template,
+    from: emailFrom,
+    subject,
+    template: "unifiedOnboarding",
     resend_id: emailData?.id || null,
-    data: data as unknown as Record<string, unknown>,
-    lead_id: leadId || null,
+    data: { status: "sent" },
+    lead_id: null,
     status: "sent",
   })
 
   return { ok: true }
-}
-
-// Genera el informe GBP (fire-and-forget) y lo envía tras la bienvenida.
-async function sendGbpReport(
-  email: string,
-  lead: { businessName: string; contactName: string; googleMapsUrl: string | null; message: string | null },
-  leadId: string
-) {
-  try {
-    const report = await generateGbpReport({
-      businessName: lead.businessName,
-      contactName: lead.contactName,
-      googleMapsUrl: lead.googleMapsUrl,
-      message: lead.message,
-    })
-    if (!report.ok || !report.content) {
-      console.error("GBP report generation failed:", report.error)
-      return
-    }
-    await sendEmail(
-      email,
-      "gbpReport",
-      { businessName: lead.businessName, contactName: lead.contactName, reportContent: report.content },
-      leadId
-    )
-  } catch (e) {
-    console.error("GBP report email error:", e)
-  }
 }
 
 export async function POST(request: Request) {
@@ -121,40 +78,102 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    // Onboarding: welcome + guía + informe GBP. TODO se espera (await) para
-    // garantizar que se completan en entornos serverless (Netlify) donde el
-    // trabajo fire-and-forget se puede cortar al devolver la respuesta.
-    // Los errores no rompen la petición: se registran y continúa.
-    const emailData = { businessName: business, contactName: name }
-    try {
-      await sendEmail(email, "welcome", emailData, data.id)
-      await sendEmail(email, "onboardingGuide", emailData, data.id)
-    } catch (e) {
-      console.error("Onboarding email error:", e)
+    // Generar informe GBP con IA
+    const report = await generateGbpReport({
+      businessName: business,
+      contactName: name,
+      googleMapsUrl: mapsUrl,
+      message: message || null,
+    })
+
+    // Construir el contenido HTML unificado: welcome + onboardingGuide + report
+    const companyName = process.env.COMPANY_NAME || "Agencia Marketing"
+
+    // Cuerpo del informe formateado a HTML (simple)
+    let reportHtml = ""
+    if (report.ok && report.content) {
+      const lines = report.content.split("\n").map((l) => l.trim())
+      const htmlLines: string[] = []
+      let inList = false
+
+      const closeList = () => {
+        if (inList) {
+          htmlLines.push("</ul>")
+          inList = false
+        }
+      }
+
+      for (const line of lines) {
+        if (!line) {
+          closeList()
+          htmlLines.push("<br/>")
+          continue
+        }
+        if (line.startsWith("##")) {
+          closeList()
+          htmlLines.push(`<p><strong>${line.replace(/^#+\s*/, "")}</strong></p>`)
+        } else if (line.startsWith("- ")) {
+          if (!inList) {
+            htmlLines.push("<ul>")
+            inList = true
+          }
+          htmlLines.push(`<li>${line.replace(/^- /, "")}</li>`)
+        } else {
+          closeList()
+          htmlLines.push(`<p>${line}</p>`)
+        }
+      }
+      closeList()
+      reportHtml = htmlLines.join(" ")
     }
 
-    // Informe GBP: se genera con IA y se envía por email tras la bienvenida.
-    try {
-      await sendGbpReport(
-        email,
-        {
-          businessName: business,
-          contactName: name,
-          googleMapsUrl: mapsUrl,
-          message: message || null,
-        },
-        data.id
-      )
-    } catch (e) {
-      console.error("GBP report email error:", e)
-    }
+    // HTML unificado del email de bienvenida + onboarding + informe
+    const unifiedHtml = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0;">🚀 ¡Bienvenido a ${companyName}!</h1>
+      </div>
+      <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+        <p>Hola <strong>${name}</strong>,</p>
+        
+        <p>¡Nos alegra que <strong>${business}</strong> se una a nosotros! Hemos preparado esta información completa para ayudarte a hacer crecer tu negocio.</p>
+
+        <h3>Así trabajamos juntos</h3>
+        <p>Nuestro proceso en 4 pasos:</p>
+        <ol>
+          <li><strong>Análisis inicial gratuito</strong> — revisamos tu presencia online, tus reseñas en Google y tu posicionamiento actual.</li>
+          <li><strong>Plan personalizado</strong> — te proponemos los servicios que mejor se adaptan a tu negocio y a tu presupuesto.</li>
+          <li><strong>Nos ponemos en marcha</strong> — activamos tu estrategia y empezamos a conseguir resultados.</li>
+          <li><strong>Seguimiento mensual</strong> — te enviamos un informe con todo lo que hemos hecho y los resultados obtenidos.</li>
+        </ol>
+
+        <h3>¿Qué necesitamos de ti?</h3>
+        <p>Para empezar, será muy útil que nos faciltes el enlace de tu perfil de Google Business Profile (Google Maps). Si no lo tienes, ¡nosotros te ayudamos a crearlo!</p>
+
+        ${reportHtml ? `<h3>📊 Tu informe gratuito de presencia en Google</h3>${reportHtml}` : ""}
+
+        <p>Si tienes cualquier duda, responde directamente a este email o pide una llamada gratuita sin compromiso.</p>
+        <p>¡Vamos a por ello!<br><strong>Equipo de ${companyName}</strong></p>
+      </div>
+    </body>
+    </html>
+    `
+
+    await sendEmail(
+      email,
+      `¡Bienvenido a ${companyName} - Tu informe gratuito incluido`,
+      unifiedHtml
+    )
 
     return NextResponse.json({
       success: true,
-      message: "Lead creado correctamente",
+      message: "Lead creado y email de bienvenida enviado",
       lead: data,
     })
   } catch (error) {
+    console.error("Contact form error:", error)
     return NextResponse.json(
       { success: false, error: "Error al procesar el formulario" },
       { status: 500 }

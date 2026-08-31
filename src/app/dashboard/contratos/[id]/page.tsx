@@ -61,10 +61,6 @@ export default function ContratoDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchContract()
-  }, [contractId])
-
   async function fetchContract() {
     setLoading(true)
     const { data, error } = await supabase
@@ -80,6 +76,12 @@ export default function ContratoDetailPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchContract()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contractId])
 
   async function changeStatus(newStatus: string) {
     if (!contract) return

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import Link from "next/link"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js"
 
@@ -260,7 +261,7 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b px-6 py-4 flex items-center justify-center">
-        <a href="/" className="text-xl font-bold">{process.env.NEXT_PUBLIC_APP_NAME || "Agencia Marketing"}</a>
+        <Link href="/" className="text-xl font-bold">{process.env.NEXT_PUBLIC_APP_NAME || "Agencia Marketing"}</Link>
       </header>
       <main className="flex-1 w-full max-w-lg mx-auto px-4 py-8">{children}</main>
       <footer className="py-6 text-center text-xs text-gray-400">

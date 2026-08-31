@@ -1,16 +1,3 @@
--- ============================================================
--- Migración 002: Reconciliación de esquema (antiguo -> canónico)
--- Ejecuta este script completo en:
---   Supabase Dashboard → SQL Editor → New query → Run
--- Idempotente.
---
--- Alinea una base que ya tiene el esquema ANTIGUO al esquema
--- CANÓNICO que consume el código de la app, SIN borrar datos.
--- ============================================================
-
--- ============================================================
--- email_sends: añadir columnas que usa el código (send.ts)
--- ============================================================
 alter table public.email_sends
   add column if not exists "from" text;
 alter table public.email_sends
@@ -43,9 +30,6 @@ begin
   end if;
 end $$;
 
--- ============================================================
--- social_accounts: canónico usa is_active/token_expires_at/last_synced_at
--- ============================================================
 alter table public.social_accounts
   add column if not exists is_active boolean default true;
 alter table public.social_accounts
@@ -62,9 +46,6 @@ begin
   end if;
 end $$;
 
--- ============================================================
--- social_posts: canónico usa engagement_likes/comments/shares
--- ============================================================
 alter table public.social_posts
   add column if not exists engagement_likes integer default 0;
 alter table public.social_posts
@@ -72,9 +53,6 @@ alter table public.social_posts
 alter table public.social_posts
   add column if not exists engagement_shares integer default 0;
 
--- ============================================================
--- seo_audits: canónico usa issues_found/results/recommendations(text)
--- ============================================================
 alter table public.seo_audits
   add column if not exists issues_found integer default 0;
 alter table public.seo_audits
@@ -82,16 +60,13 @@ alter table public.seo_audits
 alter table public.seo_audits
   add column if not exists recommendations text;
 
--- ============================================================
--- review_requests: canónico usa customer_name/customer_phone/customer_email
--- ============================================================
-alter table public.review_requests
-  add column if not exists customer_phone text;
 alter table public.review_requests
   add column if not exists review_id uuid references public.reviews on delete set null;
 alter table public.review_requests
   add column if not exists platform text default 'google'
     check (platform in ('google', 'trustpilot', 'facebook', 'yelp'));
+alter table public.review_requests
+  add column if not exists customer_phone text;
 alter table public.review_requests
   add column if not exists message text;
 alter table public.review_requests
@@ -112,17 +87,11 @@ end $$;
 update public.review_requests set status = 'completed' where status = 'reviewed';
 update public.review_requests set status = 'failed' where status = 'expired';
 
--- ============================================================
--- email_templates: canónico usa is_active/updated_at
--- ============================================================
 alter table public.email_templates
   add column if not exists is_active boolean default true;
 alter table public.email_templates
   add column if not exists updated_at timestamptz default now();
 
--- ============================================================
--- reports: canónico usa report_type/period_start/period_end/status
--- ============================================================
 alter table public.reports
   add column if not exists report_type text;
 alter table public.reports
@@ -132,9 +101,19 @@ alter table public.reports
 alter table public.reports
   add column if not exists status text;
 
--- ============================================================
--- lead_status_changes: canónico usa old_status/new_status/changed_at
--- ============================================================
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema='public' and table_name='reports'
+             and column_name='report_type') and not
+      exists (select 1 from information_schema.columns
+              where table_schema='public' and table_name='reports'
+              and column_name='type') then
+    alter table public.reports add column type text;
+    update public.reports set type = report_type where (type is null or type = '');
+  end if;
+end $$;
+
 alter table public.lead_status_changes
   add column if not exists old_status text;
 alter table public.lead_status_changes
@@ -142,19 +121,45 @@ alter table public.lead_status_changes
 alter table public.lead_status_changes
   add column if not exists changed_at timestamptz default now();
 
--- ============================================================
--- automation_logs: canónico usa action/details/status
--- ============================================================
-alter table public.automation_logs
-  add column if not exists error_message text;
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema='public' and table_name='lead_status_changes'
+             and column_name='old_status') and not
+      exists (select 1 from information_schema.columns
+              where table_schema='public' and table_name='lead_status_changes'
+              and column_name='from_status') then
+    alter table public.lead_status_changes add column from_status text;
+    alter table public.lead_status_changes add column to_status text;
+    update public.lead_status_changes set from_status = old_status, to_status = new_status;
+  end if;
+end $$;
+
 alter table public.automation_logs
   add column if not exists entity_type text;
 alter table public.automation_logs
   add column if not exists entity_id uuid;
+alter table public.automation_logs
+  add column if not exists error_message text;
 
--- ============================================================
--- settings: canónico usa category/description
--- ============================================================
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema='public' and table_name='automation_logs'
+             and column_name='target_type') then
+    update public.automation_logs set entity_type = target_type
+      where (entity_type is null or entity_type = '');
+  end if;
+  if exists (select 1 from information_schema.columns
+             where table_schema='public' and table_name='automation_logs'
+             and column_name='target_id') then
+    update public.automation_logs set entity_id = target_id where entity_id is null;
+  end if;
+end $$;
+
+update public.automation_logs set status = 'error' where status = 'failed';
+update public.automation_logs set status = 'pending' where status = 'skipped';
+
 alter table public.settings
   add column if not exists category text;
 alter table public.settings
@@ -162,9 +167,6 @@ alter table public.settings
 alter table public.settings
   add column if not exists created_at timestamptz default now();
 
--- ============================================================
--- clients: columnas Stripe (idempotente)
--- ============================================================
 alter table public.clients
   add column if not exists stripe_customer_id text;
 alter table public.clients
@@ -172,9 +174,6 @@ alter table public.clients
 create index if not exists idx_clients_stripe_customer on public.clients(stripe_customer_id);
 create index if not exists idx_clients_stripe_pm on public.clients(stripe_default_payment_method_id);
 
--- ============================================================
--- invoices: columnas Stripe + payment_token (idempotente)
--- ============================================================
 alter table public.invoices
   add column if not exists stripe_payment_intent_id text;
 alter table public.invoices
@@ -185,9 +184,6 @@ create index if not exists idx_invoices_stripe_pi on public.invoices(stripe_paym
 create index if not exists idx_invoices_payment_token
   on public.invoices(payment_token) where payment_token is not null;
 
--- ============================================================
--- Generador de token de pago (idempotente)
--- ============================================================
 create or replace function public.generate_payment_token()
 returns text
 language sql

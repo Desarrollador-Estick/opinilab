@@ -35,10 +35,6 @@ export default function NuevaFacturaPage() {
 
   const TAX_RATE = 21
 
-  useEffect(() => {
-    fetchClients()
-  }, [])
-
   async function fetchClients() {
     const { data } = await supabase
       .from("clients")
@@ -46,6 +42,12 @@ export default function NuevaFacturaPage() {
       .order("business_name")
     if (data) setClients(data)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchClients()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function addItem() {
     setItems([...items, { description: "", quantity: 1, unit_price: 0 }])

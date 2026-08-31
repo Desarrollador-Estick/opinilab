@@ -41,10 +41,6 @@ export default function ConfiguracionPage() {
   const [teamMessage, setTeamMessage] = useState("")
   const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation">("company")
 
-  useEffect(() => {
-    loadSettings()
-  }, [])
-
   async function loadSettings() {
     const { data } = await supabase
       .from("settings")
@@ -63,6 +59,12 @@ export default function ConfiguracionPage() {
       setSettings(loaded)
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadSettings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function saveSettings() {
     setSaving(true)

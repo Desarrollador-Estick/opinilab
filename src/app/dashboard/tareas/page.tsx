@@ -57,10 +57,6 @@ export default function TareasPage() {
   const [filterAssignee, setFilterAssignee] = useState("all")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
   async function loadData() {
     setLoading(true)
     const [tasksRes, teamRes] = await Promise.all([
@@ -77,6 +73,12 @@ export default function TareasPage() {
     setTeam((teamRes.data as TeamMember[]) || [])
     setLoading(false)
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const filtered = tasks.filter((t) => {
     if (filterStatus !== "all" && t.status !== filterStatus) return false

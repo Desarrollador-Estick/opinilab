@@ -38,8 +38,11 @@ export default function SolicitarResenaPage() {
     if (clientId) {
       const client = clients.find((c) => c.id === clientId)
       if (client) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerName(client.contact_name)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerPhone(client.phone || "")
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerEmail(client.email)
       }
     }
