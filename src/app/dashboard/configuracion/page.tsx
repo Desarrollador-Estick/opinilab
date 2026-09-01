@@ -50,13 +50,20 @@ export default function ConfiguracionPage() {
   const [teamEmail, setTeamEmail] = useState("")
   const [teamLoading, setTeamLoading] = useState(false)
   const [teamMessage, setTeamMessage] = useState("")
-  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "api" | "marketing">("company")
+  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "api" | "marketing" | "security">("company")
   const [apiStatus, setApiStatus] = useState<Record<string, boolean> | null>(null)
   const [apiLoading, setApiLoading] = useState(false)
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
   const [featureLoading, setFeatureLoading] = useState(false)
   const [featureSaving, setFeatureSaving] = useState(false)
   const [featureSaved, setFeatureSaved] = useState(false)
+  const [mfaEnabled, setMfaEnabled] = useState(false)
+  const [mfaLoading, setMfaLoading] = useState(false)
+  const [mfaQr, setMfaQr] = useState<string | null>(null)
+  const [mfaRecovery, setMfaRecovery] = useState<string[]>([])
+  const [mfaCode, setMfaCode] = useState("")
+  const [mfaError, setMfaError] = useState("")
+  const [mfaMessage, setMfaMessage] = useState("")
 
   async function loadSettings() {
     const { data } = await supabase
@@ -127,6 +134,104 @@ export default function ConfiguracionPage() {
     }
   }
 
+  async function loadMfaStatus() {
+    setMfaLoading(true)
+    try {
+      const res = await fetch("/api/auth/mfa/status")
+      if (res.ok) {
+        const json = await res.json()
+        setMfaEnabled(Boolean(json.enabled))
+      }
+    } catch {
+      setMfaEnabled(false)
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  async function handleStartMfaSetup() {
+    setMfaLoading(true)
+    setMfaError("")
+    setMfaQr(null)
+    setMfaRecovery([])
+    setMfaCode("")
+    try {
+      const res = await fetch("/api/auth/mfa/setup", { method: "POST" })
+      const json = await res.json()
+      if (!json.success) {
+        setMfaError(json.error || "No se pudo iniciar la configuración.")
+        return
+      }
+      setMfaQr(json.qrDataUrl)
+      setMfaRecovery(json.recoveryCodes ?? [])
+      setMfaMessage("Escanea el QR y verifica con un código para activar 2FA.")
+    } catch {
+      setMfaError("Error al iniciar la configuración.")
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  async function handleConfirmMfaSetup(e: React.FormEvent) {
+    e.preventDefault()
+    if (mfaCode.trim().length < 6) return
+    setMfaLoading(true)
+    setMfaError("")
+    try {
+      const res = await fetch("/api/auth/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: mfaCode.trim() }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setMfaError(json.error || "Código inválido.")
+        return
+      }
+      setMfaEnabled(true)
+      setMfaQr(null)
+      setMfaRecovery([])
+      setMfaCode("")
+      setMfaMessage("2FA activado correctamente.")
+      setTimeout(() => setMfaMessage(""), 4000)
+    } catch {
+      setMfaError("Error al activar 2FA.")
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  async function handleDisableMfa(e: React.FormEvent) {
+    e.preventDefault()
+    if (mfaCode.trim().length < 6) {
+      setMfaError("Introduce tu código de 6 dígitos actual para desactivar 2FA.")
+      return
+    }
+    if (!window.confirm("¿Seguro que quieres desactivar la verificación en dos pasos?")) return
+    setMfaLoading(true)
+    setMfaError("")
+    try {
+      const res = await fetch("/api/auth/mfa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: mfaCode.trim() }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setMfaError(json.error || "No se pudo desactivar.")
+        return
+      }
+      setMfaEnabled(false)
+      setMfaCode("")
+      setMfaMessage("2FA desactivado.")
+      setTimeout(() => setMfaMessage(""), 4000)
+    } catch {
+      setMfaError("Error al desactivar 2FA.")
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSettings()
@@ -144,6 +249,13 @@ export default function ConfiguracionPage() {
     if (activeSection === "marketing") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadFeatures()
+    }
+  }, [activeSection])
+
+  useEffect(() => {
+    if (activeSection === "security") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadMfaStatus()
     }
   }, [activeSection])
 
@@ -182,6 +294,7 @@ export default function ConfiguracionPage() {
     { id: "team" as const, label: "Equipo", icon: "👥" },
     { id: "automation" as const, label: "Automatización", icon: "⚙️" },
     { id: "marketing" as const, label: "Marketing", icon: "📢" },
+    { id: "security" as const, label: "Seguridad", icon: "🔐" },
     { id: "api" as const, label: "API & Logo", icon: "🔑" },
   ]
 
@@ -613,6 +726,141 @@ export default function ConfiguracionPage() {
               Próximamente: subida directa desde el panel. Por ahora, sustituye el archivo{" "}
               <code>public/logo.png</code> en el repositorio y despliega.
             </p>
+          </div>
+        </div>
+      )}
+
+      {activeSection === "security" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h3 className="font-semibold">Seguridad · Verificación en dos pasos (2FA)</h3>
+            <p className="text-sm text-gray-500">
+              Añade una capa extra de seguridad con una aplicación de autenticación (Google
+              Authenticator, Authy, 1Password…). Se pide un código al iniciar sesión.
+            </p>
+
+            {mfaMessage && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+                {mfaMessage}
+              </div>
+            )}
+            {mfaError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {mfaError}
+              </div>
+            )}
+
+            {mfaLoading && <p className="text-sm text-gray-500">Cargando...</p>}
+
+            {!mfaEnabled && !mfaQr && !mfaLoading && (
+              <div className="border rounded-lg p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Activar 2FA</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Protege tu cuenta de accesos no autorizados.
+                  </p>
+                </div>
+                <button
+                  onClick={handleStartMfaSetup}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+                >
+                  Configurar
+                </button>
+              </div>
+            )}
+
+            {!mfaEnabled && mfaQr && (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={mfaQr} alt="Código QR para 2FA" className="rounded-lg border" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-2">Códigos de respaldo</p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Guárdalos en un lugar seguro. Solo se muestran una vez.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {mfaRecovery.map((c) => (
+                      <code
+                        key={c}
+                        className="bg-gray-100 rounded px-2 py-1 text-xs font-mono text-center"
+                      >
+                        {c}
+                      </code>
+                    ))}
+                  </div>
+                </div>
+                <form onSubmit={handleConfirmMfaSetup} className="space-y-3">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 text-sm tracking-widest text-center text-lg"
+                    placeholder="Código de 6 dígitos"
+                    disabled={mfaLoading}
+                    required
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={mfaLoading || mfaCode.trim().length < 6}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm"
+                    >
+                      {mfaLoading ? "Activando..." : "Activar 2FA"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMfaQr(null)
+                        setMfaRecovery([])
+                        setMfaCode("")
+                        setMfaError("")
+                      }}
+                      className="px-4 py-2 rounded-lg border hover:bg-gray-50 transition text-sm"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {mfaEnabled && (
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">2FA activado</p>
+                    <p className="text-xs text-green-600 mt-0.5">Protección de dos pasos activa.</p>
+                  </div>
+                  <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                    Activo
+                  </span>
+                </div>
+                <form onSubmit={handleDisableMfa} className="mt-4 space-y-3">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={mfaCode}
+                    onChange={(e) => setMfaCode(e.target.value)}
+                    className="w-full border rounded-lg px-4 py-2 text-sm tracking-widest text-center text-lg"
+                    placeholder="Introduce tu código actual para desactivar"
+                    disabled={mfaLoading}
+                    required
+                  />
+                  <button
+                    type="submit"
+                    disabled={mfaLoading || mfaCode.trim().length < 6}
+                    className="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition text-sm disabled:opacity-50"
+                  >
+                    {mfaLoading ? "Desactivando..." : "Desactivar 2FA"}
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       )}

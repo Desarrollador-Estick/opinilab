@@ -21,6 +21,9 @@ export interface Database {
           must_change_password: boolean
           avatar_url: string | null
           phone: string | null
+          totp_secret: string | null
+          totp_enabled: boolean
+          totp_recovery: string[] | null
           created_at: string
           updated_at: string
         }
@@ -33,6 +36,9 @@ export interface Database {
           must_change_password?: boolean
           avatar_url?: string | null
           phone?: string | null
+          totp_secret?: string | null
+          totp_enabled?: boolean
+          totp_recovery?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -45,6 +51,9 @@ export interface Database {
           must_change_password?: boolean
           avatar_url?: string | null
           phone?: string | null
+          totp_secret?: string | null
+          totp_enabled?: boolean
+          totp_recovery?: string[] | null
           created_at?: string
           updated_at?: string
         }
@@ -1093,6 +1102,44 @@ export interface Database {
           updated_at?: string
         }
         Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          id: string
+          user_id: string | null
+          action: string
+          details: Json | null
+          ip: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          action: string
+          details?: Json | null
+          ip?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          action?: string
+          details?: Json | null
+          ip?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_user_id_fkey",
+            columns: ["user_id"],
+            isOneToOne: false,
+            referencedRelation: "profiles",
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: Record<

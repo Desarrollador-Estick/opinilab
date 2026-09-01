@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { Database } from '@/types/database'
+import { isMfaVerifiedCookieValid } from '@/lib/auth/mfa-cookie'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -51,7 +52,7 @@ export async function updateSession(request: NextRequest) {
   // Con sesión: averiguar el rol del usuario desde profiles.
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, client_id, must_change_password')
+    .select('role, client_id, must_change_password, totp_enabled')
     .eq('id', user.id)
     .maybeSingle()
 
@@ -98,6 +99,29 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
+  }
+
+  // --- 2FA / MFA (roles de agencia) ---
+  const totpEnabled = Boolean(profile?.totp_enabled)
+  const isMfaSetupPath = pathname === '/login/mfa' || pathname === '/login/mfa/setup'
+  const isMfaLogoutPath = pathname === '/auth/logout'
+
+  if (!isMfaSetupPath && !isMfaLogoutPath && pathname.startsWith('/dashboard')) {
+    // Usuario con 2FA activo debe haber validado el TOTP en esta sesión.
+    if (totpEnabled) {
+      const cookie = request.cookies.get('opinilab_mfa_verified')?.value
+      const valid = cookie ? await isMfaVerifiedCookieValid(cookie, user.id) : false
+      if (!valid) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login/mfa'
+        return NextResponse.redirect(url)
+      }
+    } else if (role === 'admin') {
+      // El admin está obligado a activar 2FA antes de usar el panel.
+      const url = request.nextUrl.clone()
+      url.pathname = '/login/mfa/setup'
+      return NextResponse.redirect(url)
+    }
   }
 
   return supabaseResponse

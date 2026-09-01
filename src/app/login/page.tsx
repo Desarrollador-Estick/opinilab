@@ -37,6 +37,30 @@ export default function LoginPage() {
 
     const role = profile?.role ?? "client"
 
+    // --- 2FA / MFA (solo roles de agencia) ---
+    if (role && role !== "client") {
+      let mfaEnabled = false
+      try {
+        const res = await fetch("/api/auth/mfa/status")
+        const json = await res.json()
+        mfaEnabled = Boolean(json.enabled)
+      } catch {
+        mfaEnabled = false
+      }
+      if (mfaEnabled) {
+        router.push("/login/mfa")
+        router.refresh()
+        return
+      }
+      // El admin está obligado a activar 2FA antes de entrar.
+      if (role === "admin") {
+        router.push("/login/mfa/setup")
+        router.refresh()
+        return
+      }
+      // manager/member sin 2FA: entran directo (siguen el flujo normal de abajo).
+    }
+
     // Respetar la URL de origen si el rol lo permite.
     const params = new URLSearchParams(window.location.search)
     const redirectedFrom = params.get("redirectedFrom")
