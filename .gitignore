@@ -63,3 +63,7 @@ E2E_PRODUCCION_NOTAS.md
 
 # Assets sueltos / temporales
 *.jfif
+
+# Documentación local de desarrollo / notas de trabajo (no subir)
+passo.txt
+QUE_HACE_OPINILAB.txt

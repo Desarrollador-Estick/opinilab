@@ -39,7 +39,9 @@ export default function ConfiguracionPage() {
   const [teamEmail, setTeamEmail] = useState("")
   const [teamLoading, setTeamLoading] = useState(false)
   const [teamMessage, setTeamMessage] = useState("")
-  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation">("company")
+  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "api">("company")
+  const [apiStatus, setApiStatus] = useState<Record<string, boolean> | null>(null)
+  const [apiLoading, setApiLoading] = useState(false)
 
   async function loadSettings() {
     const { data } = await supabase
@@ -60,11 +62,33 @@ export default function ConfiguracionPage() {
     }
   }
 
+  async function loadApiStatus() {
+    setApiLoading(true)
+    try {
+      const res = await fetch("/api/settings/api-status")
+      if (res.ok) {
+        const json = await res.json()
+        setApiStatus(json.keys ?? null)
+      }
+    } catch {
+      setApiStatus(null)
+    } finally {
+      setApiLoading(false)
+    }
+  }
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSettings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (activeSection === "api") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadApiStatus()
+    }
+  }, [activeSection])
 
   async function saveSettings() {
     setSaving(true)
@@ -100,6 +124,7 @@ export default function ConfiguracionPage() {
     { id: "email" as const, label: "Email", icon: "📧" },
     { id: "team" as const, label: "Equipo", icon: "👥" },
     { id: "automation" as const, label: "Automatización", icon: "⚙️" },
+    { id: "api" as const, label: "API & Logo", icon: "🔑" },
   ]
 
   return (
@@ -394,6 +419,110 @@ export default function ConfiguracionPage() {
           </div>
         </div>
       )}
+
+      {activeSection === "api" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h3 className="font-semibold">API & Integraciones</h3>
+            <p className="text-sm text-gray-500">
+              Estado de las claves de API configuradas en el servidor. Los valores de las claves se
+              gestionan como variables de entorno en el hosting (Netlify/Vercel), nunca se muestran aquí.
+            </p>
+
+            {apiLoading ? (
+              <p className="text-sm text-gray-500">Comprobando estado...</p>
+            ) : apiStatus ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <StatusRow
+                  label="Groq (IA)"
+                  ok={apiStatus.groq}
+                  hint="GROQ_API_KEY"
+                />
+                <StatusRow
+                  label="Resend (Email)"
+                  ok={apiStatus.resend}
+                  hint="RESEND_API_KEY"
+                />
+                <StatusRow
+                  label="Stripe (Pagos)"
+                  ok={apiStatus.stripe_secret}
+                  hint="STRIPE_SECRET_KEY"
+                />
+                <StatusRow
+                  label="Stripe Webhook"
+                  ok={apiStatus.stripe_webhook}
+                  hint="STRIPE_WEBHOOK_SECRET"
+                />
+                <StatusRow
+                  label="Supabase Service Role"
+                  ok={apiStatus.supabase_service}
+                  hint="SUPABASE_SERVICE_ROLE_KEY"
+                />
+                <StatusRow
+                  label="App URL"
+                  ok={apiStatus.app_url}
+                  hint="NEXT_PUBLIC_APP_URL"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-red-600">No se pudo comprobar el estado de las APIs.</p>
+            )}
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+              <p>
+                Si la IA no funciona (las respuestas automáticas, informes y copy fallan), es porque{" "}
+                <code>GROQ_API_KEY</code> no está configurada. Añádela desde el panel de variables de
+                entorno de Netlify (y vuelve a desplegar), o contacta con el administrador técnico.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h3 className="font-semibold">Logo de la agencia</h3>
+            <p className="text-sm text-gray-500">
+              Sube el logo que aparece en la web pública y en el panel. Se guarda en Supabase Storage.
+            </p>
+            <div className="flex items-center gap-4">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
+                alt="Logo actual"
+                className="w-16 h-16 object-contain bg-gray-50 border rounded-lg"
+              />
+              <label className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition cursor-pointer text-sm">
+                Subir nuevo logo
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <p className="text-xs text-gray-400">
+              Próximamente: subida directa desde el panel. Por ahora, sustituye el archivo{" "}
+              <code>public/logo.png</code> en el repositorio y despliega.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatusRow({ label, ok, hint }: { label: string; ok: boolean; hint: string }) {
+  return (
+    <div className="border rounded-lg p-3 flex items-center justify-between">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-gray-400 font-mono">{hint}</p>
+      </div>
+      <span
+        className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+          ok ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+        }`}
+      >
+        {ok ? "Configurado" : "Falta"}
+      </span>
     </div>
   )
 }
