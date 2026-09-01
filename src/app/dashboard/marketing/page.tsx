@@ -43,6 +43,8 @@ export default function MarketingPage() {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
   })
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiMessage, setAiMessage] = useState("")
 
   useEffect(() => {
     loadData()
@@ -99,6 +101,32 @@ export default function MarketingPage() {
       setActiveTab("calendar")
     }
     setCreating(false)
+  }
+
+  async function handleGenerateAi() {
+    setAiMessage("")
+    if (!selectedClient) {
+      setAiMessage("Selecciona un cliente para que la IA genere contenido editorial a su nombre.")
+      return
+    }
+    setAiLoading(true)
+    try {
+      const res = await fetch("/api/services/run-ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client_id: selectedClient, category: "social_media" }),
+      })
+      const json = await res.json()
+      if (!json.success) {
+        setAiMessage(json.error || "No se pudo generar el contenido con IA.")
+        return
+      }
+      setPostContent(json.content || "")
+    } catch {
+      setAiMessage("Error al conectar con la IA.")
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   function generateCalendarDays() {
@@ -314,12 +342,18 @@ export default function MarketingPage() {
               </button>
               <button
                 type="button"
-                className="px-4 py-2 rounded-lg border hover:bg-gray-50 transition text-sm"
-                onClick={() => alert("Función de IA próximamente")}
+                disabled={aiLoading || !selectedClient}
+                onClick={handleGenerateAi}
+                className="px-4 py-2 rounded-lg border hover:bg-gray-50 transition text-sm disabled:opacity-50"
               >
-                Generar con IA
+                {aiLoading ? "Generando..." : "Generar con IA"}
               </button>
             </div>
+            {aiMessage && (
+              <p className={`text-sm ${aiMessage.startsWith("Selecciona") ? "text-amber-600" : "text-red-600"}`}>
+                {aiMessage}
+              </p>
+            )}
           </form>
         </div>
       )}

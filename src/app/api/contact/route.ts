@@ -3,6 +3,7 @@ import { Resend } from "resend"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { generateGbpReport } from "@/lib/ai/gbp-report"
+import { isFeatureEnabled, FEATURE_KEYS } from "@/lib/settings"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -43,6 +44,14 @@ async function sendEmail(
 
 export async function POST(request: Request) {
   try {
+    const captureEnabled = await isFeatureEnabled(FEATURE_KEYS.leadsCapture)
+    if (!captureEnabled) {
+      return NextResponse.json(
+        { success: false, error: "La captación de leads está desactivada en estos momentos" },
+        { status: 403 }
+      )
+    }
+
     const { name, email, phone, business, message, googleMapsUrl } = await request.json()
 
     if (!name || !email || !business) {

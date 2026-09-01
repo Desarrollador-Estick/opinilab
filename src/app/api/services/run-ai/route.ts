@@ -2,12 +2,21 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { groqChat } from "@/lib/ai/groq"
 import { generateGbpReport } from "@/lib/ai/gbp-report"
+import { isFeatureEnabled, FEATURE_KEYS } from "@/lib/settings"
 
 // Ejecuta la IA correspondiente a un servicio de un cliente según su categoría.
 // Cada categoría de servicio (reviews, seo, email, social_media, ads, branding,
 // web) dispara un entregable de contenido generado con LLM (Groq).
 export async function POST(request: Request) {
   try {
+    const enabled = await isFeatureEnabled(FEATURE_KEYS.marketingAi)
+    if (!enabled) {
+      return NextResponse.json(
+        { success: false, error: "La generación de contenido con IA está desactivada desde la configuración" },
+        { status: 403 }
+      )
+    }
+
     const { client_id, category } = await request.json()
 
     if (!client_id || !category) {

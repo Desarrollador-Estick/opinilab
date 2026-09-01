@@ -3,6 +3,17 @@
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 
+const FEATURE_META: Record<string, { label: string; desc: string }> = {
+  feature_marketing_ai: {
+    label: "IA de Marketing (posts y contenido)",
+    desc: "Permite generar borradores de posts de redes sociales y contenido con inteligencia artificial.",
+  },
+  feature_leads_capture: {
+    label: "Captación de leads (formulario web)",
+    desc: "Permite recibir solicitudes de presupuesto desde la landing (crea leads y envía emails).",
+  },
+}
+
 interface Settings {
   company_name: string
   company_nif: string
@@ -39,9 +50,13 @@ export default function ConfiguracionPage() {
   const [teamEmail, setTeamEmail] = useState("")
   const [teamLoading, setTeamLoading] = useState(false)
   const [teamMessage, setTeamMessage] = useState("")
-  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "api">("company")
+  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "api" | "marketing">("company")
   const [apiStatus, setApiStatus] = useState<Record<string, boolean> | null>(null)
   const [apiLoading, setApiLoading] = useState(false)
+  const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
+  const [featureLoading, setFeatureLoading] = useState(false)
+  const [featureSaving, setFeatureSaving] = useState(false)
+  const [featureSaved, setFeatureSaved] = useState(false)
 
   async function loadSettings() {
     const { data } = await supabase
@@ -59,6 +74,41 @@ export default function ConfiguracionPage() {
         }
       })
       setSettings(loaded)
+    }
+  }
+
+  async function loadFeatures() {
+    setFeatureLoading(true)
+    try {
+      const res = await fetch("/api/settings/features")
+      if (res.ok) {
+        const json = await res.json()
+        setFeatureFlags((json.flags ?? {}) as Record<string, boolean>)
+      }
+    } catch {
+      // silencioso
+    } finally {
+      setFeatureLoading(false)
+    }
+  }
+
+  async function handleSaveFeatures() {
+    setFeatureSaving(true)
+    setFeatureSaved(false)
+    try {
+      const res = await fetch("/api/settings/features", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(featureFlags),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        setFeatureFlags((json.flags ?? {}) as Record<string, boolean>)
+        setFeatureSaved(true)
+        setTimeout(() => setFeatureSaved(false), 3000)
+      }
+    } finally {
+      setFeatureSaving(false)
     }
   }
 
@@ -87,6 +137,13 @@ export default function ConfiguracionPage() {
     if (activeSection === "api") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadApiStatus()
+    }
+  }, [activeSection])
+
+  useEffect(() => {
+    if (activeSection === "marketing") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadFeatures()
     }
   }, [activeSection])
 
@@ -124,6 +181,7 @@ export default function ConfiguracionPage() {
     { id: "email" as const, label: "Email", icon: "📧" },
     { id: "team" as const, label: "Equipo", icon: "👥" },
     { id: "automation" as const, label: "Automatización", icon: "⚙️" },
+    { id: "marketing" as const, label: "Marketing", icon: "📢" },
     { id: "api" as const, label: "API & Logo", icon: "🔑" },
   ]
 
@@ -416,6 +474,59 @@ export default function ConfiguracionPage() {
 { "crons": [{ "path": "/api/automation", "schedule": "0 8 * * *" }] }`}
               </pre>
             </div>
+          </div>
+        </div>
+      )}
+
+      {activeSection === "marketing" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Marketing</h3>
+                <p className="text-sm text-gray-500">
+                  Activa o desactiva funcionalidades de marketing. Los cambios se aplican al instante en toda la web.
+                </p>
+              </div>
+              <button
+                onClick={handleSaveFeatures}
+                disabled={featureSaving}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm"
+              >
+                {featureSaving ? "Guardando..." : featureSaved ? "✓ Guardado" : "Guardar cambios"}
+              </button>
+            </div>
+
+            {featureLoading ? (
+              <p className="text-sm text-gray-500">Cargando...</p>
+            ) : (
+              <div className="space-y-3">
+                {Object.entries(FEATURE_META).map(([key, meta]) => (
+                  <div key={key} className="border rounded-lg p-4 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">{meta.label}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{meta.desc}</p>
+                    </div>
+                    <button
+                      role="switch"
+                      aria-checked={Boolean(featureFlags[key])}
+                      onClick={() =>
+                        setFeatureFlags((prev) => ({ ...prev, [key]: !Boolean(prev[key]) }))
+                      }
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                        featureFlags[key] ? "bg-green-500" : "bg-gray-300"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          featureFlags[key] ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
