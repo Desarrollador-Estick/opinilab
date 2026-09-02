@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/ai-tasks/run",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
