@@ -24,6 +24,7 @@ interface Settings {
   invoice_next_number: number
   tax_rate: number
   payment_days: number
+  setup_fee: number
   email_provider: string
   email_from: string
 }
@@ -38,6 +39,7 @@ const defaultSettings: Settings = {
   invoice_next_number: 1,
   tax_rate: 21,
   payment_days: 30,
+  setup_fee: 0,
   email_provider: "resend",
   email_from: "",
 }
@@ -75,7 +77,7 @@ export default function ConfiguracionPage() {
       data.forEach((row) => {
         if (row.key in loaded) {
           ;(loaded as Record<string, unknown>)[row.key] =
-            row.key === "invoice_next_number" || row.key === "tax_rate" || row.key === "payment_days"
+            row.key === "invoice_next_number" || row.key === "tax_rate" || row.key === "payment_days" || row.key === "setup_fee"
               ? Number(row.value)
               : row.value
         }
@@ -423,6 +425,21 @@ export default function ConfiguracionPage() {
                 onChange={(e) => updateSetting("payment_days", Number(e.target.value))}
                 className="w-full border rounded-lg px-4 py-2 text-sm"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Setup de servicio (€)</label>
+              <input
+                type="number"
+                value={settings.setup_fee}
+                onChange={(e) => updateSetting("setup_fee", Number(e.target.value))}
+                min="0"
+                step="0.01"
+                className="w-full border rounded-lg px-4 py-2 text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Cargo de alta que se factura al contratar cada servicio nuevo.
+                {" "}0 para no cobrar setup.
+              </p>
             </div>
           </div>
           <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">

@@ -2,11 +2,18 @@
 
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { randomUUID } from "crypto"
+import Stripe from "stripe"
 import { createClient } from "@/lib/supabase/server"
 import { createClientRecord, updateClient, deleteClient } from "@/lib/supabase/queries"
 import { provisionClientAccess } from "./account-actions"
 import { sendClientCredentialsEmail } from "@/lib/email/client-credentials"
+import { sendEmail } from "@/lib/email/send"
+import { invoiceWithLinkEmail } from "@/lib/email/templates"
+import { generateInvoiceNumber } from "@/lib/utils"
 import { Database } from "@/types/database"
+
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
 
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"]
 type ClientUpdate = Database["public"]["Tables"]["clients"]["Update"]
@@ -187,11 +194,159 @@ export async function addClientServiceAction(
   const { error } = await supabase.from("client_services").insert(data)
   if (error) return { error: error.message }
 
+  // Cargo de setup (alta): si hay un importe configurado en Administración →
+  // Configuración → Facturación, se crea una factura inmediata y se intenta
+  // cobrar con la tarjeta guardada. Este paso nunca rompe la asignación.
+  await chargeSetupFee(supabase, clientId, serviceId)
+
   revalidatePath(`/dashboard/clientes/${clientId}`)
   return { success: true }
 }
 
-// Quita la asignación del servicio al cliente (borrado físico).
+// Crea y cobra la factura de setup (alta) al asignar un servicio nuevo.
+// - lee el importe desde settings ("setup_fee")
+// - crea una factura inmediata
+// - intenta cobrarla off_session con la tarjeta guardada
+// - si no hay tarjeta → marca "sent" y envía el email con enlace de pago
+// Nunca rompe la asignación del servicio: cualquier error solo se loguea.
+async function chargeSetupFee(supabase: any, clientId: string, serviceId: string) {
+  try {
+    const { data: feeRows } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "setup_fee")
+      .maybeSingle()
+    const setupFee = Number(feeRows?.value ?? 0)
+    if (!feeRows || isNaN(setupFee) || setupFee <= 0) return
+
+    const [serviceRes, clientRes] = await Promise.all([
+      supabase
+        .from("services")
+        .select("name, billing_cycle")
+        .eq("id", serviceId)
+        .maybeSingle(),
+      supabase
+        .from("clients")
+        .select("id, business_name, contact_name, email, status, stripe_customer_id, stripe_default_payment_method_id")
+        .eq("id", clientId)
+        .maybeSingle(),
+    ])
+    const service = Array.isArray(serviceRes.data) ? serviceRes.data[0] : serviceRes.data
+    const client = Array.isArray(clientRes.data) ? clientRes.data[0] : clientRes.data
+    if (!client?.email) return
+
+    const { count } = await supabase
+      .from("invoices")
+      .select("id", { count: "exact", head: true })
+    const year = new Date().getFullYear()
+    const invoiceNumber = generateInvoiceNumber(year, (count || 0) + 1)
+    const paymentToken = randomUUID().replace(/-/g, "")
+
+    const issueDate = new Date().toISOString().split("T")[0]
+    const due = new Date()
+    due.setDate(due.getDate() + 30)
+    const dueDate = due.toISOString().split("T")[0]
+
+    const subtotal = Math.round(setupFee * 100) / 100
+    const tax_rate = 21
+    const taxAmount = Math.round(subtotal * (tax_rate / 100) * 100) / 100
+    const total = Math.round((subtotal + taxAmount) * 100) / 100
+
+    const { data: invoice, error: invoiceError } = await supabase
+      .from("invoices")
+      .insert({
+        client_id: clientId,
+        invoice_number: invoiceNumber,
+        status: "draft",
+        subtotal,
+        tax_rate,
+        tax_amount: taxAmount,
+        total,
+        issue_date: issueDate,
+        due_date: dueDate,
+        notes: `Setup de alta del servicio ${service?.name ?? ""}`.trim(),
+        payment_token: paymentToken,
+      })
+      .select()
+      .single()
+
+    if (invoiceError || !invoice) {
+      console.warn("[setup] No se pudo crear la factura de setup:", invoiceError?.message || "sin datos")
+      return
+    }
+
+    await supabase.from("invoice_items").insert({
+      invoice_id: invoice.id,
+      description: `Setup de alta - ${service?.name ?? "servicio"}`,
+      quantity: 1,
+      unit_price: setupFee,
+      total: setupFee,
+    })
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const payUrl = `${appUrl}/pagar/${paymentToken}`
+
+    // Cargo automático con la tarjeta guardada.
+    if (stripe && client.stripe_customer_id && client.stripe_default_payment_method_id) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(total * 100),
+          currency: "eur",
+          customer: client.stripe_customer_id,
+          payment_method: client.stripe_default_payment_method_id,
+          off_session: true,
+          confirm: true,
+          metadata: {
+            client_id: clientId,
+            invoice_id: invoice.id,
+            invoice_number: invoiceNumber,
+            type: "setup",
+          },
+        })
+
+        await supabase
+          .from("invoices")
+          .update({ stripe_payment_intent_id: paymentIntent.id, updated_at: new Date().toISOString() })
+          .eq("id", invoice.id)
+
+        if (paymentIntent.status === "succeeded") {
+          await supabase
+            .from("invoices")
+            .update({ status: "paid", paid_at: new Date().toISOString(), stripe_payment_method: "card", updated_at: new Date().toISOString() })
+            .eq("id", invoice.id)
+          await supabase.from("payments").insert({
+            invoice_id: invoice.id,
+            amount: total,
+            payment_method: "card",
+            payment_date: new Date().toISOString().split("T")[0],
+            reference: paymentIntent.id,
+            notes: `Cobro setup de alta (${paymentIntent.id})`,
+          })
+          return
+        }
+      } catch (e: any) {
+        console.warn("[setup] Cargo automático fallido:", e?.message)
+      }
+    }
+
+    // Sin tarjeta guardada o cobro fallido: factura enviada con enlace de pago.
+    await supabase
+      .from("invoices")
+      .update({ status: "sent", updated_at: new Date().toISOString() })
+      .eq("id", invoice.id)
+
+    await sendEmail({
+      to: client.email,
+      template: "invoice",
+      subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || "Agencia Marketing"}`,
+      html: invoiceWithLinkEmail(invoiceNumber, total, dueDate, client.contact_name || client.business_name, payUrl).html,
+      clientId: clientId,
+      data: { invoiceNumber, total, dueDate, clientName: client.business_name, payUrl },
+    })
+  } catch (e) {
+    console.warn("[setup] Error procesando el cargo de setup:", e instanceof Error ? e.message : e)
+  }
+}
 export async function removeClientServiceAction(
   clientServiceId: string
 ): Promise<ClientServiceState> {
