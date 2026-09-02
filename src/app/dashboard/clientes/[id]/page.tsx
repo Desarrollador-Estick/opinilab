@@ -29,17 +29,24 @@ export default async function ClienteDetailPage({
     invoicesResult,
     contractsResult,
     reviewsResult,
+    toolsResult,
   ] = await Promise.all([
     getClientServices(supabase, id),
     getInvoices(supabase, id),
     getContracts(supabase, id),
     getReviews(supabase, id),
+    supabase
+      .from("client_tools")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false }),
   ])
 
   const services = servicesResult.data ?? []
   const invoices = invoicesResult.data ?? []
   const contracts = contractsResult.data ?? []
   const reviews = reviewsResult.data ?? []
+  const clientTools = toolsResult.data ?? []
 
   const { data: catalogResult } = await supabase
     .from("services")
@@ -154,6 +161,64 @@ export default async function ClienteDetailPage({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Herramientas y credenciales aportadas por el cliente */}
+      <div className="bg-white rounded-xl border p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg">🔑 Herramientas y credenciales</h3>
+          <Link
+            href="/portal/herramientas"
+            className="text-sm text-blue-600 hover:underline"
+          >
+            Gestionar
+          </Link>
+        </div>
+        {clientTools.length === 0 ? (
+          <p className="text-gray-500 text-center py-4 text-sm">
+            El cliente aún no ha aportado herramientas. Puede dejarlas en su portal
+            (Mis herramientas) y aparecerán aquí.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {clientTools.map((tool) => (
+              <div
+                key={tool.id}
+                className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">{tool.tool_name}</p>
+                  <p className="text-xs text-gray-500">{tool.tool_type}</p>
+                  {tool.url && (
+                    <a
+                      href={tool.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline break-all"
+                    >
+                      {tool.url}
+                    </a>
+                  )}
+                  {tool.username && (
+                    <p className="text-xs text-gray-600 mt-1">
+                      Usuario: {tool.username}
+                    </p>
+                  )}
+                  {tool.password_enc && (
+                    <p className="text-xs text-gray-600">
+                      Contraseña: <span className="font-mono">{tool.password_enc}</span>
+                    </p>
+                  )}
+                  {tool.notes && (
+                    <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">
+                      {tool.notes}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

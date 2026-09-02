@@ -1073,6 +1073,52 @@ export interface Database {
           }
         ]
       }
+      client_tools: {
+        Row: {
+          id: string
+          client_id: string
+          tool_type: 'gbp' | 'social_media' | 'ads' | 'web' | 'email' | 'other'
+          tool_name: string
+          url: string | null
+          username: string | null
+          password_enc: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          tool_type: 'gbp' | 'social_media' | 'ads' | 'web' | 'email' | 'other'
+          tool_name: string
+          url?: string | null
+          username?: string | null
+          password_enc?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          tool_type?: 'gbp' | 'social_media' | 'ads' | 'web' | 'email' | 'other'
+          tool_name?: string
+          url?: string | null
+          username?: string | null
+          password_enc?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'client_tools_client_id_fkey',
+            columns: ['client_id'],
+            referencedRelation: 'clients',
+            referencedColumns: ['id']
+          }
+        ]
+      }
       settings: {
         Row: {
           id: string

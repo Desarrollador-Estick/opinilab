@@ -35,7 +35,8 @@ export async function sendClientCredentialsEmail(opts: {
             <p style="margin:0 0 16px;line-height:1.6;color:#111827">
               Nos alegra darle la bienvenida. Hemos creado su cuenta de cliente en
               <strong>${company}</strong>: a partir de ahora podrá consultar su contrato,
-              ver y pagar sus facturas, y seguir la evolución de su cuenta.
+              ver y pagar sus facturas, seguir la evolución de su cuenta y aportar los
+              accesos de las herramientas que necesitamos para sus servicios.
             </p>
 
             <h3 style="margin:24px 0 12px;font-size:15px;color:#111827">Cómo darse de alta</h3>
@@ -43,6 +44,7 @@ export async function sendClientCredentialsEmail(opts: {
               <li>Entre en el portal de cliente con el botón de abajo.</li>
               <li>Inicie sesión con su email y la contraseña temporal que le facilitamos a continuación.</li>
               <li>En el primer acceso el sistema le pedirá crear una contraseña personal nueva.</li>
+              <li>Una vez dentro, en <strong>Mis herramientas</strong> podrá dejar los accesos de Google Business Profile, redes sociales, anuncios, etc. que necesitemos para sus servicios.</li>
             </ol>
 
             <table style="border-collapse:collapse;width:100%;margin:0 0 20px">

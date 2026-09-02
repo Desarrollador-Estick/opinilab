@@ -199,8 +199,45 @@ export async function addClientServiceAction(
   // cobrar con la tarjeta guardada. Este paso nunca rompe la asignación.
   await chargeSetupFee(supabase, clientId, serviceId)
 
+  // Informa al cliente qué herramientas debe aportar para este servicio.
+  await notifyRequiredTools(supabase, clientId, serviceId)
+
   revalidatePath(`/dashboard/clientes/${clientId}`)
   return { success: true }
+}
+
+// Envía al cliente un email indicando las herramientas necesarias para el
+// servicio recién asignado, invitándole a dejarlas en su portal. Tolerante a
+// fallos: cualquier error solo se loguea, nunca rompe la asignación.
+async function notifyRequiredTools(supabase: any, clientId: string, serviceId: string) {
+  try {
+    const [serviceRes, clientRes] = await Promise.all([
+      supabase
+        .from("services")
+        .select("name, category")
+        .eq("id", serviceId)
+        .maybeSingle(),
+      supabase
+        .from("clients")
+        .select("email, contact_name, business_name")
+        .eq("id", clientId)
+        .maybeSingle(),
+    ])
+    const service = Array.isArray(serviceRes.data) ? serviceRes.data[0] : serviceRes.data
+    const client = Array.isArray(clientRes.data) ? clientRes.data[0] : clientRes.data
+    if (!client?.email || !service?.name || !service?.category) return
+
+    const { sendRequiredToolsEmail } = await import("@/lib/email/required-tools")
+    await sendRequiredToolsEmail({
+      email: client.email,
+      fullName: client.contact_name || undefined,
+      businessName: client.business_name || undefined,
+      serviceName: service.name,
+      category: service.category,
+    })
+  } catch (e) {
+    console.warn("[required-tools] Error notificando herramientas:", e instanceof Error ? e.message : e)
+  }
 }
 
 // Crea y cobra la factura de setup (alta) al asignar un servicio nuevo.
