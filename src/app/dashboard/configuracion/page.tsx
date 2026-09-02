@@ -25,6 +25,7 @@ interface Settings {
   tax_rate: number
   payment_days: number
   setup_fee: number
+  ai_free_quota: number
   email_provider: string
   email_from: string
 }
@@ -40,6 +41,7 @@ const defaultSettings: Settings = {
   tax_rate: 21,
   payment_days: 30,
   setup_fee: 0,
+  ai_free_quota: 0,
   email_provider: "resend",
   email_from: "",
 }
@@ -77,7 +79,7 @@ export default function ConfiguracionPage() {
       data.forEach((row) => {
         if (row.key in loaded) {
           ;(loaded as Record<string, unknown>)[row.key] =
-            row.key === "invoice_next_number" || row.key === "tax_rate" || row.key === "payment_days" || row.key === "setup_fee"
+            row.key === "invoice_next_number" || row.key === "tax_rate" || row.key === "payment_days" || row.key === "setup_fee" || row.key === "ai_free_quota"
               ? Number(row.value)
               : row.value
         }
@@ -439,6 +441,22 @@ export default function ConfiguracionPage() {
               <p className="text-xs text-gray-500 mt-1">
                 Cargo de alta que se factura al contratar cada servicio nuevo.
                 {" "}0 para no cobrar setup.
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Cupo de tareas IA gratis</label>
+              <input
+                type="number"
+                value={settings.ai_free_quota}
+                onChange={(e) => updateSetting("ai_free_quota", Number(e.target.value))}
+                min="0"
+                step="1"
+                className="w-full border rounded-lg px-4 py-2 text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Número de tareas IA (Groq) gratuitas que los clientes pueden pedir. Al agotarse,
+                las nuevas pasan a lista de espera hasta que las reactives.
+                {" "}0 para desactivar las tareas IA.
               </p>
             </div>
           </div>

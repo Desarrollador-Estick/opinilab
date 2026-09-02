@@ -1119,6 +1119,58 @@ export interface Database {
           }
         ]
       }
+      ai_tasks: {
+        Row: {
+          id: string
+          client_id: string
+          client_service_id: string | null
+          service_category: 'reviews' | 'seo' | 'email' | 'social_media' | 'ads' | 'branding' | 'web'
+          status: 'queued' | 'waiting' | 'processing' | 'done' | 'failed'
+          request_note: string | null
+          result: string | null
+          error: string | null
+          client_read: boolean
+          created_at: string
+          started_at: string | null
+          processed_at: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          client_service_id?: string | null
+          service_category: 'reviews' | 'seo' | 'email' | 'social_media' | 'ads' | 'branding' | 'web'
+          status?: 'queued' | 'waiting' | 'processing' | 'done' | 'failed'
+          request_note?: string | null
+          result?: string | null
+          error?: string | null
+          client_read?: boolean
+          created_at?: string
+          started_at?: string | null
+          processed_at?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          client_service_id?: string | null
+          service_category?: 'reviews' | 'seo' | 'email' | 'social_media' | 'ads' | 'branding' | 'web'
+          status?: 'queued' | 'waiting' | 'processing' | 'done' | 'failed'
+          request_note?: string | null
+          result?: string | null
+          error?: string | null
+          client_read?: boolean
+          created_at?: string
+          started_at?: string | null
+          processed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'ai_tasks_client_id_fkey',
+            columns: ['client_id'],
+            referencedRelation: 'clients',
+            referencedColumns: ['id']
+          }
+        ]
+      }
       settings: {
         Row: {
           id: string

@@ -7,6 +7,10 @@
     {
       "path": "/api/invoices/run-monthly",
       "schedule": "0 5 1 * *"
+    },
+    {
+      "path": "/api/ai-tasks/run",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
