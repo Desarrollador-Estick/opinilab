@@ -136,35 +136,30 @@ export async function POST(request: Request) {
       reportHtml = htmlLines.join(" ")
     }
 
-    // HTML unificado del email de bienvenida + onboarding + informe
+    // HTML unificado del email de bienvenida (claro, sin discurso) + informe
     const unifiedHtml = `
     <!DOCTYPE html>
     <html>
-    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0;">🚀 ¡Bienvenido a ${companyName}!</h1>
+    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f3f4f6;">
+      <div style="background: #0f172a; padding: 28px 32px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 20px;">Bienvenido a ${companyName}</h1>
+        <p style="color: #94a3b8; margin: 8px 0 0; font-size: 14px;">Hemos recibido tu solicitud</p>
       </div>
-      <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
-        <p>Hola <strong>${name}</strong>,</p>
-        
-        <p>¡Nos alegra que <strong>${business}</strong> se una a nosotros! Hemos preparado esta información completa para ayudarte a hacer crecer tu negocio.</p>
+      <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px;">
+        <p style="margin: 0 0 16px; line-height: 1.6;">Hola <strong>${name}</strong>,</p>
+        <p style="margin: 0 0 16px; line-height: 1.6;">Gracias por contactar con nosotros. Hemos recibido la solicitud de <strong>${business}</strong> y un asesor la revisará en las próximas horas laborables.</p>
 
-        <h3>Así trabajamos juntos</h3>
-        <p>Nuestro proceso en 4 pasos:</p>
-        <ol>
-          <li><strong>Análisis inicial gratuito</strong> — revisamos tu presencia online, tus reseñas en Google y tu posicionamiento actual.</li>
-          <li><strong>Plan personalizado</strong> — te proponemos los servicios que mejor se adaptan a tu negocio y a tu presupuesto.</li>
-          <li><strong>Nos ponemos en marcha</strong> — activamos tu estrategia y empezamos a conseguir resultados.</li>
-          <li><strong>Seguimiento mensual</strong> — te enviamos un informe con todo lo que hemos hecho y los resultados obtenidos.</li>
+        <h3 style="margin: 24px 0 12px; font-size: 15px;">Qué ocurre a continuación</h3>
+        <ol style="margin: 0 0 20px; padding-left: 20px; line-height: 1.7;">
+          <li>Revisamos la información de tu negocio y preparamos una propuesta.</li>
+          <li>Te contactamos para acordar los servicios y condiciones.</li>
+          <li>Al confirmar el alta, recibirás automáticamente tu acceso al portal de cliente con tus credenciales.</li>
         </ol>
 
-        <h3>¿Qué necesitamos de ti?</h3>
-        <p>Para empezar, será muy útil que nos faciltes el enlace de tu perfil de Google Business Profile (Google Maps). Si no lo tienes, ¡nosotros te ayudamos a crearlo!</p>
+        ${reportHtml ? `<h3 style="margin: 24px 0 12px; font-size: 15px;">Tu informe gratuito de presencia en Google</h3><div style="line-height: 1.6;">${reportHtml}</div>` : ""}
 
-        ${reportHtml ? `<h3>📊 Tu informe gratuito de presencia en Google</h3>${reportHtml}` : ""}
-
-        <p>Si tienes cualquier duda, responde directamente a este email o pide una llamada gratuita sin compromiso.</p>
-        <p>¡Vamos a por ello!<br><strong>Equipo de ${companyName}</strong></p>
+        <p style="margin: 20px 0 0; line-height: 1.6;">Si tienes alguna duda mientras tanto, responde directamente a este correo.</p>
+        <p style="margin: 20px 0 0;">Un saludo,<br><strong>Equipo de ${companyName}</strong></p>
       </div>
     </body>
     </html>
@@ -172,7 +167,7 @@ export async function POST(request: Request) {
 
     await sendEmail(
       email,
-      `¡Bienvenido a ${companyName} - Tu informe gratuito incluido`,
+      `Bienvenido a ${companyName} — tu informe gratuito y próximos pasos`,
       unifiedHtml
     )
 
