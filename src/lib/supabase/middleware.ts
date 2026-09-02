@@ -116,11 +116,6 @@ export async function updateSession(request: NextRequest) {
         url.pathname = '/login/mfa'
         return NextResponse.redirect(url)
       }
-    } else if (role === 'admin') {
-      // El admin está obligado a activar 2FA antes de usar el panel.
-      const url = request.nextUrl.clone()
-      url.pathname = '/login/mfa/setup'
-      return NextResponse.redirect(url)
     }
   }
 

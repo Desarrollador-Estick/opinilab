@@ -52,12 +52,6 @@ export default function LoginPage() {
         router.refresh()
         return
       }
-      // El admin está obligado a activar 2FA antes de entrar.
-      if (role === "admin") {
-        router.push("/login/mfa/setup")
-        router.refresh()
-        return
-      }
       // manager/member sin 2FA: entran directo (siguen el flujo normal de abajo).
     }
 
