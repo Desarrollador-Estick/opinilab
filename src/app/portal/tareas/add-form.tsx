@@ -18,7 +18,31 @@ export function AddTaskForm({
     e.preventDefault()
     setPending(true)
     const formData = new FormData(e.currentTarget)
-    const res = await addAiTaskAction(formData)
+
+    // 1) Obtener información de las imágenes subidas (nombres y tipos)
+    const files = formData.getAll("images") as File[]
+    let imageInfo: string = ""
+    if (files.length > 0) {
+      const infoParts: string[] = []
+      for (const file of files) {
+        infoParts.push(`${file.name} (${file.type || "image"})`)
+      }
+      imageInfo = "IMAGES: " + infoParts.join("; ")
+    }
+
+    // 2) Añadir la info de imágenes al request_note (sobreescribe o concatena)
+    const existingNote = formData.get("request_note") as string || ""
+    const noteWithImages = existingNote
+      ? existingNote + "\n" + imageInfo
+      : imageInfo
+
+    // 3) Preparar formData final: quitar images y forzar request_note con la info
+    const finalFormData = new FormData(e.currentTarget)
+    finalFormData.delete("images")
+    finalFormData.set("request_note", noteWithImages)
+
+    // 4) Llamar a la acción
+    const res = await addAiTaskAction(finalFormData)
     setState(res)
     setPending(false)
     if (res.success) {
@@ -61,14 +85,30 @@ export function AddTaskForm({
           placeholder="Por ejemplo: preferencias de tono, producto/servicio concreto, etc."
           className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
         />
+        {quotaExhausted && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+            El cupo de tareas gratis está agotado. Tu tarea entrará en la lista de
+            espera y se procesará en cuanto se reactive el cupo.
+          </div>
+        )}
       </div>
 
-      {quotaExhausted && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-          El cupo de tareas gratis está agotado. Tu tarea entrará en la lista de
-          espera y se procesará en cuanto se reactive el cupo.
-        </div>
-      )}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Imágenes para la IA (opcional)
+        </label>
+        <p className="text-xs text-gray-500 mb-1">
+          Sube imágenes (logo, fotos de producto, banners) que la IA usará al generar
+          contenido para el servicio seleccionado. Puedes subir varias a la vez.
+        </p>
+        <input
+          type="file"
+          name="images"
+          multiple
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm cursor-pointer bg-gray-50 select-none"
+          accept="image/*"
+        />
+      </div>
 
       {state?.error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">

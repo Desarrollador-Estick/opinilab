@@ -8,6 +8,15 @@ import { TOOL_TYPE_OPTIONS } from "./constants"
 
 type Tool = Database["public"]["Tables"]["client_tools"]["Row"]
 
+function parseImageNotes(notes: string | null): string[] {
+  if (!notes) return []
+  const marker = "---IMAGES---"
+  const idx = notes.indexOf(marker)
+  if (idx === -1) return []
+  const after = notes.substring(idx + marker.length)
+  return after.split("; ").filter((s) => s.trim())
+}
+
 export function ToolList({
   clientId,
   tools,
@@ -37,7 +46,10 @@ export function ToolList({
     router.refresh()
   }
 
-  async function handleUpdate(e: React.FormEvent<HTMLFormElement>, tool: Tool) {
+  async function handleUpdate(
+    e: React.FormEvent<HTMLFormElement>,
+    tool: Tool
+  ) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
     setBusy({ [tool.id]: true })
@@ -75,101 +87,7 @@ export function ToolList({
       {tools.map((tool) => {
         const isEditing = editingId === tool.id
         const isRevealed = !!revealed[tool.id]
-
-        if (isEditing) {
-          return (
-            <form
-              key={tool.id}
-              onSubmit={(e) => handleUpdate(e, tool)}
-              className="bg-white rounded-xl border p-5 space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm">Editar herramienta</h3>
-                <button
-                  type="button"
-                  onClick={() => setEditingId(null)}
-                  className="text-sm text-gray-400 hover:text-gray-600"
-                >
-                  ✕ Cerrar
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className={label}>Tipo</label>
-                  <select
-                    name="tool_type"
-                    defaultValue={tool.tool_type}
-                    className={field}
-                  >
-                    {TOOL_TYPE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className={label}>Nombre *</label>
-                  <input
-                    type="text"
-                    name="tool_name"
-                    defaultValue={tool.tool_name}
-                    className={field}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={label}>URL</label>
-                  <input type="url" name="url" defaultValue={tool.url ?? ""} className={field} />
-                </div>
-                <div>
-                  <label className={label}>Usuario</label>
-                  <input
-                    type="text"
-                    name="username"
-                    defaultValue={tool.username ?? ""}
-                    className={field}
-                  />
-                </div>
-                <div>
-                  <label className={label}>Contraseña</label>
-                  <input
-                    type="text"
-                    name="password_enc"
-                    defaultValue={tool.password_enc ?? ""}
-                    className={field}
-                    placeholder="Dejar en blanco para mantener la actual"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className={label}>Notas</label>
-                  <textarea
-                    name="notes"
-                    defaultValue={tool.notes ?? ""}
-                    rows={2}
-                    className={field}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingId(null)}
-                  className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={!!busy[tool.id]}
-                  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {busy[tool.id] ? "Guardando..." : "Guardar"}
-                </button>
-              </div>
-            </form>
-          )
-        }
+        const images = parseImageNotes(tool.notes)
 
         return (
           <div
@@ -210,13 +128,6 @@ export function ToolList({
                     <span className="font-mono">
                       {isRevealed ? tool.password_enc : "••••••••"}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setRevealed({ ...revealed, [tool.id]: !isRevealed })}
-                      className="ml-2 text-xs text-gray-500 hover:text-gray-700 underline"
-                    >
-                      {isRevealed ? "Ocultar" : "Ver"}
-                    </button>
                   </p>
                 )}
                 {tool.notes && (
@@ -224,6 +135,18 @@ export function ToolList({
                     <span className="text-gray-400">Notas: </span>
                     {tool.notes}
                   </p>
+                )}
+                {images.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {images.map((imgUrl, i) => (
+                      <img
+                        key={i}
+                        src={imgUrl}
+                        alt="Herramienta imagen"
+                        className="w-16 h-16 object-cover rounded-lg border"
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
             </div>

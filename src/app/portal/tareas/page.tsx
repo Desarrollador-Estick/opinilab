@@ -31,25 +31,18 @@ export default async function TareasPage() {
   if (!profile?.client_id) redirect("/dashboard")
   const clientId = profile.client_id
 
-  const [{ data: client }, { data: clientServices }, { data: tasks }, quota] =
+  const [{ data: client }, { data: clientServices }, { data: ai_tasks }, { data: allServices }, quota] =
     await Promise.all([
       supabase.from("clients").select("business_name").eq("id", clientId).maybeSingle(),
-      supabase
-        .from("client_services")
-        .select("id, services!inner(category)")
-        .eq("client_id", clientId)
-        .eq("status", "active"),
-      supabase
-        .from("ai_tasks")
-        .select("*")
-        .eq("client_id", clientId)
-        .order("created_at", { ascending: false }),
+      supabase.from("client_services").select("id, service_id, status").eq("client_id", clientId).eq("status", "active"),
+      supabase.from("ai_tasks").select("*").eq("client_id", clientId).order("created_at", { ascending: false }),
+      supabase.from("services").select("id, category").eq("is_active", true),
       getQuotaStatus(),
     ])
 
   const categories = new Set<AiTaskCategory>()
   for (const cs of clientServices ?? []) {
-    const svc = Array.isArray(cs.services) ? cs.services[0] : cs.services
+    const svc = allServices?.find((s) => s.id === cs.service_id)
     if (svc?.category) categories.add(svc.category as AiTaskCategory)
   }
   const available = CATEGORY_ORDER.filter((c) => categories.has(c))
@@ -103,13 +96,13 @@ export default async function TareasPage() {
 
       <div>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">Historial de tareas</h3>
-        {!tasks || tasks.length === 0 ? (
+        {!ai_tasks || ai_tasks.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-500 text-sm">
             Todavía no has solicitado ninguna tarea.
           </div>
         ) : (
           <div className="space-y-3">
-            {tasks.map((task) => (
+            {ai_tasks.map((task) => (
               <div key={task.id} className="bg-white border border-gray-200 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
