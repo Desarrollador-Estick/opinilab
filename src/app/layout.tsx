@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import CookieBanner from "@/components/cookie-banner";
 
 export const metadata: Metadata = {
   title: "OpiniLab — Tu Agencia de Marketing Digital, Potenciada con IA",
@@ -45,6 +46,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased bg-[var(--color-background)] text-[var(--color-foreground)]">
         {children}
+        <CookieBanner />
       </body>
     </html>
   );

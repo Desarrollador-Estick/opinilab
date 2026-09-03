@@ -116,16 +116,16 @@ export default function PublicLayout({
               <ul className="space-y-3 text-sm">
                 <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Pedir presupuesto</a></li>
                 <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Auditoría gratuita</a></li>
-                <li><a href="#faq" className="hover:text-white transition-colors cursor-pointer">Política de privacidad</a></li>
+                <li><Link href="/privacidad" className="hover:text-white transition-colors cursor-pointer">Política de privacidad</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-sm">&copy; 2026 OpiniLab. Todos los derechos reservados.</p>
             <div className="flex gap-6 text-sm">
-              <a href="#" className="hover:text-white transition-colors cursor-pointer">Términos</a>
-              <a href="#" className="hover:text-white transition-colors cursor-pointer">Privacidad</a>
-              <a href="#" className="hover:text-white transition-colors cursor-pointer">Cookies</a>
+              <Link href="/terminos" className="hover:text-white transition-colors cursor-pointer">Términos</Link>
+              <Link href="/privacidad" className="hover:text-white transition-colors cursor-pointer">Privacidad</Link>
+              <Link href="/cookies" className="hover:text-white transition-colors cursor-pointer">Cookies</Link>
             </div>
           </div>
         </div>
