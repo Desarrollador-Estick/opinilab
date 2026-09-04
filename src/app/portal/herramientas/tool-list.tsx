@@ -67,19 +67,19 @@ export function ToolList({
 
   if (tools.length === 0) {
     return (
-      <div className="bg-white rounded-xl border p-8 text-center text-gray-500 text-sm">
+      <div className="bg-white border border-[var(--color-border)] rounded-2xl p-8 text-center" style={{ color: "var(--color-muted-foreground)" }}>
         Aún no has añadido ninguna herramienta.
       </div>
     )
   }
 
-  const field = "w-full border rounded-lg px-3 py-2 text-sm"
-  const label = "block text-sm font-medium text-gray-700 mb-1"
+  const field = "w-full border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+  const label = "block text-sm font-medium mb-2"
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
           {error}
         </div>
       )}
@@ -92,78 +92,82 @@ export function ToolList({
         return (
           <div
             key={tool.id}
-            className="bg-white rounded-xl border p-4 flex items-start justify-between gap-4"
+            className="bg-white border border-[var(--color-border)] rounded-2xl p-5 hover:border-blue-200 hover:shadow-md transition-all duration-300"
           >
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {typeLabel[tool.tool_type] ?? tool.tool_type}
-                </span>
-                <p className="font-medium text-sm">{tool.tool_name}</p>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500 to-cyan-400 text-white">
+                    {typeLabel[tool.tool_type] ?? tool.tool_type}
+                  </span>
+                  <p className="font-semibold" style={{ color: "var(--color-foreground)" }}>{tool.tool_name}</p>
+                </div>
+
+                <div className="mt-3 space-y-1.5 text-sm">
+                  {tool.url && (
+                    <p>
+                      <span style={{ color: "var(--color-muted-foreground)" }}>URL: </span>
+                      <a
+                        href={tool.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium hover:underline"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        {tool.url}
+                      </a>
+                    </p>
+                  )}
+                  {tool.username && (
+                    <p>
+                      <span style={{ color: "var(--color-muted-foreground)" }}>Usuario: </span>
+                      <span style={{ color: "var(--color-foreground)" }}>{tool.username}</span>
+                    </p>
+                  )}
+                  {tool.password_enc && (
+                    <p>
+                      <span style={{ color: "var(--color-muted-foreground)" }}>Contraseña: </span>
+                      <span className="font-mono" style={{ color: "var(--color-foreground)" }}>
+                        {isRevealed ? tool.password_enc : "••••••••"}
+                      </span>
+                    </p>
+                  )}
+                  {tool.notes && (
+                    <p className="whitespace-pre-line">
+                      <span style={{ color: "var(--color-muted-foreground)" }}>Notas: </span>
+                      <span style={{ color: "var(--color-foreground)" }}>{tool.notes}</span>
+                    </p>
+                  )}
+                  {images.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {images.map((imgUrl, i) => (
+                        <img
+                          key={i}
+                          src={imgUrl}
+                          alt="Herramienta imagen"
+                          className="w-16 h-16 object-cover rounded-xl border border-[var(--color-border)]"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-2 space-y-1 text-sm text-gray-600">
-                {tool.url && (
-                  <p>
-                    <span className="text-gray-400">URL: </span>
-                    <a
-                      href={tool.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      {tool.url}
-                    </a>
-                  </p>
-                )}
-                {tool.username && (
-                  <p>
-                    <span className="text-gray-400">Usuario: </span>
-                    {tool.username}
-                  </p>
-                )}
-                {tool.password_enc && (
-                  <p>
-                    <span className="text-gray-400">Contraseña: </span>
-                    <span className="font-mono">
-                      {isRevealed ? tool.password_enc : "••••••••"}
-                    </span>
-                  </p>
-                )}
-                {tool.notes && (
-                  <p className="whitespace-pre-line text-gray-500">
-                    <span className="text-gray-400">Notas: </span>
-                    {tool.notes}
-                  </p>
-                )}
-                {images.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {images.map((imgUrl, i) => (
-                      <img
-                        key={i}
-                        src={imgUrl}
-                        alt="Herramienta imagen"
-                        className="w-16 h-16 object-cover rounded-lg border"
-                      />
-                    ))}
-                  </div>
-                )}
+              <div className="flex flex-col gap-2 shrink-0">
+                <button
+                  onClick={() => setEditingId(tool.id)}
+                  className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-xs font-medium hover:bg-[var(--color-muted)] transition-all duration-200"
+                  style={{ color: "var(--color-foreground)" }}
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(tool)}
+                  className="px-3 py-1.5 rounded-xl border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 transition-all duration-200"
+                >
+                  Eliminar
+                </button>
               </div>
-            </div>
-
-            <div className="flex flex-col gap-2 shrink-0">
-              <button
-                onClick={() => setEditingId(tool.id)}
-                className="px-3 py-1.5 rounded-lg border text-xs font-medium hover:bg-gray-50"
-              >
-                Editar
-              </button>
-              <button
-                onClick={() => handleDelete(tool)}
-                className="px-3 py-1.5 rounded-lg border text-xs font-medium text-red-600 border-red-200 hover:bg-red-50"
-              >
-                Eliminar
-              </button>
             </div>
           </div>
         )

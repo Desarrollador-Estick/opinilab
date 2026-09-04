@@ -28,7 +28,6 @@ export default function PortalLoginPage() {
       return
     }
 
-    // Determinar rol: clientes van al portal; agencia al dashboard.
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -49,40 +48,56 @@ export default function PortalLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-50 to-gray-100 p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden p-4"
+      style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%)" }}
+    >
+      {/* Decorative blurs */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Brand */}
         <div className="text-center mb-8">
-          <div className="text-5xl mb-3">🚀</div>
-          <h1 className="text-2xl font-bold text-gray-900">OpiniLab</h1>
-          <p className="text-gray-500 mt-1">Portal de cliente</p>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-blue-500/30">
+            <span className="text-white font-extrabold text-2xl">O</span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">
+            OpiniLab
+          </h1>
+          <p className="text-blue-200/60 mt-1 font-medium">Portal de cliente</p>
         </div>
 
-        <div className="bg-white rounded-2xl border shadow-sm p-6">
+        {/* Card */}
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl mb-4 text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-xl mb-6 text-sm font-medium">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
+              <label className="block text-sm font-medium text-blue-100/80 mb-2">
+                Email
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded-xl px-4 py-2 text-sm"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-blue-200/30 focus:outline-none focus:border-blue-400/50 focus:bg-white/10 transition-all duration-200"
                 placeholder="tu@empresa.com"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Contraseña</label>
+              <label className="block text-sm font-medium text-blue-100/80 mb-2">
+                Contraseña
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full border rounded-xl px-4 py-2 text-sm"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-blue-200/30 focus:outline-none focus:border-blue-400/50 focus:bg-white/10 transition-all duration-200"
                 placeholder="••••••••"
                 required
                 minLength={6}
@@ -91,13 +106,13 @@ export default function PortalLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2.5 rounded-xl hover:bg-blue-700 transition font-medium disabled:opacity-50"
+              className="w-full bg-white text-gray-900 py-3 rounded-xl font-semibold text-base hover:bg-gray-50 transition-all duration-300 shadow-2xl shadow-white/10 disabled:opacity-50"
             >
               {loading ? "Accediendo..." : "Acceder al portal"}
             </button>
           </form>
 
-          <p className="mt-4 text-xs text-gray-400 text-center">
+          <p className="mt-6 text-xs text-blue-200/40 text-center">
             Si no tienes acceso, contacta con tu agencia.
           </p>
         </div>

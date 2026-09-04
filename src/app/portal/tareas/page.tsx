@@ -48,73 +48,87 @@ export default async function TareasPage() {
   const available = CATEGORY_ORDER.filter((c) => categories.has(c))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Mis tareas con IA</h2>
-        <p className="text-gray-500 mt-1">
+        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: "var(--color-foreground)" }}>
+          Mis tareas con IA
+        </h2>
+        <p className="text-lg mt-2" style={{ color: "var(--color-muted-foreground)" }}>
           {client?.business_name ? `${client.business_name} — ` : ""}solicita contenido y entregables
           de los servicios que tienes contratados. Los genera nuestra IA y se completan por orden.
         </p>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-        <p className="font-medium mb-1">¿Cómo funciona?</p>
-        <p>
+      {/* Quota Dashboard */}
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl p-6">
+        <p className="font-semibold text-blue-900 mb-1">¿Cómo funciona?</p>
+        <p className="text-sm text-blue-700">
           Cada tarea entra en una cola y se procesa de una en una, en el orden en que la pides.
           Las tareas son <strong>gratuitas</strong> hasta completar el cupo activo. Si el cupo se
           agota, tu tarea pasa a la <strong>lista de espera</strong> y se cumple automáticamente
           en cuanto se reactive el cupo.
         </p>
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-          <div className="bg-white rounded-lg p-2">
-            <div className="text-xl font-bold text-blue-700">{quota.quota}</div>
-            <div className="text-xs text-gray-500">Cupo total</div>
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white rounded-xl p-4 border border-blue-100 text-center">
+            <div className="text-2xl font-extrabold" style={{ color: "var(--color-primary)" }}>{quota.quota}</div>
+            <div className="text-xs font-medium text-gray-500 mt-1">Cupo total</div>
           </div>
-          <div className="bg-white rounded-lg p-2">
-            <div className="text-xl font-bold text-gray-700">{quota.consumed}</div>
-            <div className="text-xs text-gray-500">Usadas</div>
+          <div className="bg-white rounded-xl p-4 border border-blue-100 text-center">
+            <div className="text-2xl font-extrabold" style={{ color: "var(--color-foreground)" }}>{quota.consumed}</div>
+            <div className="text-xs font-medium text-gray-500 mt-1">Usadas</div>
           </div>
-          <div className="bg-white rounded-lg p-2">
-            <div className={`text-xl font-bold ${quota.exhausted ? "text-amber-600" : "text-green-600"}`}>
+          <div className="bg-white rounded-xl p-4 border border-blue-100 text-center">
+            <div className={`text-2xl font-extrabold ${quota.exhausted ? "text-amber-600" : "text-green-600"}`}>
               {quota.remaining}
             </div>
-            <div className="text-xs text-gray-500">Disponibles</div>
+            <div className="text-xs font-medium text-gray-500 mt-1">Disponibles</div>
           </div>
-          <div className="bg-white rounded-lg p-2">
-            <div className={`text-xl font-bold ${quota.exhausted ? "text-red-600" : "text-gray-700"}`}>
+          <div className="bg-white rounded-xl p-4 border border-blue-100 text-center">
+            <div className={`text-2xl font-extrabold ${quota.exhausted ? "text-red-600" : "text-green-600"}`}>
               {quota.exhausted ? "Agotado" : "Activo"}
             </div>
-            <div className="text-xs text-gray-500">Estado</div>
+            <div className="text-xs font-medium text-gray-500 mt-1">Estado</div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-5">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Solicitar una tarea</h3>
-        <AddTaskForm categories={available} quotaExhausted={quota.exhausted} />
-      </div>
+      {/* Request Form */}
+      <section className="bg-white border border-[var(--color-border)] rounded-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-[var(--color-border)]">
+          <h3 className="font-bold text-lg" style={{ color: "var(--color-foreground)" }}>
+            ✨ Solicitar una tarea
+          </h3>
+        </div>
+        <div className="p-6">
+          <AddTaskForm categories={available} quotaExhausted={quota.exhausted} />
+        </div>
+      </section>
 
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-3">Historial de tareas</h3>
+      {/* History */}
+      <section>
+        <h3 className="font-bold text-lg mb-4" style={{ color: "var(--color-foreground)" }}>
+          📋 Historial de tareas
+        </h3>
         {!ai_tasks || ai_tasks.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-6 text-center text-gray-500 text-sm">
+          <div className="bg-white border border-[var(--color-border)] rounded-2xl p-8 text-center" style={{ color: "var(--color-muted-foreground)" }}>
             Todavía no has solicitado ninguna tarea.
           </div>
         ) : (
           <div className="space-y-3">
             {ai_tasks.map((task) => (
-              <div key={task.id} className="bg-white border border-gray-200 rounded-xl p-4">
+              <div key={task.id} className="bg-white border border-[var(--color-border)] rounded-2xl p-5 hover:border-blue-200 hover:shadow-md transition-all duration-300">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
-                    <div className="font-medium text-gray-900">
+                    <div className="font-semibold" style={{ color: "var(--color-foreground)" }}>
                       {AI_TASK_LABEL[task.service_category as AiTaskCategory]}
                     </div>
-                    <div className="text-xs text-gray-400 mt-0.5">
+                    <div className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
                       {new Date(task.created_at).toLocaleString("es-ES")}
                     </div>
                   </div>
                   <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                    className={`text-xs font-medium px-3 py-1 rounded-full ${
                       task.status === "done"
                         ? "bg-green-100 text-green-700"
                         : task.status === "failed"
@@ -131,18 +145,18 @@ export default async function TareasPage() {
                 </div>
 
                 {task.request_note && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    <span className="text-gray-400">Nota:</span> {task.request_note}
+                  <p className="text-sm mt-2" style={{ color: "var(--color-muted-foreground)" }}>
+                    <span className="font-medium">Nota:</span> {task.request_note}
                   </p>
                 )}
 
                 {task.result && (
-                  <div className="mt-3 bg-gray-50 rounded-lg p-3 text-sm text-gray-700 whitespace-pre-wrap">
+                  <div className="mt-3 bg-[var(--color-muted)] rounded-xl p-4 text-sm whitespace-pre-wrap" style={{ color: "var(--color-foreground)" }}>
                     {task.result}
                   </div>
                 )}
                 {task.error && (
-                  <div className="mt-3 bg-red-50 rounded-lg p-3 text-sm text-red-700">
+                  <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
                     {task.error}
                   </div>
                 )}
@@ -150,7 +164,7 @@ export default async function TareasPage() {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   )
 }

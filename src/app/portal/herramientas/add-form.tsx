@@ -39,7 +39,6 @@ export function AddToolForm({ clientId }: { clientId: string }) {
     setBusy(true)
     setError("")
 
-    // 1) Preparar el FormData para la acción
     const fd = new FormData()
     fd.set("tool_type", form.tool_type)
     fd.set("tool_name", form.tool_name)
@@ -48,7 +47,6 @@ export function AddToolForm({ clientId }: { clientId: string }) {
     fd.set("password_enc", form.password_enc)
     fd.set("notes", form.notes)
 
-    // 2) Añadir las URLs de imagen (que ya vienen del state) al field notes
     const imagesTag = form.image_urls.length > 0 ? `---IMAGES---${form.image_urls.join("; ")}` : ""
     fd.set("notes", `${form.notes}${form.notes ? " " : ""}${imagesTag}`)
 
@@ -67,14 +65,11 @@ export function AddToolForm({ clientId }: { clientId: string }) {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files as FileList
     if (!files || files.length === 0) return
-    // Guardamos los archivos en state
     setForm({ ...form, image_files: Array.from(files) })
-    // Crear URLs temporales para preview
     const urls: string[] = []
     for (let i = 0; i < files.length; i++) {
       urls.push(URL.createObjectURL(files[i]))
     }
-    // Añadir las nuevas URLs al state sin borrar las anteriores
     setForm({ ...form, image_urls: [...form.image_urls, ...urls] })
   }
 
@@ -82,41 +77,44 @@ export function AddToolForm({ clientId }: { clientId: string }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+        className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40"
       >
         + Añadir herramienta
       </button>
     )
   }
 
-  const field = "w-full border rounded-lg px-3 py-2 text-sm"
-  const label = "block text-sm font-medium text-gray-700 mb-1"
+  const field = "w-full border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+  const label = "block text-sm font-medium mb-2"
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border p-5 space-y-4">
+    <form onSubmit={handleSubmit} className="bg-white border border-[var(--color-border)] rounded-2xl p-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Nueva herramienta</h3>
+        <h3 className="font-bold text-lg" style={{ color: "var(--color-foreground)" }}>
+          Nueva herramienta
+        </h3>
         <button
           type="button"
           onClick={() => {
             setOpen(false)
             reset()
           }}
-          className="text-sm text-gray-400 hover:text-gray-600"
+          className="text-sm font-medium hover:underline"
+          style={{ color: "var(--color-muted-foreground)" }}
         >
           ✕ Cerrar
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
           {error}
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className={label}>Tipo</label>
+          <label className={label} style={{ color: "var(--color-foreground)" }}>Tipo</label>
           <select
             value={form.tool_type}
             onChange={(e) => setForm({ ...form, tool_type: e.target.value })}
@@ -130,7 +128,7 @@ export function AddToolForm({ clientId }: { clientId: string }) {
           </select>
         </div>
         <div>
-          <label className={label}>Nombre *</label>
+          <label className={label} style={{ color: "var(--color-foreground)" }}>Nombre *</label>
           <input
             type="text"
             value={form.tool_name}
@@ -141,7 +139,7 @@ export function AddToolForm({ clientId }: { clientId: string }) {
           />
         </div>
         <div>
-          <label className={label}>URL</label>
+          <label className={label} style={{ color: "var(--color-foreground)" }}>URL</label>
           <input
             type="url"
             value={form.url}
@@ -151,7 +149,7 @@ export function AddToolForm({ clientId }: { clientId: string }) {
           />
         </div>
         <div>
-          <label className={label}>Usuario</label>
+          <label className={label} style={{ color: "var(--color-foreground)" }}>Usuario</label>
           <input
             type="text"
             value={form.username}
@@ -161,7 +159,7 @@ export function AddToolForm({ clientId }: { clientId: string }) {
           />
         </div>
         <div>
-          <label className={label}>Contraseña</label>
+          <label className={label} style={{ color: "var(--color-foreground)" }}>Contraseña</label>
           <input
             type="password"
             value={form.password_enc}
@@ -171,7 +169,7 @@ export function AddToolForm({ clientId }: { clientId: string }) {
           />
         </div>
         <div>
-          <label className={label}>Notas</label>
+          <label className={label} style={{ color: "var(--color-foreground)" }}>Notas</label>
           <textarea
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
@@ -183,46 +181,47 @@ export function AddToolForm({ clientId }: { clientId: string }) {
       </div>
 
       <div>
-        <label className={label}>Imágenes para la herramienta (opcional)</label>
-        <p className="text-xs text-gray-500 mb-1">
-          Sube imágenes (capturas de pantalla, diseños, banners) que se asociarán a esta herramienta. Se guardarán en el registro junto con las notas.
+        <label className={label} style={{ color: "var(--color-foreground)" }}>Imágenes para la herramienta (opcional)</label>
+        <p className="text-xs mb-2" style={{ color: "var(--color-muted-foreground)" }}>
+          Sube imágenes (capturas de pantalla, diseños, banners) que se asociarán a esta herramienta.
         </p>
         <input
           type="file"
           multiple
-          className="w-full border rounded-lg px-3 py-2 text-sm cursor-pointer bg-gray-50 select-none"
+          className="w-full border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm cursor-pointer bg-[var(--color-muted)] transition-all duration-200"
           accept="image/*"
           onChange={handleImageChange}
         />
         {form.image_urls.length > 0 && (
           <div className="mt-2 text-xs">
             {form.image_urls.slice(0, 3).map((u, i) => (
-              <span key={i} className="bg-gray-200 rounded px-2 py-1 text-indigo-600 ml-1">
+              <span key={i} className="bg-blue-50 border border-blue-200 rounded-lg px-2.5 py-1 font-medium ml-1" style={{ color: "var(--color-primary)" }}>
                 img {i + 1}
               </span>
             ))}
             {form.image_urls.length > 3 && (
-              <span className="text-gray-500 ml-1">+{form.image_urls.length - 3} más</span>
+              <span className="ml-1" style={{ color: "var(--color-muted-foreground)" }}>+{form.image_urls.length - 3} más</span>
             )}
           </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-2 pt-1">
+      <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={() => {
             setOpen(false)
             reset()
           }}
-          className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-100"
+          className="px-5 py-2.5 rounded-xl text-sm border border-[var(--color-border)] hover:bg-[var(--color-muted)] transition-all duration-200 font-medium"
+          style={{ color: "var(--color-foreground)" }}
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={busy || !form.tool_name.trim()}
-          className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+          className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg shadow-blue-500/20 disabled:opacity-50"
         >
           {busy ? "Guardando..." : "Guardar"}
         </button>

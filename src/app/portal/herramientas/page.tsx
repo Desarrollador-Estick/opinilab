@@ -32,17 +32,21 @@ export default async function HerramientasPage() {
   ])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Mis herramientas</h2>
-        <p className="text-gray-500 mt-1">
+        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight" style={{ color: "var(--color-foreground)" }}>
+          Mis herramientas
+        </h2>
+        <p className="text-lg mt-2" style={{ color: "var(--color-muted-foreground)" }}>
           Deja aquí los accesos que necesitamos para trabajar en tu cuenta.
         </p>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
-        <p className="font-medium mb-1">¿Por qué necesitamos estos accesos?</p>
-        <p>
+      {/* Info Banner */}
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-2xl p-6">
+        <p className="font-semibold text-blue-900 mb-1">¿Por qué necesitamos estos accesos?</p>
+        <p className="text-sm text-blue-700">
           Para gestionar los servicios contratados necesitamos acceso a tus herramientas.
           Puedes añadir tu <strong>Google Business Profile</strong>, redes sociales, anuncios,
           web o email marketing. Los datos solo los usa nuestro equipo y no se comparten.
@@ -50,8 +54,10 @@ export default async function HerramientasPage() {
         </p>
       </div>
 
+      {/* Add Form */}
       <AddToolForm clientId={clientId} />
 
+      {/* Tool List */}
       <ToolList
         clientId={clientId}
         tools={tools ?? []}

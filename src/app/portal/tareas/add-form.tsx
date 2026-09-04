@@ -19,7 +19,6 @@ export function AddTaskForm({
     setPending(true)
     const formData = new FormData(e.currentTarget)
 
-    // 1) Obtener información de las imágenes subidas (nombres y tipos)
     const files = formData.getAll("images") as File[]
     let imageInfo: string = ""
     if (files.length > 0) {
@@ -30,18 +29,15 @@ export function AddTaskForm({
       imageInfo = "IMAGES: " + infoParts.join("; ")
     }
 
-    // 2) Añadir la info de imágenes al request_note (sobreescribe o concatena)
     const existingNote = formData.get("request_note") as string || ""
     const noteWithImages = existingNote
       ? existingNote + "\n" + imageInfo
       : imageInfo
 
-    // 3) Preparar formData final: quitar images y forzar request_note con la info
     const finalFormData = new FormData(e.currentTarget)
     finalFormData.delete("images")
     finalFormData.set("request_note", noteWithImages)
 
-    // 4) Llamar a la acción
     const res = await addAiTaskAction(finalFormData)
     setState(res)
     setPending(false)
@@ -51,14 +47,14 @@ export function AddTaskForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-2" style={{ color: "var(--color-foreground)" }}>
           Tipo de tarea
         </label>
         <select
           name="service_category"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="w-full border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
           required
         >
           <option value="">Selecciona un tipo…</option>
@@ -69,24 +65,24 @@ export function AddTaskForm({
           ))}
         </select>
         {categories.length === 0 && (
-          <p className="text-xs text-amber-700 mt-1">
+          <p className="text-xs text-amber-600 mt-2 font-medium">
             No tienes servicios contratados activos para asignar tareas.
           </p>
         )}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-2" style={{ color: "var(--color-foreground)" }}>
           Nota para el equipo (opcional)
         </label>
         <textarea
           name="request_note"
           rows={3}
           placeholder="Por ejemplo: preferencias de tono, producto/servicio concreto, etc."
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          className="w-full border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200 resize-none"
         />
         {quotaExhausted && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+          <div className="mt-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700 font-medium">
             El cupo de tareas gratis está agotado. Tu tarea entrará en la lista de
             espera y se procesará en cuanto se reactive el cupo.
           </div>
@@ -94,34 +90,33 @@ export function AddTaskForm({
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-2" style={{ color: "var(--color-foreground)" }}>
           Imágenes para la IA (opcional)
         </label>
-        <p className="text-xs text-gray-500 mb-1">
-          Sube imágenes (logo, fotos de producto, banners) que la IA usará al generar
-          contenido para el servicio seleccionado. Puedes subir varias a la vez.
+        <p className="text-xs mb-2" style={{ color: "var(--color-muted-foreground)" }}>
+          Sube imágenes (logo, fotos de producto, banners) que la IA usará al generar contenido.
         </p>
         <input
           type="file"
           name="images"
           multiple
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm cursor-pointer bg-gray-50 select-none"
+          className="w-full border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm cursor-pointer bg-[var(--color-muted)] focus:outline-none transition-all duration-200"
           accept="image/*"
         />
       </div>
 
       {state?.error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700 font-medium">
           {state.error}
         </div>
       )}
       {state?.success && !state.waiting && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 font-medium">
           {state.message || "Tarea en cola. Se procesará enseguida."}
         </div>
       )}
       {state?.success && state.waiting && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-700 font-medium">
           {state.message ||
             "Tarea añadida a la lista de espera. Se procesará cuando se reactive el cupo."}
         </div>
@@ -130,7 +125,7 @@ export function AddTaskForm({
       <button
         type="submit"
         disabled={pending || categories.length === 0}
-        className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition"
+        className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 disabled:opacity-50"
       >
         {pending ? "Enviando…" : "Asignar tarea"}
       </button>
