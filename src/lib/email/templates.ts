@@ -205,6 +205,64 @@ export function reviewRequest(customerName: string, businessName: string, review
   }
 }
 
+export function reviewRequestAuto(customerName: string, businessName: string, reviewUrl: string | null): EmailTemplate {
+  const reviewBlock = reviewUrl
+    ? `
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${reviewUrl}" style="background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            Dejar una Reseña ⭐
+          </a>
+        </div>
+        <p style="font-size: 12px; color: #9ca3af;">Si el botón no funciona, copia este enlace en tu navegador: <a href="${reviewUrl}" style="color: #2563eb;">${reviewUrl}</a></p>`
+    : `<p>Puedes dejar tu valoración directamente en nuestro perfil de Google o respondiendo a este email.</p>`
+
+  return {
+    subject: `¿Cómo podemos mejorar? Tu opinión nos ayuda - ${businessName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #f59e0b, #f97316); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">⭐ ¡Valoranos!</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <p>Hola <strong>${customerName}</strong>,</p>
+          <p>Esperamos que tu experiencia con <strong>${businessName}</strong> haya sido excelente.</p>
+          <p>¿Nos ayudarías dejándonos una reseña? Tu opinión nos ayuda a mejorar y a que más personas nos descubran.</p>
+          ${reviewBlock}
+          <p>Solo te tomará 1 minuto. ¡Gracias por tu tiempo!</p>
+          <p><strong>${businessName}</strong></p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+}
+
+export function adminReviewDraft(businessName: string, reviewerName: string, draft: string): EmailTemplate {
+  return {
+    subject: `✍️ Borrador de respuesta a reseña listo - ${businessName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #7c3aed; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">✍️ Borrador de respuesta</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <p>La IA ha preparado un borrador de respuesta para una reseña de <strong>${reviewerName}</strong> en <strong>${businessName}</strong>.</p>
+          <div style="background: white; border: 1px dashed #c4b5fd; border-radius: 8px; padding: 20px; margin: 20px 0; color: #4b5563;">
+            "${draft}"
+          </div>
+          <p style="color: #b45309;"><strong>Importante:</strong> el borrador NO se ha publicado. Revísalo, edítalo si lo necesitas y publícalo desde el panel de reseñas.</p>
+          <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+}
+
 export function followUpEmail(leadName: string, businessName: string): EmailTemplate {
   return {
     subject: `¿Podemos ayudarte con tu marketing? - ${process.env.COMPANY_NAME || 'Agencia Marketing'}`,

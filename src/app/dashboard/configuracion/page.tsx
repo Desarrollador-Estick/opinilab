@@ -14,6 +14,31 @@ const FEATURE_META: Record<string, { label: string; desc: string }> = {
   },
 }
 
+function Switch({
+  checked,
+  onChange,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+        checked ? "bg-green-500" : "bg-gray-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-6" : "translate-x-1"
+        }`}
+      />
+    </button>
+  )
+}
+
 interface Settings {
   company_name: string
   company_nif: string
@@ -93,6 +118,22 @@ export default function ConfiguracionPage() {
     errors: string | null
     duration_ms: number | null
   }>>([])
+
+  // Automations (emails automáticos) state
+  const [autoConfig, setAutoConfig] = useState({
+    review_request_enabled: false,
+    review_request_after_payment: true,
+    review_request_days_after_signup: 14,
+    review_request_frequency_days: 90,
+    review_auto_response_enabled: false,
+    review_auto_response_notify_admin: true,
+    report_auto_send_enabled: false,
+    report_send_delay_hours: 1,
+    report_send_only_if_paid: true,
+  })
+  const [autoLoading, setAutoLoading] = useState(false)
+  const [autoSaving, setAutoSaving] = useState(false)
+  const [autoSaved, setAutoSaved] = useState(false)
 
   async function loadScraperConfig() {
     try {
@@ -356,6 +397,46 @@ export default function ConfiguracionPage() {
       loadScraperLog()
     }
   }, [activeSection])
+
+  useEffect(() => {
+    if (activeSection === "automation") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadAutoConfig()
+    }
+  }, [activeSection])
+
+  async function loadAutoConfig() {
+    setAutoLoading(true)
+    try {
+      const res = await fetch("/api/settings/automations")
+      if (res.ok) {
+        const data = await res.json()
+        setAutoConfig((prev) => ({ ...prev, ...data }))
+      }
+    } catch {
+      // silencioso
+    } finally {
+      setAutoLoading(false)
+    }
+  }
+
+  async function handleSaveAutomations() {
+    setAutoSaving(true)
+    setAutoSaved(false)
+    try {
+      const res = await fetch("/api/settings/automations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(autoConfig),
+      })
+      if (res.ok) {
+        setAutoSaved(true)
+        setTimeout(() => setAutoSaved(false), 3000)
+      }
+    } finally {
+      setAutoSaving(false)
+    }
+  }
 
   async function saveSettings() {
     setSaving(true)
@@ -650,10 +731,164 @@ export default function ConfiguracionPage() {
       {activeSection === "automation" && (
         <div className="space-y-6">
           <div className="bg-white rounded-xl border p-6 space-y-4">
-            <h3 className="font-semibold">Automatizaciones</h3>
-            <p className="text-sm text-gray-500">
-              Configura tareas automáticas que se ejecutan periódicamente
-            </p>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold">Automatizaciones</h3>
+                <p className="text-sm text-gray-500">
+                  Configura las tareas automáticas de email. Requiere que el cron{" "}
+                  <code className="text-xs">/api/automation</code> se ejecute diariamente.
+                </p>
+              </div>
+              <button
+                onClick={handleSaveAutomations}
+                disabled={autoSaving}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm shrink-0"
+              >
+                {autoSaving ? "Guardando..." : autoSaved ? "✓ Guardado" : "Guardar configuración"}
+              </button>
+            </div>
+
+            {autoLoading ? (
+              <p className="text-sm text-gray-500">Cargando configuración...</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Solicitudes de reseñas</p>
+                      <p className="text-xs text-gray-500">
+                        Pide la reseña automáticamente tras un pago reciente o a los X días del alta, sin repetir dentro de la frecuencia configurada.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.review_request_enabled}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, review_request_enabled: v }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded-lg p-3 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm">Tras un pago reciente (últimos 7 días)</p>
+                        <p className="text-xs text-gray-400">Se activa cuando una factura pasa a pagada</p>
+                      </div>
+                      <Switch
+                        checked={autoConfig.review_request_after_payment}
+                        onChange={(v) => setAutoConfig((p) => ({ ...p, review_request_after_payment: v }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Días desde el alta del cliente (0 = desactivado)
+                      </label>
+                      <input
+                        type="number"
+                        value={autoConfig.review_request_days_after_signup}
+                        onChange={(e) =>
+                          setAutoConfig((p) => ({
+                            ...p,
+                            review_request_days_after_signup: parseInt(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        min={0}
+                        max={365}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Repetir cada X días (deduplicación)
+                      </label>
+                      <input
+                        type="number"
+                        value={autoConfig.review_request_frequency_days}
+                        onChange={(e) =>
+                          setAutoConfig((p) => ({
+                            ...p,
+                            review_request_frequency_days: parseInt(e.target.value) || 90,
+                          }))
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        min={1}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Respuestas IA a reseñas</p>
+                      <p className="text-xs text-gray-500">
+                        Genera un borrador con IA para cada reseña nueva y lo guarda para que lo revises. Nunca publica automáticamente.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.review_auto_response_enabled}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, review_auto_response_enabled: v }))}
+                    />
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm">Notificar por email al admin</p>
+                      <p className="text-xs text-gray-400">Enviado a la dirección de la empresa</p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.review_auto_response_notify_admin}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, review_auto_response_notify_admin: v }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Informes mensuales (envío automático)</p>
+                      <p className="text-xs text-gray-500">
+                        Envía el informe generado el día 1 después de la espera configurada, siempre que el cliente esté al día.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.report_auto_send_enabled}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, report_auto_send_enabled: v }))}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Espera tras generarse (horas)
+                      </label>
+                      <input
+                        type="number"
+                        value={autoConfig.report_send_delay_hours}
+                        onChange={(e) =>
+                          setAutoConfig((p) => ({
+                            ...p,
+                            report_send_delay_hours: parseInt(e.target.value) || 0,
+                          }))
+                        }
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                        min={0}
+                      />
+                      <p className="text-xs text-gray-400 mt-1">
+                        El cron corre 1 vez al día, así que el envío se hará en la siguiente ejecución que cumpla la espera.
+                      </p>
+                    </div>
+                    <div className="border rounded-lg p-3 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm">Solo si el cliente pagó el periodo del informe</p>
+                        <p className="text-xs text-gray-400">Además de no tener facturas vencidas</p>
+                      </div>
+                      <Switch
+                        checked={autoConfig.report_send_only_if_paid}
+                        onChange={(v) => setAutoConfig((p) => ({ ...p, report_send_only_if_paid: v }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
