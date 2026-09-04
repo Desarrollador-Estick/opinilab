@@ -82,8 +82,14 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     // Con contraseña temporal debe cambiarla antes de usar el resto del portal.
+    // Se permite /update-password porque es el destino del enlace de
+    // recuperación: el intercambio del código crea la sesión y no debe
+    // redirigirse a /portal/cambiar-password.
     if (profile?.must_change_password) {
-      const isAllowed = pathname === '/portal/cambiar-password' || pathname === '/auth/logout'
+      const isAllowed =
+        pathname === '/portal/cambiar-password' ||
+        pathname === '/update-password' ||
+        pathname === '/auth/logout'
       if (!isAllowed) {
         const url = request.nextUrl.clone()
         url.pathname = '/portal/cambiar-password'

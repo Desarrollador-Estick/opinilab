@@ -17,15 +17,22 @@ export function UpdatePasswordForm() {
 
   useEffect(() => {
     async function handleRecovery() {
+      // Puede que el middleware ya haya intercambiado el código al pasar por el
+      // servidor (sesión creada). Comprobamos primero la sesión; solo si no hay,
+      // intercambiamos el código aquí. Evita fallar por intentar canjear un
+      // código de un solo uso que ya fue usado.
+      const { data: existing } = await supabase.auth.getSession()
+
+      if (existing.session) {
+        setChecking(false)
+        return
+      }
+
       const code = searchParams.get("code")
-      if (code) {
+      if (code && !existing.session) {
         try {
           await supabase.auth.exchangeCodeForSession(code)
-        } catch {
-          setInvalid(true)
-          setChecking(false)
-          return
-        }
+        } catch {}
       }
 
       const { data, error } = await supabase.auth.getSession()
