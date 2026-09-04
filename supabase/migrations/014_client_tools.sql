@@ -33,6 +33,7 @@ create index if not exists idx_client_tools_client on public.client_tools(client
 alter table public.client_tools enable row level security;
 
 -- Agencia (admin/manager/member): acceso total
+drop policy if exists "Agency full access client_tools" on public.client_tools;
 create policy "Agency full access client_tools"
   on public.client_tools
   for all
@@ -40,22 +41,26 @@ create policy "Agency full access client_tools"
   with check (public.is_agency_role());
 
 -- Cliente: solo sus propias herramientas
+drop policy if exists "Client read own client_tools" on public.client_tools;
 create policy "Client read own client_tools"
   on public.client_tools
   for select
   using (client_id = public.current_user_client_id());
 
+drop policy if exists "Client insert own client_tools" on public.client_tools;
 create policy "Client insert own client_tools"
   on public.client_tools
   for insert
   with check (client_id = public.current_user_client_id());
 
+drop policy if exists "Client update own client_tools" on public.client_tools;
 create policy "Client update own client_tools"
   on public.client_tools
   for update
   using (client_id = public.current_user_client_id())
   with check (client_id = public.current_user_client_id());
 
+drop policy if exists "Client delete own client_tools" on public.client_tools;
 create policy "Client delete own client_tools"
   on public.client_tools
   for delete

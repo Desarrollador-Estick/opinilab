@@ -54,7 +54,7 @@ export default function ConfiguracionPage() {
   const [teamEmail, setTeamEmail] = useState("")
   const [teamLoading, setTeamLoading] = useState(false)
   const [teamMessage, setTeamMessage] = useState("")
-  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "api" | "marketing" | "security">("company")
+  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "scraper" | "api" | "marketing" | "security">("company")
   const [apiStatus, setApiStatus] = useState<Record<string, boolean> | null>(null)
   const [apiLoading, setApiLoading] = useState(false)
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
@@ -68,6 +68,92 @@ export default function ConfiguracionPage() {
   const [mfaCode, setMfaCode] = useState("")
   const [mfaError, setMfaError] = useState("")
   const [mfaMessage, setMfaMessage] = useState("")
+
+  // Lead scraper state
+  const [scraperConfig, setScraperConfig] = useState({
+    enabled: false,
+    daily_limit: 20,
+    categories: ["restaurant"],
+    countries: ["ES"],
+    cities: ["Madrid"],
+    min_rating: 3.0,
+    min_reviews: 5,
+    search_radius_m: 5000,
+    exclude_without_website: false,
+  })
+  const [scraperSaving, setScraperSaving] = useState(false)
+  const [scraperSaved, setScraperSaved] = useState(false)
+  const [scraperRunning, setScraperRunning] = useState(false)
+  const [scraperResult, setScraperResult] = useState<string | null>(null)
+  const [scraperLog, setScraperLog] = useState<Array<{
+    run_date: string
+    leads_found: number
+    leads_created: number
+    leads_skipped: number
+    errors: string | null
+    duration_ms: number
+  }>>([])
+
+  async function loadScraperConfig() {
+    try {
+      const res = await fetch("/api/settings/lead-scraper")
+      if (res.ok) {
+        const data = await res.json()
+        setScraperConfig((prev) => ({ ...prev, ...data }))
+      }
+    } catch {}
+  }
+
+  async function loadScraperLog() {
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("lead_scraper_log")
+        .select("run_date, leads_found, leads_created, leads_skipped, errors, duration_ms")
+        .order("run_date", { ascending: false })
+        .limit(10)
+      if (data) setScraperLog(data)
+    } catch {}
+  }
+
+  async function saveScraperConfig() {
+    setScraperSaving(true)
+    setScraperSaved(false)
+    try {
+      const res = await fetch("/api/settings/lead-scraper", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(scraperConfig),
+      })
+      if (res.ok) {
+        setScraperSaved(true)
+        setTimeout(() => setScraperSaved(false), 3000)
+      }
+    } finally {
+      setScraperSaving(false)
+    }
+  }
+
+  async function runScraperNow() {
+    setScraperRunning(true)
+    setScraperResult(null)
+    try {
+      const res = await fetch("/api/lead-scraper/run", { method: "POST" })
+      const data = await res.json()
+      if (data.ok) {
+        setScraperResult(
+          `Encontrados: ${data.leads_found} | Creados: ${data.leads_created} | Saltados: ${data.leads_skipped} | Restantes hoy: ${data.remaining} | ${data.duration_ms}ms`
+        )
+        loadScraperLog()
+      } else {
+        setScraperResult(`Error: ${data.error}`)
+      }
+    } catch {
+      setScraperResult("Error al ejecutar el scraper")
+    } finally {
+      setScraperRunning(false)
+    }
+  }
 
   async function loadSettings() {
     const { data } = await supabase
@@ -263,6 +349,14 @@ export default function ConfiguracionPage() {
     }
   }, [activeSection])
 
+  useEffect(() => {
+    if (activeSection === "scraper") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadScraperConfig()
+      loadScraperLog()
+    }
+  }, [activeSection])
+
   async function saveSettings() {
     setSaving(true)
     const updates = Object.entries(settings).map(([key, value]) =>
@@ -297,6 +391,7 @@ export default function ConfiguracionPage() {
     { id: "email" as const, label: "Email", icon: "📧" },
     { id: "team" as const, label: "Equipo", icon: "👥" },
     { id: "automation" as const, label: "Automatización", icon: "⚙️" },
+    { id: "scraper" as const, label: "Captura", icon: "🔍" },
     { id: "marketing" as const, label: "Marketing", icon: "📢" },
     { id: "security" as const, label: "Seguridad", icon: "🔐" },
     { id: "api" as const, label: "API & Logo", icon: "🔑" },
@@ -679,13 +774,210 @@ export default function ConfiguracionPage() {
         </div>
       )}
 
+      {activeSection === "scraper" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">🔍 Captura Automática de Leads</h3>
+                <p className="text-sm text-gray-500">
+                  Busca negocios locales en OpenStreetMap (gratis, sin API key) y los crea como leads automáticamente.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={runScraperNow}
+                  disabled={scraperRunning || !scraperConfig.enabled}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm"
+                >
+                  {scraperRunning ? "Ejecutando..." : "▶ Ejecutar Ahora"}
+                </button>
+                <button
+                  onClick={saveScraperConfig}
+                  disabled={scraperSaving}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm"
+                >
+                  {scraperSaving ? "Guardando..." : scraperSaved ? "✓ Guardado" : "Guardar"}
+                </button>
+              </div>
+            </div>
+
+            {scraperResult && (
+              <div className={`p-3 rounded-lg text-sm ${scraperResult.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+                {scraperResult}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center justify-between border rounded-lg p-4">
+                <div>
+                  <p className="text-sm font-medium">Activar búsqueda automática</p>
+                  <p className="text-xs text-gray-500">Ejecuta el scraper diariamente a las 07:00 UTC</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={scraperConfig.enabled}
+                  onClick={() => setScraperConfig((p) => ({ ...p, enabled: !p.enabled }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    scraperConfig.enabled ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      scraperConfig.enabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Límite diario</label>
+                <input
+                  type="number"
+                  value={scraperConfig.daily_limit}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, daily_limit: parseInt(e.target.value) || 20 }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  min={1}
+                  max={100}
+                />
+                <p className="text-xs text-gray-400 mt-1">Máximo 100 leads por día</p>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Ciudades</label>
+                <input
+                  type="text"
+                  value={scraperConfig.cities.join(", ")}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, cities: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  placeholder="Madrid, Barcelona, Valencia"
+                />
+                <p className="text-xs text-gray-400 mt-1">Separadas por coma</p>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Categorías</label>
+                <input
+                  type="text"
+                  value={scraperConfig.categories.join(", ")}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, categories: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  placeholder="restaurant, dentist, hairdresser"
+                />
+                <p className="text-xs text-gray-400 mt-1">restaurant, dentist, gym, clinic, bakery, hotel...</p>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Rating mínimo (0-5)</label>
+                <input
+                  type="number"
+                  value={scraperConfig.min_rating}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, min_rating: parseFloat(e.target.value) || 0 }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  min={0}
+                  max={5}
+                  step={0.5}
+                />
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Mínimo de reseñas</label>
+                <input
+                  type="number"
+                  value={scraperConfig.min_reviews}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, min_reviews: parseInt(e.target.value) || 0 }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  min={0}
+                />
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Radio de búsqueda (metros)</label>
+                <input
+                  type="number"
+                  value={scraperConfig.search_radius_m}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, search_radius_m: parseInt(e.target.value) || 5000 }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  min={1000}
+                  max={50000}
+                  step={1000}
+                />
+              </div>
+
+              <div className="flex items-center justify-between border rounded-lg p-4">
+                <div>
+                  <p className="text-sm font-medium">Excluir sin web</p>
+                  <p className="text-xs text-gray-500">Solo crear leads de negocios con página web</p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={scraperConfig.exclude_without_website}
+                  onClick={() => setScraperConfig((p) => ({ ...p, exclude_without_website: !p.exclude_without_website }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    scraperConfig.exclude_without_website ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      scraperConfig.exclude_without_website ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {scraperLog.length > 0 && (
+            <div className="bg-white rounded-xl border p-6 space-y-4">
+              <h3 className="font-semibold">📊 Historial de ejecuciones</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Fecha</th>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Encontrados</th>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Creados</th>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Saltados</th>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Duración</th>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Errores</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {scraperLog.map((log) => (
+                      <tr key={log.run_date} className="hover:bg-gray-50">
+                        <td className="px-4 py-2">{new Date(log.run_date).toLocaleString("es-ES")}</td>
+                        <td className="px-4 py-2">{log.leads_found}</td>
+                        <td className="px-4 py-2 text-green-600 font-medium">{log.leads_created}</td>
+                        <td className="px-4 py-2 text-gray-400">{log.leads_skipped}</td>
+                        <td className="px-4 py-2 text-gray-400">{log.duration_ms}ms</td>
+                        <td className="px-4 py-2 text-red-600 text-xs max-w-[200px] truncate">{log.errors || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            <p className="font-medium mb-1">ℹ️ Sobre la captura automática</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>Usa <strong>OpenStreetMap (Overpass API)</strong> — completamente gratis, sin API key</li>
+              <li>Los leads se crean con fuente <code>auto_scraped</code> y se deduplican por nombre + ciudad</li>
+              <li>El score se calcula automáticamente según: tiene web (+10), teléfono (+5), email (+10), rating alto (+10)</li>
+              <li>Los leads aparecen en <code>/dashboard/leads</code> filtrables por fuente</li>
+            </ul>
+          </div>
+        </div>
+      )}
+
       {activeSection === "api" && (
         <div className="space-y-6">
           <div className="bg-white rounded-xl border p-6 space-y-4">
             <h3 className="font-semibold">API & Integraciones</h3>
             <p className="text-sm text-gray-500">
               Estado de las claves de API configuradas en el servidor. Los valores de las claves se
-              gestionan como variables de entorno en el hosting (Netlify/Vercel), nunca se muestran aquí.
+              gestionan como variables de entorno en el hosting (Vercel), nunca se muestran aquí.
             </p>
 
             {apiLoading ? (
@@ -731,7 +1023,7 @@ export default function ConfiguracionPage() {
               <p>
                 Si la IA no funciona (las respuestas automáticas, informes y copy fallan), es porque{" "}
                 <code>GROQ_API_KEY</code> no está configurada. Añádela desde el panel de variables de
-                entorno de Netlify (y vuelve a desplegar), o contacta con el administrador técnico.
+                entorno de Vercel (y vuelve a desplegar), o contacta con el administrador técnico.
               </p>
             </div>
           </div>

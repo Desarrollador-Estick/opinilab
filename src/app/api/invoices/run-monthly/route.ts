@@ -215,7 +215,7 @@ async function runMonthly(request: Request) {
         .update({ status: "sent", updated_at: new Date().toISOString() })
         .eq("id", invoice.id)
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
       const payUrl = `${appUrl}/pagar/${paymentToken}`
 
       await sendEmail({

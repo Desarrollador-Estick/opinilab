@@ -150,6 +150,7 @@ export default async function ClienteDetailPage({
           <InfoRow label="Industria" value={client.industry} />
           <InfoRow label="Fuente del Lead" value={client.lead_source} />
           <InfoRow label="Google Maps" value={client.google_maps_url} link />
+          <InfoRow label="Carpeta de Drive" value={client.drive_folder_url} link />
           <InfoRow
             label="Cliente desde"
             value={formatDate(client.created_at)}

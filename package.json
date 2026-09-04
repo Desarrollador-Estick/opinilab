@@ -15,6 +15,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "caniuse-lite": "^1.0.30001810",
     "clsx": "^2.1.1",
+    "google-auth-library": "^9.15.0",
     "next": "16.3.3",
     "pdfmake": "^0.3.11",
     "qrcode": "^1.5.4",
@@ -26,7 +27,7 @@
     "tailwind-merge": "^3.3.0"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.15.13",
+
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",

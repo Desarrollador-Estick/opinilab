@@ -11,6 +11,7 @@ import { sendClientCredentialsEmail } from "@/lib/email/client-credentials"
 import { sendEmail } from "@/lib/email/send"
 import { invoiceWithLinkEmail } from "@/lib/email/templates"
 import { generateInvoiceNumber } from "@/lib/utils"
+import { runClientOnboarding } from "@/lib/onboarding"
 import { Database } from "@/types/database"
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
@@ -202,6 +203,21 @@ export async function addClientServiceAction(
   // Informa al cliente qué herramientas debe aportar para este servicio.
   await notifyRequiredTools(supabase, clientId, serviceId)
 
+  // Onboarding automático SOLO con el primer servicio del cliente: crea la
+  // carpeta de Drive, genera el contrato de alta y envía el email de bienvenida.
+  // No bloqueante: cualquier fallo se loguea sin romper la asignación.
+  const { count } = await supabase
+    .from("client_services")
+    .select("id", { count: "exact", head: true })
+    .eq("client_id", clientId)
+  if ((count ?? 0) === 1) {
+    try {
+      await runClientOnboarding({ clientId })
+    } catch (e) {
+      console.warn("[onboarding] Error inesperado:", e instanceof Error ? e.message : e)
+    }
+  }
+
   revalidatePath(`/dashboard/clientes/${clientId}`)
   return { success: true }
 }
@@ -320,7 +336,7 @@ async function chargeSetupFee(supabase: any, clientId: string, serviceId: string
       total: setupFee,
     })
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
     const payUrl = `${appUrl}/pagar/${paymentToken}`
 
     // Cargo automático con la tarjeta guardada.

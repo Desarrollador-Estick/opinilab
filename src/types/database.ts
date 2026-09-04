@@ -88,6 +88,7 @@ export interface Database {
           monthly_budget: number
           stripe_customer_id: string | null
           stripe_default_payment_method_id: string | null
+          drive_folder_url: string | null
           created_at: string
           updated_at: string
         }
@@ -111,6 +112,7 @@ export interface Database {
           monthly_budget?: number
           stripe_customer_id?: string | null
           stripe_default_payment_method_id?: string | null
+          drive_folder_url?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -134,6 +136,7 @@ export interface Database {
           monthly_budget?: number
           stripe_customer_id?: string | null
           stripe_default_payment_method_id?: string | null
+          drive_folder_url?: string | null
           created_at?: string
           updated_at?: string
         }

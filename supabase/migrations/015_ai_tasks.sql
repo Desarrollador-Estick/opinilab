@@ -43,6 +43,7 @@ create index if not exists idx_ai_tasks_status on public.ai_tasks(status, create
 alter table public.ai_tasks enable row level security;
 
 -- Agencia (admin/manager/member): acceso total
+drop policy if exists "Agency full access ai_tasks" on public.ai_tasks;
 create policy "Agency full access ai_tasks"
   on public.ai_tasks
   for all
@@ -50,11 +51,13 @@ create policy "Agency full access ai_tasks"
   with check (public.is_agency_role());
 
 -- Cliente: solo sus propias tareas; puede crearlas, leerlas
+drop policy if exists "Client read own ai_tasks" on public.ai_tasks;
 create policy "Client read own ai_tasks"
   on public.ai_tasks
   for select
   using (client_id = public.current_user_client_id());
 
+drop policy if exists "Client insert own ai_tasks" on public.ai_tasks;
 create policy "Client insert own ai_tasks"
   on public.ai_tasks
   for insert

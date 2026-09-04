@@ -44,11 +44,8 @@ const sourceLabels: Record<string, string> = {
   social: "Redes Sociales",
 }
 
-const statuses = ["new", "contacted", "interested", "proposal_sent", "negotiation", "won", "lost"]
-
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
-  const [view, setView] = useState<"table" | "kanban">("kanban")
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -76,18 +73,6 @@ export default function LeadsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  async function moveLead(leadId: string, newStatus: string) {
-    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)))
-    const { error } = await supabase
-      .from("leads")
-      .update({ status: newStatus as "new" | "contacted" | "interested" | "proposal_sent" | "negotiation" | "won" | "lost", updated_at: new Date().toISOString() })
-      .eq("id", leadId)
-    if (error) {
-      setError(error.message)
-      fetchLeads()
-    }
-  }
-
   const filteredLeads = leads.filter((l) => {
     if (!search) return true
     const q = search.toLowerCase()
@@ -100,40 +85,6 @@ export default function LeadsPage() {
     )
   })
 
-  function KanbanCard({ lead }: { lead: Lead }) {
-    const [dragging, setDragging] = useState(false)
-
-    return (
-      <Link href={`/dashboard/leads/${lead.id}`}>
-        <div
-          draggable
-          onDragStart={(e) => {
-            e.dataTransfer.setData("leadId", lead.id)
-            setDragging(true)
-          }}
-          onDragEnd={() => setDragging(false)}
-          className={`bg-white rounded-lg p-3 border shadow-sm hover:shadow-md transition cursor-grab active:cursor-grabbing ${dragging ? "opacity-50" : ""}`}
-        >
-          <p className="font-medium text-sm hover:text-blue-600">{lead.business_name}</p>
-          <p className="text-xs text-gray-500 mt-1">{lead.contact_name || "Sin contacto"}</p>
-          {lead.city && <p className="text-xs text-gray-400 mt-0.5">{lead.city}</p>}
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-gray-400">{sourceLabels[lead.source || ""] || "—"}</span>
-            <div className="flex items-center gap-1">
-              <div className="w-16 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full ${lead.score >= 70 ? "bg-green-500" : lead.score >= 40 ? "bg-yellow-500" : "bg-red-500"}`}
-                  style={{ width: `${lead.score}%` }}
-                />
-              </div>
-              <span className="text-xs text-gray-400">{lead.score}</span>
-            </div>
-          </div>
-        </div>
-      </Link>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -142,12 +93,6 @@ export default function LeadsPage() {
           <p className="text-gray-500">Pipeline de ventas automatizado</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setView(view === "table" ? "kanban" : "table")}
-            className="border px-4 py-2 rounded-lg text-sm hover:bg-gray-50"
-          >
-            {view === "table" ? "📊 Kanban" : "📋 Tabla"}
-          </button>
           <Link
             href="/dashboard/leads/nuevo"
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
@@ -176,38 +121,6 @@ export default function LeadsPage() {
       {loading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        </div>
-      ) : view === "kanban" ? (
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {statuses.map((status) => {
-            const columnLeads = filteredLeads.filter((l) => l.status === status)
-            return (
-              <div
-                key={status}
-                className="min-w-[280px] flex-shrink-0"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault()
-                  const leadId = e.dataTransfer.getData("leadId")
-                  if (leadId) moveLead(leadId, status)
-                }}
-              >
-                <div className="bg-gray-100 rounded-t-lg px-4 py-2 flex items-center justify-between">
-                  <span className="font-medium text-sm">{statusLabels[status]}</span>
-                  <span className="bg-gray-300 text-gray-700 text-xs px-2 py-0.5 rounded-full">
-                    {columnLeads.length}
-                  </span>
-                </div>
-                <div className="bg-gray-50 rounded-b-lg p-2 space-y-2 min-h-[200px]">
-                  {columnLeads.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-4">Arrastra leads aquí</p>
-                  ) : (
-                    columnLeads.map((lead) => <KanbanCard key={lead.id} lead={lead} />)
-                  )}
-                </div>
-              </div>
-            )
-          })}
         </div>
       ) : (
         <div className="bg-white rounded-xl border overflow-hidden">

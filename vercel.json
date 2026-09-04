@@ -11,6 +11,10 @@
     {
       "path": "/api/ai-tasks/run",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/lead-scraper/run",
+      "schedule": "0 7 * * *"
     }
   ]
 }

@@ -183,7 +183,7 @@ export async function GET() {
 
           try {
             const reportRes = await fetch(
-              `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/reports`,
+              `${process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"}/api/reports`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
