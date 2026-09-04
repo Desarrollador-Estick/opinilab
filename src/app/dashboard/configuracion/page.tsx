@@ -87,11 +87,11 @@ export default function ConfiguracionPage() {
   const [scraperResult, setScraperResult] = useState<string | null>(null)
   const [scraperLog, setScraperLog] = useState<Array<{
     run_date: string
-    leads_found: number
-    leads_created: number
-    leads_skipped: number
+    leads_found: number | null
+    leads_created: number | null
+    leads_skipped: number | null
     errors: string | null
-    duration_ms: number
+    duration_ms: number | null
   }>>([])
 
   async function loadScraperConfig() {
@@ -946,10 +946,10 @@ export default function ConfiguracionPage() {
                     {scraperLog.map((log) => (
                       <tr key={log.run_date} className="hover:bg-gray-50">
                         <td className="px-4 py-2">{new Date(log.run_date).toLocaleString("es-ES")}</td>
-                        <td className="px-4 py-2">{log.leads_found}</td>
-                        <td className="px-4 py-2 text-green-600 font-medium">{log.leads_created}</td>
-                        <td className="px-4 py-2 text-gray-400">{log.leads_skipped}</td>
-                        <td className="px-4 py-2 text-gray-400">{log.duration_ms}ms</td>
+                        <td className="px-4 py-2">{log.leads_found ?? 0}</td>
+                        <td className="px-4 py-2 text-green-600 font-medium">{log.leads_created ?? 0}</td>
+                        <td className="px-4 py-2 text-gray-400">{log.leads_skipped ?? 0}</td>
+                        <td className="px-4 py-2 text-gray-400">{log.duration_ms ?? 0}ms</td>
                         <td className="px-4 py-2 text-red-600 text-xs max-w-[200px] truncate">{log.errors || "—"}</td>
                       </tr>
                     ))}

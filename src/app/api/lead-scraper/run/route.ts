@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient } from "@/lib/supabase/admin"
+import type { Database, Json } from "@/types/database"
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
@@ -21,7 +22,6 @@ const CATEGORY_TO_OSM: Record<string, string[]> = {
   "real estate": ["office=estate_agent"],
   florist: ["shop=florist"],
   photographer: ["shop=photo"],
-  lawyer: ["office=lawyer"],
 }
 
 // Coordenadas de ciudades españolas (centro + radio)
@@ -35,17 +35,16 @@ const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
   malaga: { lat: 36.7213, lon: -4.4214 },
   murcia: { lat: 37.987, lon: -1.13 },
   palma: { lat: 39.5696, lon: 2.6502 },
-  las palmas: { lat: 28.1235, lon: -15.4363 },
-  bilbao: { lat: 43.263, lon: -2.935 },
+  "las palmas": { lat: 28.1235, lon: -15.4363 },
   alicante: { lat: 38.3452, lon: -0.481 },
   cordoba: { lat: 37.8882, lon: -4.7794 },
   valladolid: { lat: 41.6523, lon: -4.7245 },
   vigo: { lat: 42.2406, lon: -8.7207 },
   gijon: { lat: 43.5322, lon: -5.6611 },
-  granada: { lat: 37.1773, log: -3.5986 },
-  a coruna: { lat: 43.3713, lon: -8.396 },
+  granada: { lat: 37.1773, lon: -3.5986 },
+  "a coruna": { lat: 43.3713, lon: -8.396 },
   santander: { lat: 43.4623, lon: -3.81 },
-  san sebastian: { lat: 43.3183, lon: -1.9812 },
+  "san sebastian": { lat: 43.3183, lon: -1.9812 },
 }
 
 interface OverpassElement {
@@ -270,7 +269,7 @@ export async function POST() {
       leads_created: created,
       leads_skipped: skipped,
       errors: errors.length > 0 ? errors.join("\n") : null,
-      config_snapshot: config,
+      config_snapshot: config as unknown as Json,
       duration_ms: duration,
     })
 

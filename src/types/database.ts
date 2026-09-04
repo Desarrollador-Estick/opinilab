@@ -699,7 +699,7 @@ export interface Database {
           website: string | null
           city: string | null
           industry: string | null
-          source: 'google_maps' | 'directory' | 'website' | 'referral' | 'cold_outreach' | 'social' | null
+          source: 'google_maps' | 'directory' | 'website' | 'referral' | 'cold_outreach' | 'social' | 'auto_scraped' | null
           status: 'new' | 'contacted' | 'interested' | 'proposal_sent' | 'negotiation' | 'won' | 'lost'
           score: number
           notes: string | null
@@ -718,7 +718,7 @@ export interface Database {
           website?: string | null
           city?: string | null
           industry?: string | null
-          source?: 'google_maps' | 'directory' | 'website' | 'referral' | 'cold_outreach' | 'social' | null
+          source?: 'google_maps' | 'directory' | 'website' | 'referral' | 'cold_outreach' | 'social' | 'auto_scraped' | null
           status?: 'new' | 'contacted' | 'interested' | 'proposal_sent' | 'negotiation' | 'won' | 'lost'
           score?: number
           notes?: string | null
@@ -737,7 +737,7 @@ export interface Database {
           website?: string | null
           city?: string | null
           industry?: string | null
-          source?: 'google_maps' | 'directory' | 'website' | 'referral' | 'cold_outreach' | 'social' | null
+          source?: 'google_maps' | 'directory' | 'website' | 'referral' | 'cold_outreach' | 'social' | 'auto_scraped' | null
           status?: 'new' | 'contacted' | 'interested' | 'proposal_sent' | 'negotiation' | 'won' | 'lost'
           score?: number
           notes?: string | null
@@ -1241,6 +1241,42 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+    lead_scraper_log: {
+        Row: {
+          id: string
+          run_date: string
+          leads_found: number | null
+          leads_created: number | null
+          leads_skipped: number | null
+          errors: string | null
+          config_snapshot: Json | null
+          duration_ms: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          run_date?: string
+          leads_found?: number | null
+          leads_created?: number | null
+          leads_skipped?: number | null
+          errors?: string | null
+          config_snapshot?: Json | null
+          duration_ms?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          run_date?: string
+          leads_found?: number | null
+          leads_created?: number | null
+          leads_skipped?: number | null
+          errors?: string | null
+          config_snapshot?: Json | null
+          duration_ms?: number | null
+          created_at?: string
+        }
+        Relationships: []
       }
     }
     Views: Record<
