@@ -42,6 +42,7 @@ export default function PublicPayPage() {
   const [items, setItems] = useState<InvoiceItem[]>([])
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const [alreadyPaid, setAlreadyPaid] = useState(false)
+  const [stripeLive, setStripeLive] = useState(false)
 
   useEffect(() => {
     ;(async () => {
@@ -75,6 +76,7 @@ export default function PublicPayPage() {
       const data = await res.json()
       if (data.success && data.clientSecret) {
         setClientSecret(data.clientSecret)
+        if (typeof data.stripeLive === "boolean") setStripeLive(data.stripeLive)
       } else {
         setError(data.error || "Error al iniciar el pago")
       }
@@ -155,13 +157,16 @@ export default function PublicPayPage() {
           >
             Continuar al pago
           </button>
-          <p className="text-xs text-gray-400 text-center">Pago seguro procesado por Stripe. Solo en modo test.</p>
+          <p className="text-xs text-gray-400 text-center">
+            Pago seguro procesado por Stripe. {stripeLive ? "En modo real." : "Solo en modo test."}
+          </p>
         </div>
       ) : (
         <CheckoutForm
           clientSecret={clientSecret}
           invoiceNumber={invoice?.invoice_number || ""}
           businessName={invoice?.client?.business_name || ""}
+          stripeLive={stripeLive}
         />
       )}
     </Shell>
@@ -172,23 +177,37 @@ function CheckoutForm({
   clientSecret,
   invoiceNumber,
   businessName,
+  stripeLive,
 }: {
   clientSecret: string
   invoiceNumber: string
   businessName: string
+  stripeLive: boolean
 }) {
   const options: StripeElementsOptions = { clientSecret, appearance: { theme: "stripe" } }
 
   return (
     <div className="bg-white rounded-xl border p-6">
       <Elements stripe={stripePromise} options={options}>
-        <StripeForm invoiceNumber={invoiceNumber} businessName={businessName} />
+        <StripeForm
+          invoiceNumber={invoiceNumber}
+          businessName={businessName}
+          stripeLive={stripeLive}
+        />
       </Elements>
     </div>
   )
 }
 
-function StripeForm({ invoiceNumber, businessName }: { invoiceNumber: string; businessName: string }) {
+function StripeForm({
+  invoiceNumber,
+  businessName,
+  stripeLive,
+}: {
+  invoiceNumber: string
+  businessName: string
+  stripeLive: boolean
+}) {
   const stripe = useStripe()
   const elements = useElements()
   const [processing, setProcessing] = useState(false)
@@ -237,11 +256,13 @@ function StripeForm({ invoiceNumber, businessName }: { invoiceNumber: string; bu
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm text-green-700">{message}</div>
       )}
       <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500">
-        <p>
-          <strong>Modo test:</strong> usa la tarjeta{" "}
-          <code className="bg-white border px-1 rounded">4242 4242 4242 4242</code>, fecha de caducidad futura y CVC
-          cualquiera.
-        </p>
+        {!stripeLive && (
+          <p>
+            <strong>Modo test:</strong> usa la tarjeta{" "}
+            <code className="bg-white border px-1 rounded">4242 4242 4242 4242</code>, fecha de
+            caducidad futura y CVC cualquiera.
+          </p>
+        )}
         <p className="mt-1">
           {invoiceNumber} · {businessName}
         </p>

@@ -84,6 +84,7 @@ export async function POST(
       invoiceNumber: invoice.invoice_number,
       total: invoice.total,
       businessName: client.business_name,
+      stripeLive: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") === true,
     })
   } catch (e) {
     console.error("public/pay error:", e)

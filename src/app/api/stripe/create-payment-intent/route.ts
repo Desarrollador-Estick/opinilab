@@ -156,6 +156,7 @@ export async function POST(request: Request) {
       subtotal,
       tax_amount: taxAmount,
       total,
+      stripeLive: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") === true,
     })
   } catch (error) {
     console.error("Stripe create payment intent error:", error)
