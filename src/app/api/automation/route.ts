@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
+import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
 import { sendEmail } from "@/lib/email/send"
 import {
   paymentReminder,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/email/templates"
 import { groqChat } from "@/lib/ai/groq"
 import { buildReviewResponsePrompt } from "@/lib/ai/review-prompt"
+import { getDbEmailTemplate } from "@/lib/email/db-templates"
 import { AUTOMATION_EMAILS_DEFAULT } from "@/app/api/settings/automations/route"
 
 interface AutomationLog {
@@ -338,9 +340,13 @@ async function autoDraftReviewResponses(
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const logs: AutomationLog[] = []
   const now = new Date()
+
+  if (!isCronRequestAuthorized(request)) {
+    return unauthorizedResponse()
+  }
 
   try {
     // El cron de Vercel no tiene sesión de usuario: usamos service role (omite
@@ -422,7 +428,7 @@ export async function GET() {
     // 2. Check leads needing follow-up
     const { data: followUpLeads } = await supabase
       .from("leads")
-      .select("id, contact_name, business_name, email, next_follow_up_at")
+      .select("id, contact_name, business_name, email, next_follow_up_at, status")
       .in("status", ["contacted", "interested", "proposal_sent", "negotiation"])
       .lte("next_follow_up_at", now.toISOString())
       .not("email", "is", null)
@@ -443,15 +449,20 @@ export async function GET() {
         }
 
         try {
-          const follow = followUpEmail(
+          const tplDb = await getDbEmailTemplate(supabase, "followup_1", {
+            name: lead.contact_name || lead.business_name,
+            business: lead.business_name,
+            company: process.env.COMPANY_NAME || "Agencia Marketing",
+          })
+          const fallback = followUpEmail(
             lead.contact_name || lead.business_name,
             lead.business_name
           )
           const emailResult = await sendEmail({
             to: lead.email,
-            template: "followUp",
-            subject: follow.subject,
-            html: follow.html,
+            template: tplDb ? "followup_1" : "followUp",
+            subject: tplDb ? tplDb.subject : fallback.subject,
+            html: tplDb ? tplDb.body : fallback.html,
             leadId: lead.id,
             data: {
               leadName: lead.contact_name || lead.business_name,

@@ -759,30 +759,36 @@ export interface Database {
       email_templates: {
         Row: {
           id: string
+          key: string
           name: string
           subject: string
           body: string
           category: string | null
+          variables: string[]
           is_active: boolean
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
+          key: string
           name: string
           subject: string
           body: string
           category?: string | null
+          variables?: string[]
           is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Update: {
           id?: string
+          key?: string
           name?: string
           subject?: string
           body?: string
           category?: string | null
+          variables?: string[]
           is_active?: boolean
           created_at?: string
           updated_at?: string

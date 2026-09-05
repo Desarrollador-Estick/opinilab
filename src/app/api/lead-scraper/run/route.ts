@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { createServerAdminClient } from "@/lib/supabase/admin"
+import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
+import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
 import type { Database, Json } from "@/types/database"
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter"
@@ -143,11 +144,16 @@ function extractLeadFromElement(el: OverpassElement) {
   }
 }
 
-export async function POST() {
+async function runLeadScraper() {
   const startTime = Date.now()
 
   try {
-    const supabase = await createClient()
+    // Cron (GET) no tiene sesión de usuario: usamos la service role cuando está
+    // configurada (omite RLS). Para el botón del dashboard (POST) con sesión,
+    // si no hay service role usamos el cliente de servidor normal.
+    const supabase = isServiceRoleConfigured()
+      ? await createServerAdminClient()
+      : await createClient()
 
     // 1. Obtener configuración
     const { data: settingsRow } = await supabase
@@ -305,4 +311,17 @@ export async function POST() {
       { status: 500 }
     )
   }
+}
+
+export async function POST() {
+  return runLeadScraper()
+}
+
+// Perfil del cron de Vercel: se invoca con GET y lleva el header de autorización
+// (Bearer CRON_SECRET) que Vercel añade automáticamente.
+export async function GET(request: Request) {
+  if (!isCronRequestAuthorized(request)) {
+    return unauthorizedResponse()
+  }
+  return runLeadScraper()
 }

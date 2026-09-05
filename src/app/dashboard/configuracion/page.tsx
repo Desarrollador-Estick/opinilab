@@ -135,6 +135,21 @@ export default function ConfiguracionPage() {
   const [autoSaving, setAutoSaving] = useState(false)
   const [autoSaved, setAutoSaved] = useState(false)
 
+  // Plantillas de email editables state
+  const [emailTemplates, setEmailTemplates] = useState<Array<{
+    id: string
+    key: string
+    name: string
+    subject: string
+    body: string
+    category: string | null
+    variables: string[]
+    is_active: boolean
+  }>>([])
+  const [templatesLoading, setTemplatesLoading] = useState(false)
+  const [templatesSaving, setTemplatesSaving] = useState(false)
+  const [templatesSaved, setTemplatesSaved] = useState(false)
+
   async function loadScraperConfig() {
     try {
       const res = await fetch("/api/settings/lead-scraper")
@@ -399,6 +414,13 @@ export default function ConfiguracionPage() {
   }, [activeSection])
 
   useEffect(() => {
+    if (activeSection === "email") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadEmailTemplates()
+    }
+  }, [activeSection])
+
+  useEffect(() => {
     if (activeSection === "automation") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadAutoConfig()
@@ -435,6 +457,54 @@ export default function ConfiguracionPage() {
       }
     } finally {
       setAutoSaving(false)
+    }
+  }
+
+  async function loadEmailTemplates() {
+    setTemplatesLoading(true)
+    try {
+      const res = await fetch("/api/settings/email-templates")
+      if (res.ok) {
+        const json = await res.json()
+        setEmailTemplates(json.templates ?? [])
+      }
+    } catch {
+      // silencioso
+    } finally {
+      setTemplatesLoading(false)
+    }
+  }
+
+  function updateTemplate(id: string, field: "subject" | "body" | "name" | "is_active", value: string | boolean) {
+    setEmailTemplates((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    )
+  }
+
+  async function handleSaveTemplates() {
+    setTemplatesSaving(true)
+    setTemplatesSaved(false)
+    try {
+      const res = await fetch("/api/settings/email-templates", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          emailTemplates.map((t) => ({
+            id: t.id,
+            subject: t.subject,
+            body: t.body,
+            name: t.name,
+            is_active: t.is_active,
+            variables: t.variables,
+          }))
+        ),
+      })
+      if (res.ok) {
+        setTemplatesSaved(true)
+        setTimeout(() => setTemplatesSaved(false), 3000)
+      }
+    } finally {
+      setTemplatesSaving(false)
     }
   }
 
@@ -677,16 +747,72 @@ export default function ConfiguracionPage() {
             </p>
           </div>
           <div>
-            <h4 className="font-medium text-sm mb-2">Plantillas de email disponibles:</h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {["Bienvenida", "Factura", "Recordatorio", "Solicitud reseña", "Reporte", "Follow-up"].map(
-                (t) => (
-                  <div key={t} className="bg-gray-50 rounded-lg px-3 py-2 text-sm">
-                    ✓ {t}
-                  </div>
-                )
-              )}
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium text-sm">Plantillas de email editables</h4>
+              <button
+                onClick={handleSaveTemplates}
+                disabled={templatesSaving}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm shrink-0"
+              >
+                {templatesSaving ? "Guardando..." : templatesSaved ? "✓ Guardado" : "Guardar plantillas"}
+              </button>
             </div>
+            <p className="text-xs text-gray-500 mb-3">
+              Variables disponibles: <code>{`{name}`}</code>, <code>{`{business}`}</code>, <code>{`{company}`}</code>. Las usan la automatización diaria de leads y las comunicaciones a clientes.
+            </p>
+            {templatesLoading ? (
+              <p className="text-sm text-gray-500">Cargando plantillas...</p>
+            ) : (
+              <div className="space-y-4">
+                {emailTemplates.length === 0 && (
+                  <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-500">
+                    No hay plantillas creadas aún.
+                  </div>
+                )}
+                {emailTemplates.map((tpl) => (
+                  <div key={tpl.id} className="border rounded-lg p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium text-sm truncate">{tpl.name}</span>
+                        <span className="text-xs text-gray-400 font-mono">{tpl.key}</span>
+                      </div>
+                      <button
+                        role="switch"
+                        aria-checked={tpl.is_active}
+                        onClick={() => updateTemplate(tpl.id, "is_active", !tpl.is_active)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                          tpl.is_active ? "bg-green-500" : "bg-gray-300"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                            tpl.is_active ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-gray-500">Asunto</label>
+                      <input
+                        type="text"
+                        value={tpl.subject}
+                        onChange={(e) => updateTemplate(tpl.id, "subject", e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1 text-gray-500">Contenido (HTML)</label>
+                      <textarea
+                        rows={6}
+                        value={tpl.body}
+                        onChange={(e) => updateTemplate(tpl.id, "body", e.target.value)}
+                        className="w-full border rounded-lg px-3 py-2 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

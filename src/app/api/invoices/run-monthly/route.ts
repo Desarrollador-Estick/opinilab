@@ -3,6 +3,7 @@ import { randomUUID } from "crypto"
 import Stripe from "stripe"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
+import { requireCronOrTeamAuth } from "@/lib/cron-auth"
 import { sendEmail } from "@/lib/email/send"
 import { invoiceWithLinkEmail, paymentReminder } from "@/lib/email/templates"
 
@@ -22,7 +23,9 @@ interface JobResult {
  *
  * - POST para el botón del dashboard (requiere sesión de admin).
  * - También se puede invocar desde un cron externo enviando el header
- *   `x-cron-secret` (igual al valor de la variable CRON_SECRET) en producción.
+ *   `authorization: Bearer <CRON_SECRET>` (o el legacy `x-cron-secret` igual
+ *   al valor de CRON_SECRET) en producción. Vercel añade ese header
+ *   automáticamente cuando CRON_SECRET está definida.
  *
  * Para cada cliente activo con servicios mensuales activos y sin factura del
  * mes corriente:
@@ -32,6 +35,11 @@ interface JobResult {
  *      recordatorio.
  */
 async function runMonthly(request: Request) {
+  const authError = await requireCronOrTeamAuth(request)
+  if (authError) {
+    return authError
+  }
+
   const authHeader = request.headers.get("x-cron-secret")
 
   // Cliente de BD para la operación. Con RLS restringido a `authenticated`,
