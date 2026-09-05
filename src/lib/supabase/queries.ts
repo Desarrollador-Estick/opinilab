@@ -140,6 +140,231 @@ export async function getRecentClients(supabase: SupabaseClient<Database>) {
     .limit(5)
 }
 
+// ============================================
+// DASHBOARD AUTOMATION METRICS
+// ============================================
+
+export async function getDashboardAutomationMetrics(
+  supabase: SupabaseClient<Database>
+) {
+  const now = new Date()
+  const todayStart = now.toISOString().split("T")[0]
+
+  const [
+    scrapedLeadsResult,
+    emailsSentResult,
+    pendingAiTasksResult,
+    unansweredReviewsResult,
+  ] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("source", "auto_scraped")
+      .gte("created_at", todayStart),
+    supabase
+      .from("email_sends")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", todayStart),
+    supabase
+      .from("ai_tasks")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["queued", "waiting", "processing"]),
+    supabase
+      .from("reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "new"),
+  ])
+
+  return {
+    scrapedLeadsToday: scrapedLeadsResult.count ?? 0,
+    emailsSentToday: emailsSentResult.count ?? 0,
+    pendingAiTasks: pendingAiTasksResult.count ?? 0,
+    unansweredReviews: unansweredReviewsResult.count ?? 0,
+  }
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+// ============================================
+// DASHBOARD ALERTS
+// ============================================
+
+export async function getDashboardAlerts(supabase: SupabaseClient<Database>) {
+  const now = new Date()
+  const threeDaysAgo = new Date(now.getTime() - 3 * DAY_MS).toISOString()
+
+  const [
+    unansweredReviewsResult,
+    staleLeadsResult,
+    overdueInvoicesResult,
+  ] = await Promise.all([
+    supabase
+      .from("reviews")
+      .select("id, reviewer_name, client_id")
+      .eq("status", "new")
+      .order("created_at", { ascending: true })
+      .limit(5),
+    supabase
+      .from("leads")
+      .select("id, business_name, status, last_contact_at, created_at")
+      .not("status", "in", '("won","lost")')
+      .lte("created_at", threeDaysAgo),
+    supabase
+      .from("invoices")
+      .select("id, invoice_number, total, due_date, clients(business_name)")
+      .eq("status", "overdue")
+      .order("due_date", { ascending: false })
+      .limit(5),
+  ])
+
+  const staleLeads = (staleLeadsResult.data ?? []).filter(
+    (lead) => !lead.last_contact_at
+  )
+
+  return {
+    unansweredReviews: unansweredReviewsResult.data ?? [],
+    staleLeads,
+    overdueInvoices: overdueInvoicesResult.data ?? [],
+  }
+}
+
+// ============================================
+// DASHBOARD NEXT STEPS
+// ============================================
+
+export async function getDashboardNextSteps(
+  supabase: SupabaseClient<Database>
+) {
+  const now = new Date()
+  const upcoming = new Date(now.getTime() + 5 * DAY_MS).toISOString()
+
+  const [newLeadsResult, pendingReportsResult, upcomingInvoicesResult] =
+    await Promise.all([
+      supabase
+        .from("leads")
+        .select("id, business_name, city, source")
+        .eq("status", "new")
+        .order("created_at", { ascending: false })
+        .limit(3),
+      supabase
+        .from("reports")
+        .select("id, title, status, clients(business_name)")
+        .eq("status", "generated")
+        .order("created_at", { ascending: false })
+        .limit(3),
+      supabase
+        .from("invoices")
+        .select("id, invoice_number, total, due_date, clients(business_name)")
+        .in("status", ["draft", "sent"])
+        .gte("due_date", now.toISOString().split("T")[0])
+        .lte("due_date", upcoming.split("T")[0])
+        .order("due_date", { ascending: true })
+        .limit(3),
+    ])
+
+  return {
+    newLeads: newLeadsResult.data ?? [],
+    pendingReports: pendingReportsResult.data ?? [],
+    upcomingInvoices: upcomingInvoicesResult.data ?? [],
+  }
+}
+
+// ============================================
+// DASHBOARD TREND (30 days)
+// ============================================
+
+export async function getDashboardTrend(supabase: SupabaseClient<Database>) {
+  const now = new Date()
+  const start = new Date(now.getTime() - 29 * DAY_MS)
+  const startISO = start.toISOString().split("T")[0]
+
+  const [leadsResult, clientsResult, invoicesResult] = await Promise.all([
+    supabase.from("leads").select("created_at").gte("created_at", startISO),
+    supabase
+      .from("clients")
+      .select("created_at")
+      .gte("created_at", startISO),
+    supabase
+      .from("invoices")
+      .select("created_at")
+      .gte("created_at", startISO),
+  ])
+
+  const buckets: {
+    date: string
+    label: string
+    leads: number
+    clients: number
+    invoices: number
+  }[] = []
+
+  for (let i = 0; i < 30; i++) {
+    const d = new Date(start.getTime() + i * DAY_MS)
+    buckets.push({
+      date: d.toISOString().split("T")[0],
+      label: `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`,
+      leads: 0,
+      clients: 0,
+      invoices: 0,
+    })
+  }
+
+  const bucketByDate = new Map(buckets.map((b) => [b.date, b]))
+
+  for (const row of leadsResult.data ?? []) {
+    const key = (row.created_at as string).slice(0, 10)
+    const bucket = bucketByDate.get(key)
+    if (bucket) bucket.leads += 1
+  }
+  for (const row of clientsResult.data ?? []) {
+    const key = (row.created_at as string).slice(0, 10)
+    const bucket = bucketByDate.get(key)
+    if (bucket) bucket.clients += 1
+  }
+  for (const row of invoicesResult.data ?? []) {
+    const key = (row.created_at as string).slice(0, 10)
+    const bucket = bucketByDate.get(key)
+    if (bucket) bucket.invoices += 1
+  }
+
+  return buckets
+}
+
+// ============================================
+// DASHBOARD SYSTEM STATUS
+// ============================================
+
+export async function getDashboardSystemStatus(
+  supabase: SupabaseClient<Database>
+) {
+  const [scraperLogResult, settingsResult] = await Promise.all([
+    supabase
+      .from("lead_scraper_log")
+      .select("run_date, leads_created, errors")
+      .order("run_date", { ascending: false })
+      .limit(1),
+    supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "lead_scraper_config")
+      .single(),
+  ])
+
+  const scraperConfig = settingsResult.data?.value as
+    | { enabled?: boolean }
+    | null
+  const lastRun = scraperLogResult.data?.[0] ?? null
+
+  return {
+    scraper: {
+      enabled: scraperConfig?.enabled ?? false,
+      lastRunDate: lastRun?.run_date ?? null,
+      lastRunLeads: lastRun?.leads_created ?? 0,
+      lastRunErrors: lastRun?.errors ?? null,
+    },
+  }
+}
+
 export async function getRecentLeads(supabase: SupabaseClient<Database>) {
   return supabase
     .from("leads")

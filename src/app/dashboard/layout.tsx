@@ -31,7 +31,7 @@ export default function DashboardLayout({
       {/* Sidebar */}
       <aside className="w-64 bg-gray-900 text-white flex flex-col">
         <div className="p-4 border-b border-gray-800">
-          <h1 className="text-xl font-bold">🚀 Agencia Marketing</h1>
+          <h1 className="text-xl font-bold">🚀 OpiniLab</h1>
           <p className="text-xs text-gray-400 mt-1">Panel de Control</p>
         </div>
 
