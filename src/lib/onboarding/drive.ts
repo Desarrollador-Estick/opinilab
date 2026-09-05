@@ -3,9 +3,9 @@ import { JWT } from "google-auth-library"
 /**
  * Crea una carpeta en Google Drive per-client mediante una Service Account.
  * El contenido de las credenciales se lee de la variable de entorno
- * GOOGLE_APPLICATION_CREDENTIALS_JSON (JSON de la Service Account) y la carpeta
+ * GOOGLE_SERVICE_ACCOUNT_JSON (JSON de la Service Account) y la carpeta
  * padre donde se crean las carpetas de cliente se define en
- * GOOGLE_DRIVE_PARENT_FOLDER_ID.
+ * DRIVE_CLIENTS_FOLDER_ID.
  *
  * Si falta la configuración, devuelve ok:false con un error descriptivo para
  * que el orquestador de onboarding pueda avisar sin romper el flujo.
@@ -22,7 +22,7 @@ function getServiceAccountJson(): {
   client_email: string
   private_key: string
 } | null {
-  const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON
+  const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON
   if (!raw) return null
   try {
     const parsed = JSON.parse(raw)
@@ -39,7 +39,7 @@ function getServiceAccountJson(): {
 async function getAuthClient(): Promise<JWT> {
   const sa = getServiceAccountJson()
   if (!sa) {
-    throw new Error("GOOGLE_APPLICATION_CREDENTIALS_JSON no está configurada o es inválida")
+    throw new Error("GOOGLE_SERVICE_ACCOUNT_JSON no está configurada o es inválida")
   }
   const client = new JWT({
     email: sa.client_email,
@@ -90,9 +90,9 @@ export async function createClientDriveFolder(opts: {
   clientId: string
 }): Promise<CreateDriveFolderResult> {
   try {
-    const parentFolderId = process.env.GOOGLE_DRIVE_PARENT_FOLDER_ID
+    const parentFolderId = process.env.DRIVE_CLIENTS_FOLDER_ID
     if (!parentFolderId) {
-      return { ok: false, error: "GOOGLE_DRIVE_PARENT_FOLDER_ID no configurada" }
+      return { ok: false, error: "DRIVE_CLIENTS_FOLDER_ID no configurada" }
     }
 
     const folderName = `${opts.businessName} (${opts.clientId.slice(0, 8)})`

@@ -1,0 +1,322 @@
+================================================================================
+CONFIGURACIÓN DE OPINILAB (Agencia Marketing)
+Fichero generado el 05/09/2026. Proyecto local: F:\agencia-marketing
+Producción: https://opinilab.com (Vercel, proyecto "opinilab", equipo esticks-projects)
+================================================================================
+
+ÍNDICE
+1. ADVERTENCIA IMPORTANTE (discrepancias detectadas en producción)
+2. VARIABLES DE ENTORNO: qué es cada una y dónde se usa
+3. TABLA "settings" DE SUPABASE: claves configurables desde el panel
+4. CRONS DE VERCEL (horarios)
+5. ARCHIVOS DONDE SE EDITA CADA TEXTO / VALOR / TIEMPO
+6. CÓMO CAMBIAR UNA CONFIGURACIÓN Y DESPLEGAR
+
+--------------------------------------------------------------------------------
+1. ADVERTENCIA IMPORTANTE (discrepancias detectadas en producción)
+--------------------------------------------------------------------------------
+Revisión hecha con `vercel env ls production` (proyecto conectado a F:\agencia-marketing).
+
+a) EMAIL_FROM NO está definida en Vercel Production.
+   El código usa `process.env.EMAIL_FROM || "onboarding@resend.dev"` en
+   src/lib/email/send.ts:36, src/app/api/email/route.ts:24 y
+   src/app/api/contact/route.ts:16. Sin EMAIL_FROM, TODOS los emails salen de
+   onboarding@resend.dev (dominio de prueba de Resend) y no del dominio propio.
+   Según changes_summary.txt debería ser noreply@opinilab.com, pero la variable
+   NO existe en Vercel. Hay que añadirla (y verificar el dominio en Resend).
+
+b) TOTP_ENC_KEY NO está en Vercel Production.
+   Necesaria para 2FA (src/lib/auth/totp.ts:24 y mfa-cookie.ts:24). El panel de
+   Configuración > Seguridad montará 2FA pero fallará en producción al configurarlo
+   ("TOTP_ENC_KEY no está configurada"). En .env.local SÍ existe (clave local).
+
+c) NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY NO está en Vercel Production.
+   Se usa en las páginas públicas de pago (src/app/pagar/[token]/page.tsx:9 y
+   src/app/dashboard/clientes/[id]/pagar/page.tsx:10). Sin ella, Stripe Elements
+   no puede cargar y la página de pago con tarjeta podría romperse en producción.
+
+d) NEXT_PUBLIC_APP_NAME NO está en Vercel Production.
+   Se usa en la página /pagar (fallback "Agencia Marketing").
+   Aunque COMPANY_NAME=OpiniLab existe, NEXT_PUBLIC_APP_NAME no.
+
+e) VARIABLES DE DRIVE CON OTRO NOMBRE EN PRODUCCIÓN — RESUELTO EL 05/09/2026.
+   Había un desajuste de nombres: el código leía
+   GOOGLE_APPLICATION_CREDENTIALS_JSON y GOOGLE_DRIVE_PARENT_FOLDER_ID
+   (src/lib/onboarding/drive.ts), pero en Vercel las claves se llaman
+   GOOGLE_SERVICE_ACCOUNT_JSON y DRIVE_CLIENTS_FOLDER_ID → la creación de
+   carpeta de Drive por cliente devolvía ok:false (no rompía el onboarding,
+   pero NO creaba las carpetas). Solucionado cambiando el CÓDIGO
+   (src/lib/onboarding/drive.ts) para que lea GOOGLE_SERVICE_ACCOUNT_JSON y
+   DRIVE_CLIENTS_FOLDER_ID, que ya existen en Vercel. Desplegado y verificado.
+
+f) CRON_SECRET NO está en Vercel Production (sí hay AUTOMATION_TOKEN).
+   El endpoint de facturación mensual (src/app/api/invoices/run-monthly/route.ts:44)
+   acepta el header x-cron-secret === CRON_SECRET como capa opcional. Al no estar
+   definida, la protección recae solo en la service role (permisiva). AUTOMATION_TOKEN
+   no se usa en ningún sitio del código actual.
+
+g) COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL NO están en
+   Vercel Production. Solo COMPANY_NAME. Los contratos (src/lib/onboarding/contract.ts:82)
+   usarán el NIF de relleno "B00000000" si no se definen. Las facturas toman los datos
+   de la tabla settings (ver sección 3), que también pueden estar vacíos.
+
+h) ADMIN_EMAIL NO está en Vercel Production. El cron de respuestas IA a reseñas
+   usa process.env.ADMIN_EMAIL || settings.company_email (src/app/api/automation/route.ts:281).
+   Con company_email vacío en settings, no se notificará al admin. Definir ADMIN_EMAIL
+   o rellenar "Email" en Configuración > Empresa.
+
+--------------------------------------------------------------------------------
+2. VARIABLES DE ENTORNO: qué es cada una y dónde se usa
+--------------------------------------------------------------------------------
+Definidas en: .env.local (desarrollo) y en Vercel → Project Settings → Environment
+Variables (producción). El orden de precedencia en Vercel: producción > preview > dev.
+Se pueden editar con: `vercel env add <NOMBRE> production` (pedirá el valor).
+
+Las que YA existen en Vercel Production (verificado 05/09/2026):
+  VARIABLE                          DESCRIPCIÓN / DÓNDE SE USA
+  -------------------------------- -------------------------------------------------
+  NEXT_PUBLIC_SUPABASE_URL          URL del proyecto Supabase (vygatycudhthcezzbkuh).
+                                    Configuración Alex server + cliente. Se usa en
+                                    src/lib/supabase/*  (No exponer cambios de URL real).
+  NEXT_PUBLIC_SUPABASE_ANON_KEY     Clave anónima (pública) del cliente Supabase.
+  SUPABASE_SERVICE_ROLE_KEY         Rol de servicio (omite RLS). SOLO servidor.
+                                    crons, webhooks, pago público (admin.ts service role).
+  NEXT_PUBLIC_APP_URL               https://opinilab.com. Base de URLs en emails
+                                    (pago, reportes) y redirecciones. middleware/email.
+  COMPANY_NAME                      OpiniLab. Nombre de la empresa en emails, contratos,
+                                    invoices (templates.ts, contract.ts, dispatch.ts, pagar).
+  RESEND_API_KEY                    API de Resend para envío de emails (send.ts, email/route).
+  STRIPE_SECRET_KEY                 Clave secreta Stripe (TEST pk_test_...). Facturación
+                                    mensual automática y webhook (run-monthly, webhook).
+  STRIPE_WEBHOOK_SECRET             Firmas de webhook Stripe (validación).
+  GROQ_API_KEY                      API del LLM. Respuestas IA a reseñas, informes,
+                                    contenidos (groq.ts, dispatch.ts, automation, gbp-report).
+  AUTOMATION_TOKEN                  NO se usa en el código actual (sobra o está reservada).
+  DRIVE_CLIENTS_FOLDER_ID           ✓ USADA: la carpeta padre de Drive de clientes
+                                    (drive.ts). Antes no coincidía con el código.
+  GOOGLE_SERVICE_ACCOUNT_JSON       ✓ USADA: Service Account JSON de Drive (drive.ts).
+                                    Antes no coincidía con el código.
+  CONTRACT_TEMPLATE_ID              NO se usa en el código actual (reservada/legacy).
+
+Variables usadas por el código PERO AÚN NO en Vercel Production (pendientes, ver avisos):
+  EMAIL_FROM                        Remitente de emails (noreply@opinilab.com). Cae a
+                                    onboarding@resend.dev si falta. [send.ts:36, email/route:24,
+                                    contact/route:16, templates.ts:287]
+  TOTP_ENC_KEY                      Clave de cifrado AES-256-GCM para 2FA. [totp.ts, mfa-cookie.ts]
+  NEXT_PUBLIC_APP_NAME              Nombre visible en /pagar. [pagar/[token]/page.tsx]
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY Clave pública Stripe para Stripe Elements. [pagar/*]
+  CRON_SECRET                       Proteger /api/invoices/run-monthly por header x-cron-secret.
+  ADMIN_EMAIL                       Email del admin para notificaciones de borradores AI. [automation:281]
+  COMPANY_NIF                       NIF de la agencia para contratos. [contract.ts:82]
+  COMPANY_ADDRESS / CITY / POSTAL   (no usados en contratos directamente, quedan de datos empresa)
+
+Variables SOLO en .env.local (desarrollo) que no están en Vercel:
+  NEXT_PUBLIC_APP_NAME, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, COMPANY_NIF,
+  COMPANY_ADDRESS, COMPANY_CITY, COMPANY_POSTAL, TOTP_ENC_KEY, plus VERCEL_OIDC_TOKEN
+  (autogenerado por la CLI de Vercel para desarrollo).
+
+--------------------------------------------------------------------------------
+3. TABLA "settings" DE SUPABASE: claves configurables desde el panel
+--------------------------------------------------------------------------------
+Ubicación: tabla public.settings (columnas: key, value, category, description, updated_at).
+Se gestionan desde Dashboard → /dashboard/configuracion (GUI) o en el SQL Editor.
+
+CLAVES DE EMPRESA / FACTURACIÓN (sección "Empresa" y "Facturación" del panel):
+  key                    valor por defecto   descripción
+  ---------------------  ------------------  -------------------------------------------
+  company_name           "Agencia Marketing" Nombre en facturas/contratos.
+  company_nif            ""                  NIF/CIF.
+  company_email          ""                  Email de contacto (usado para notificar al admin).
+  company_phone          ""                  Teléfono.
+  company_address        ""                  Dirección.
+  invoice_series         "FAC"               Prefijo de factura (FAC-2026-0001).
+  invoice_next_number    1                   Siguiente número correlativo.
+  contract_series        "CON"               Prefijo de contratos.
+  contract_next_number   1                   Siguiente número de contrato.
+  tax_rate               21                  IVA %.
+  payment_days           30                  Días para pago.
+  setup_fee              0                   Cargo de alta por servicio nuevo (€).
+  ai_free_quota          0                   0 = desactiva tareas IA gratis. >0 = cupo por cliente.
+  email_provider         "resend"            resend | smtp (SMTP aún no implementado).
+  email_from             "hola@agenciamarketing.com"  Remitente configurado en BD (el código
+                                                  prioriza EMAIL_FROM de env; ver aviso 1a).
+
+CLAVES DE MARKETING / FEATURES (sección "Marketing"):
+  feature_marketing_ai   false  Permite generar contenido con IA. FEATURE_KEYS en src/lib/settings.ts.
+  feature_leads_capture  false  Activa el formulario de contacto de la landing (crea leads y emails).
+
+CLAVES DE AUTOMATIZACIÓN / EMAILS (sección "Automatización"; AUTOMATION_EMAILS_DEFAULT en
+src/app/api/settings/automations/route.ts). Se guardan como JSON en key automation_emails_config:
+  review_request_enabled             false    Solicitudes de reseñas automáticas.
+  review_request_after_payment       true     Al pasar una factura a pagada (últimos 7 días).
+  review_request_days_after_signup   14       Días desde el alta (0 = desactivado).
+  review_request_frequency_days      90       Repetición (deduplicación).
+  review_auto_response_enabled       false    Borradores IA para reseñas (nunca publica solo).
+  review_auto_response_notify_admin  true     Notifica al admin (ADMIN_EMAIL o company_email).
+  report_auto_send_enabled           false    Envío automático de informes mensuales.
+  report_send_delay_hours            1        Espera tras generarse el informe.
+  report_send_only_if_paid           true     Solo si pagó el periodo y sin facturas vencidas.
+
+CLAVE DE CAPTURA DE LEADS (sección "Captura"; config del scraper en
+src/app/api/settings/lead-scraper/route.ts). Se guarda como JSON en key lead_scraper_config
+(defaults del seed de la migración 017_lead_scraper.sql):
+  enabled                 false              Activa el cron diario (07:00 UTC).
+  daily_limit             20                 Máx. leads/día (1-100).
+  categories              ["restaurant","dentist","hairdresser","gym","clinic","pharmacy","bakery","hotel"]
+  countries               ["ES"]
+  cities                  ["Madrid","Barcelona","Valencia","Sevilla","Bilbao"]
+  min_rating              3.0                Rating mínimo OSM.
+  min_reviews             5                  Reseñas mínimas.
+  search_radius_m         5000               1000-50000.
+  exclude_without_website false              Solo leads con web.
+
+OTRAS CLAVES INTERNAS (SE PUEDEN VER/INSERTAR EN SQL EDITOR):
+  ai_tasks_consumed       contador por cliente de tareas IA usadas (cron de tareas IA).
+  (Las cuotas y tareas se gestionan en src/lib/ai/ai-tasks.ts y la tabla ai_tasks.)
+
+--------------------------------------------------------------------------------
+4. CRONS DE VERCEL (horarios)
+--------------------------------------------------------------------------------
+Definidos en vercel.json (se edita ahí y se redespliega):
+  /api/automation          0 9 * * *    Cada día  09:00 UTC  (recordatorios facturas vencidas,
+                                       seguimiento de leads, informes mensuales, borradores IA reseñas).
+  /api/invoices/run-monthly 0 5 1 * *   Día 1 del mes 05:00 UTC (facturación mensual + cobro Stripe).
+  /api/ai-tasks/run         0 6 * * *   Cada día  06:00 UTC  (cola de tareas IA por servicio).
+  /api/lead-scraper/run     0 7 * * *   Cada día  07:00 UTC  (captura automática de leads, si enabled).
+
+--------------------------------------------------------------------------------
+5. ARCHIVOS DONDE SE EDITA CADA TEXTO / VALOR / TIEMPO
+--------------------------------------------------------------------------------
+WEB / LANDING:
+  src/app/page.tsx                      Landing pública (hero, servicios, testimonios, FAQ).
+  src/app/politicas-de-privacidad/      Política de privacidad.
+  src/app/terminos/                     Términos y condiciones.
+  src/app/cookies-consent/              Banner/cookies.
+  public/logo.png                       Logo de la agencia (por ahora sustituyendo el archivo).
+  src/app/layout.tsx                    Metadatos, título, favicon.
+  src/app/manifest.ts / iconos          PWA / iconos.
+
+LOGIN / PORTAL:
+  src/app/login/page.tsx                Pantalla de login del admin.
+  src/app/login/mfa/page.tsx            Verificación 2FA.
+  src/app/login/mfa/setup/page.tsx      Setup 2FA.
+  src/app/forgot-password/page.tsx      "¿Olvidaste tu contraseña?".
+  src/app/update-password/page.tsx      Actualización tras recuperación.
+  src/app/portal/*                      Portal del cliente (login, home, herramientas, tareas).
+  src/app/portal/portal-nav.tsx         Navegación del portal.
+
+EMAILS (plantillas):
+  src/lib/email/templates.ts            Asuntos y HTML de todas las plantillas (bienvenida, factura,
+                                        recordatorio, solicitud reseña, reporte, follow-up).
+  src/lib/email/send.ts                 Punto de envío común (remitente EMAIL_FROM, registro email_sends).
+  src/lib/email/required-tools.ts       REQUIRED_TOOLS_BY_CATEGORY: herramientas de cada servicio.
+  src/lib/email/client-credentials.ts   Credenciales enviadas a clientes.
+
+IA / LLM (Groq):
+  src/lib/ai/groq.ts                    Llamada HTTP a Groq (GROQ_API_URL, logging en usage_logs).
+  src/lib/ai/dispatch.ts                MODELO "qwen/qwen3.8-27b", temperature 0.7,
+                                        maxTokens (300/350) y TODOS los prompts por categoría
+                                        (seo, reviews, email, social_media, ads, branding, web).
+  src/lib/ai/gbp-report.ts              Informe SEO local (GBP).
+  src/lib/ai/review-prompt.ts           Prompt de respuesta a reseñas.
+  src/lib/ai/ai-tasks.ts                Categorías de tareas IA, cuota (ai_free_quota) y cola.
+
+FACTURACIÓN / COBROS / CONTRATOS:
+  src/app/api/invoices/run-monthly/route.ts  GRACE_DAYS = 5 (línea 10), cobro off_session,
+                                             lógica de facturación mensual.
+  src/app/api/pay/[token]/route.ts      Generación de enlace de pago (checkout).
+  src/app/api/public/pay/[token]/route.ts   Pago público con Elements.
+  src/app/api/stripe/webhook/route.ts   Webhook de Stripe (estados de facturas).
+  src/lib/onboarding/contract.ts        Plantilla de contrato (nº correlativo, datos empresa).
+  src/lib/onboarding/index.ts           Orquestador de onboarding (carpeta Drive, cuenta acceso).
+
+PROTECCIÓN DE RUTAS / SEGURIDAD:
+  src/proxy.ts                          Config del matcher del middleware.
+  src/lib/supabase/middleware.ts        Redirecciones por rol (admin/manager/member/client),
+                                        bloqueo 2FA, must_change_password.
+  src/lib/auth/totp.ts                  Genera/verifica TOTP (emisor "OpiniLab").
+  src/lib/auth/mfa-cookie.ts            Cookie de sesión 2FA (derivada de TOTP_ENC_KEY).
+
+LEAD SCRAPER:
+  src/app/api/lead-scraper/run/route.ts OVERPASS_URL, CATEGORY_TO_OSM (categorías OSM),
+                                        ciudades con coordenadas, scoring de leads.
+
+CONFIGURACIÓN GENERAL:
+  src/app/dashboard/configuracion/page.tsx  Todas las secciones del panel de ajustes.
+  src/lib/settings.ts                   FEATURE_KEYS y lectura de settings.
+  src/app/api/settings/features/route.ts    Lectura/guardado de feature flags.
+  src/app/api/settings/api-status/route.ts  Panel "API & Integraciones" (comprueba GROQ, RESEND,
+                                            STRIPE_SECRET, STRIPE_WEBHOOK, SUPABASE_SERVICE,
+                                            APP_URL).
+  src/lib/supabase/admin.ts             Cliente admin (service role) con isServiceRoleConfigured().
+  src/types/database.ts                 Tipos de las tablas.
+
+BASE DE DATOS (esquema):
+  supabase/migrations/*.sql             Todo el esquema + seeds (servicios, settings).
+    - 001_initial_schema.sql            Tablas + SEED de servicios y settings.
+    - 002_reconcile_schema.sql          Ajustes.
+    - 003_stripe_integration.sql        Stripe.
+    - 004_recurring_billing.sql         Facturación recurrente.
+    - 005_payment_token.sql             Tokens de pago.
+    - 006_rls_hardening.sql             RLS.
+    - 007_client_portal_rls.sql         RLS portal.
+    - 008_must_change_password.sql      Cambio de contraseña obligatorio.
+    - 009_client_change_password_rpc.sql RPC.
+    - 010_fix_email_sends_client_lead.sql
+    - 011_usage_logs.sql                Tabla de uso IA.
+    - 012_seed_agency_profiles.sql      Perfiles.
+    - 013_mfa_2fa.sql                   Columnas 2FA.
+    - 014_client_tools.sql              Herramientas por cliente.
+    - 015_ai_tasks.sql                  Tabla de tareas IA.
+    - 016_client_drive_folder.sql       Columna drive_folder_url.
+    - 017_lead_scraper.sql              Tablas + seed lead_scraper_config.
+    - 018_services_public_read.sql      Política pública de lectura de servicios activos.
+  Los SERVICIOS/CATÁLOGO (nombres, descripciones, precios base, billing_cycle) se editan en
+  la tabla services (migración 001 seed) o directamente en SQL Editor del Supabase. El cliente
+  lee los activos vía política 018.
+
+--------------------------------------------------------------------------------
+6. CÓMO CAMBIAR UNA CONFIGURACIÓN Y DESPLEGAR
+--------------------------------------------------------------------------------
+A) VARIABLES DE ENTORNO (producción):
+   - Panel: vercel.com → proyecto "opinilab" → Settings → Environment Variables.
+     Elegir entorno Production, poner nombre y valor, "Save". Después redeploy.
+   - CLI:
+       npx vercel env add <NOMBRE> production   (te pide el valor)
+       npx vercel ls <NOMBRE>            (listar)
+       npx vercel rm <NOMBRE> production (eliminar)
+   - SIEMPRE redesplegar para que se apliquen: git push (si hay deploy automático) o
+     `npx vercel --prod`.
+
+B) TABLA settings (Supabase):
+   - GUI: /dashboard/configuracion (botón "Guardar" por sección).
+   - SQL Editor del panel Supabase: update public.settings set value = '...' where key='...';
+
+C) CÓDIGO / CRONS / TEXTOS:
+   - Editar el archivo, luego:
+       git add -A
+       git commit -m "descripción"
+       git pull origin main   (por si hay cambios)   [si es posible]
+       git push origin main
+   - El deploy en Vercel es automático al hacer push a `main`
+     (repo: https://github.com/Desarrollador-Estick/opinilab).
+
+D) CAMBIAR PRECIOS / SERVICIOS:
+   - La tabla services (name, description, category, base_price, billing_cycle)
+     se modifica en Supabase. El cliente concreto puede tener custom_price en client_services
+     (lo respeta run-monthly: si custom_price no es null, usa ese precio).
+
+--------------------------------------------------------------------------------
+NOTAS FINALES
+--------------------------------------------------------------------------------
+- El repo local F:\agencia-marketing va por detrás de main (8 commits al 05/09/2026).
+  OJO: los cambios que se editen aquí deben resolverse antes de push (git pull/rebase).
+- ACCESSO.md (en el repo) está desactualizado respecto a la infraestructura actual:
+  habla de Netlify/qelvuno-lang, pero la web se sirve desde Vercel (esticks-projects/opinilab)
+  y el repo es Desarrollador-Estick/opinilab. No seguir sus pasos de Netlify.
+- Stripe está en MODO TEST (claves pk_test_... / sk_test_...). Antes de cobros reales hay
+  que pasar a claves live y actualizar el webhook.
+- Emails: sin EMAIL_FROM en producción todo sale de onboarding@resend.dev. Para usar un
+  dominio propio hay que: (1) añadir el dominio en Resend y verificar DNS, (2) definir
+  EMAIL_FROM=noreply@opinilab.com en Vercel production, (3) redesplegar.
+================================================================================

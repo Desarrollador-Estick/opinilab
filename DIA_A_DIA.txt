@@ -189,11 +189,13 @@ QUÉ ES OPINILAB EN UNA FRASE
   [ ] TOTP_ENC_KEY en Vercel Production (sin ella el 2FA falla en producción).
   [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
       tarjeta puede romperse).
-  [ ] DRIVE: el código lee GOOGLE_APPLICATION_CREDENTIALS_JSON y
-      GOOGLE_DRIVE_PARENT_FOLDER_ID, pero en Vercel están como
-      GOOGLE_SERVICE_ACCOUNT_JSON y DRIVE_CLIENTS_FOLDER_ID → las carpetas de
-      Drive de los clientes NO se crean hoy (el alta sigue, pero sin carpeta).
-      Renombrarlas o fijar el código.
+  [x] DRIVE: RESUELTO el 05/09/2026. El código leía
+      GOOGLE_APPLICATION_CREDENTIALS_JSON y GOOGLE_DRIVE_PARENT_FOLDER_ID,
+      pero en Vercel están como GOOGLE_SERVICE_ACCOUNT_JSON y
+      DRIVE_CLIENTS_FOLDER_ID → las carpetas de Drive de los clientes NO se
+      creaban. Cambiado el código (src/lib/onboarding/drive.ts) para leer los
+      nombres de Vercel. Para validar de verdad que crea carpetas, da de alta
+      un cliente de prueba y mira que drive_folder_url se rellena.
   [ ] COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL y
       ADMIN_EMAIL en Vercel (contratos usaban "B00000000"; avisos de
       borradores IA no tienen a quién ir).
