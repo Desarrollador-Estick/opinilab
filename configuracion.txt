@@ -17,23 +17,25 @@ Producción: https://opinilab.com (Vercel, proyecto "opinilab", equipo esticks-p
 --------------------------------------------------------------------------------
 Revisión hecha con `vercel env ls production` (proyecto conectado a F:\agencia-marketing).
 
-a) EMAIL_FROM NO está definida en Vercel Production.
-   El código usa `process.env.EMAIL_FROM || "onboarding@resend.dev"` en
-   src/lib/email/send.ts:36, src/app/api/email/route.ts:24 y
-   src/app/api/contact/route.ts:16. Sin EMAIL_FROM, TODOS los emails salen de
-   onboarding@resend.dev (dominio de prueba de Resend) y no del dominio propio.
-   Según changes_summary.txt debería ser noreply@opinilab.com, pero la variable
-   NO existe en Vercel. Hay que añadirla (y verificar el dominio en Resend).
+a) EMAIL_FROM NO estaba en Vercel Production → RESUELTO el 05/09/2026.
+   Añadida EMAIL_FROM=noreply@opinilab.com (el código usa
+   process.env.EMAIL_FROM || "onboarding@resend.dev" en src/lib/email/send.ts:36,
+   src/app/api/email/route.ts:24 y src/app/api/contact/route.ts:16). El dominio
+   opinilab.com está verificado en Resend, los emails ya salen de dirección
+   propia y el webhook de Resend ya actualiza email_sends.
 
-b) TOTP_ENC_KEY NO está en Vercel Production.
-   Necesaria para 2FA (src/lib/auth/totp.ts:24 y mfa-cookie.ts:24). El panel de
-   Configuración > Seguridad montará 2FA pero fallará en producción al configurarlo
-   ("TOTP_ENC_KEY no está configurada"). En .env.local SÍ existe (clave local).
+b) TOTP_ENC_KEY NO estaba en Vercel Production → RESUELTO el 05/09/2026.
+   Añadida (necesaria para 2FA en src/lib/auth/totp.ts:24 y mfa-cookie.ts:24).
+   El 2FA ya funciona en producción.
 
-c) NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY NO está en Vercel Production.
+c) NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY NO está en Vercel Production. AÚN PENDIENTE.
    Se usa en las páginas públicas de pago (src/app/pagar/[token]/page.tsx:9 y
    src/app/dashboard/clientes/[id]/pagar/page.tsx:10). Sin ella, Stripe Elements
-   no puede cargar y la página de pago con tarjeta podría romperse en producción.
+   no puede cargar. Se añadirá junto al paso a Stripe LIVE. Desde el commit b53dbe0
+   las páginas de pago detectan si Stripe está LIVE (STRIPE_SECRET_KEY sk_live_) y
+   ocultan las indicaciones de tarjeta de test (4242...). Stripe sigue en TEST:
+   STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET existen (test), pk no está, y la tabla
+   payments está vacía.
 
 d) NEXT_PUBLIC_APP_NAME NO está en Vercel Production.
    Se usa en la página /pagar (fallback "Agencia Marketing").
@@ -49,21 +51,21 @@ e) VARIABLES DE DRIVE CON OTRO NOMBRE EN PRODUCCIÓN — RESUELTO EL 05/09/2026.
    (src/lib/onboarding/drive.ts) para que lea GOOGLE_SERVICE_ACCOUNT_JSON y
    DRIVE_CLIENTS_FOLDER_ID, que ya existen en Vercel. Desplegado y verificado.
 
-f) CRON_SECRET NO está en Vercel Production (sí hay AUTOMATION_TOKEN).
-   El endpoint de facturación mensual (src/app/api/invoices/run-monthly/route.ts:44)
-   acepta el header x-cron-secret === CRON_SECRET como capa opcional. Al no estar
-   definida, la protección recae solo en la service role (permisiva). AUTOMATION_TOKEN
-   no se usa en ningún sitio del código actual.
+f) CRON_SECRET NO estaba en Vercel Production → RESUELTO el 05/09/2026.
+   Añadida CRON_SECRET (Secret) que protege los 4 crons (run-monthly, automation,
+   ai-tasks/run, lead-scraper/run) vía header x-cron-secret / Bearer. AUTOMATION_TOKEN
+   sigue sin usarse en ningún sitio del código actual (sobra o está reservada).
 
-g) COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL NO están en
-   Vercel Production. Solo COMPANY_NAME. Los contratos (src/lib/onboarding/contract.ts:82)
-   usarán el NIF de relleno "B00000000" si no se definen. Las facturas toman los datos
-   de la tabla settings (ver sección 3), que también pueden estar vacíos.
+g) COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL NO estaban en
+   Vercel Production → RESUELTO el 05/09/2026 (solo existía COMPANY_NAME).
+   Añadidas COMPANY_NIF, COMPANY_ADDRESS, COMPANY_CITY, COMPANY_POSTAL y ADMIN_EMAIL.
+   Los contratos ya no usan el relleno "B00000000" (src/lib/onboarding/contract.ts:82).
+   Las facturas toman los datos de la tabla settings (ver sección 3), que aún pueden
+   estar vacíos si no se rellenan desde /dashboard/configuracion → Empresa.
 
-h) ADMIN_EMAIL NO está en Vercel Production. El cron de respuestas IA a reseñas
-   usa process.env.ADMIN_EMAIL || settings.company_email (src/app/api/automation/route.ts:281).
-   Con company_email vacío en settings, no se notificará al admin. Definir ADMIN_EMAIL
-   o rellenar "Email" en Configuración > Empresa.
+h) ADMIN_EMAIL NO estaba en Vercel Production → RESUELTO el 05/09/2026.
+   Añadida. El cron de respuestas IA a reseñas usa
+   process.env.ADMIN_EMAIL || settings.company_email (src/app/api/automation/route.ts:281).
 
 --------------------------------------------------------------------------------
 2. VARIABLES DE ENTORNO: qué es cada una y dónde se usa
@@ -85,10 +87,26 @@ Las que YA existen en Vercel Production (verificado 05/09/2026):
                                     (pago, reportes) y redirecciones. middleware/email.
   COMPANY_NAME                      OpiniLab. Nombre de la empresa en emails, contratos,
                                     invoices (templates.ts, contract.ts, dispatch.ts, pagar).
+  COMPANY_NIF                       ✓ NIF de la agencia para contratos [contract.ts:82].
+                                    (añadida 05/09/2026)
+  COMPANY_ADDRESS                   ✓ Datos de empresa (añadida 05/09/2026) [contract.ts].
+  COMPANY_CITY                      ✓ (añadida 05/09/2026).
+  COMPANY_POSTAL                    ✓ (añadida 05/09/2026).
+  ADMIN_EMAIL                       ✓ Email del admin para notificaciones de borradores
+                                    AI [automation:281]. (añadida 05/09/2026)
+  EMAIL_FROM                        ✓ Remitente de emails: noreply@opinilab.com
+                                    [send.ts:36, email/route:24, contact/route:16,
+                                    templates.ts:287]. (añadida 05/09/2026)
+  TOTP_ENC_KEY                      ✓ Clave de cifrado AES-256-GCM para 2FA.
+                                    [totp.ts, mfa-cookie.ts]. (añadida 05/09/2026)
+  CRON_SECRET                       ✓ Protege los crons (x-cron-secret / Bearer).
+                                    (añadida 05/09/2026)
   RESEND_API_KEY                    API de Resend para envío de emails (send.ts, email/route).
-  STRIPE_SECRET_KEY                 Clave secreta Stripe (TEST pk_test_...). Facturación
+  STRIPE_SECRET_KEY                 Clave secreta Stripe (hoy TEST sk_test_...). Facturación
                                     mensual automática y webhook (run-monthly, webhook).
-  STRIPE_WEBHOOK_SECRET             Firmas de webhook Stripe (validación).
+                                    PARA LIVE: sustituir por sk_live_...
+  STRIPE_WEBHOOK_SECRET             Firmas de webhook Stripe (validación). Hoy del entorno
+                                    TEST; al pasar a LIVE hay que actualizarla.
   GROQ_API_KEY                      API del LLM. Respuestas IA a reseñas, informes,
                                     contenidos (groq.ts, dispatch.ts, automation, gbp-report).
   AUTOMATION_TOKEN                  NO se usa en el código actual (sobra o está reservada).
@@ -99,16 +117,10 @@ Las que YA existen en Vercel Production (verificado 05/09/2026):
   CONTRACT_TEMPLATE_ID              NO se usa en el código actual (reservada/legacy).
 
 Variables usadas por el código PERO AÚN NO en Vercel Production (pendientes, ver avisos):
-  EMAIL_FROM                        Remitente de emails (noreply@opinilab.com). Cae a
-                                    onboarding@resend.dev si falta. [send.ts:36, email/route:24,
-                                    contact/route:16, templates.ts:287]
-  TOTP_ENC_KEY                      Clave de cifrado AES-256-GCM para 2FA. [totp.ts, mfa-cookie.ts]
   NEXT_PUBLIC_APP_NAME              Nombre visible en /pagar. [pagar/[token]/page.tsx]
+                                    (opcional: hay fallback "Agencia Marketing")
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY Clave pública Stripe para Stripe Elements. [pagar/*]
-  CRON_SECRET                       Proteger /api/invoices/run-monthly por header x-cron-secret.
-  ADMIN_EMAIL                       Email del admin para notificaciones de borradores AI. [automation:281]
-  COMPANY_NIF                       NIF de la agencia para contratos. [contract.ts:82]
-  COMPANY_ADDRESS / CITY / POSTAL   (no usados en contratos directamente, quedan de datos empresa)
+                                    Pendiente: se añadirá con el paso a LIVE.
 
 Variables SOLO en .env.local (desarrollo) que no están en Vercel:
   NEXT_PUBLIC_APP_NAME, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, COMPANY_NIF,
@@ -309,14 +321,18 @@ D) CAMBIAR PRECIOS / SERVICIOS:
 --------------------------------------------------------------------------------
 NOTAS FINALES
 --------------------------------------------------------------------------------
-- El repo local F:\agencia-marketing va por detrás de main (8 commits al 05/09/2026).
-  OJO: los cambios que se editen aquí deben resolverse antes de push (git pull/rebase).
+- El repo local F:\agencia-marketing va al día con main (git pull/push habitual, ver
+  sección 6-C). OJO: los cambios que se editen aquí deben resolverse antes de push
+  (git pull/rebase).
 - ACCESSO.md (en el repo) está desactualizado respecto a la infraestructura actual:
   habla de Netlify/qelvuno-lang, pero la web se sirve desde Vercel (esticks-projects/opinilab)
   y el repo es Desarrollador-Estick/opinilab. No seguir sus pasos de Netlify.
-- Stripe está en MODO TEST (claves pk_test_... / sk_test_...). Antes de cobros reales hay
-  que pasar a claves live y actualizar el webhook.
-- Emails: sin EMAIL_FROM en producción todo sale de onboarding@resend.dev. Para usar un
-  dominio propio hay que: (1) añadir el dominio en Resend y verificar DNS, (2) definir
-  EMAIL_FROM=noreply@opinilab.com en Vercel production, (3) redesplegar.
+- Stripe está en MODO TEST (claves sk_test_...). Antes de cobros reales hay que
+  pasar a claves live (STRIPE_SECRET_KEY=sk_live_..., STRIPE_WEBHOOK_SECRET nueva
+  de LIVE y añadir NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...), configurar el
+  webhook en Stripe (Developers → Webhooks → https://www.opinilab.com/api/stripe/webhook)
+  y redesplegar. El código ya distingue los modos y oculta las tarjetas de test en LIVE
+  (commit b53dbe0).
+- Emails: EMAIL_FROM=noreply@opinilab.com ya está en Vercel y el dominio opinilab.com
+  está verificado en Resend. Los email_sends se actualizan con el webhook de Resend.
 ================================================================================

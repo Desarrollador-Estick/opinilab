@@ -145,9 +145,9 @@ QUÉ ES OPINILAB EN UNA FRASE
      Integraciones": comprueba GROQ_API_KEY; revisa el cupo ai_free_quota.
   5) El cliente no aporta herramientas → llámalo; los accesos llegan a
      "Mis herramientas" del portal (nunca pidas contraseñas por email).
-  6) Un email no llega → mira Supabase → tabla email_sends: estado del envío
-     (también el remitente: hoy sale de onboarding@resend.dev mientras no se
-     defina EMAIL_FROM en Vercel, ver sección 9 orientado a tu equipo).
+6) Un email no llega → mira Supabase → tabla email_sends: estado del envío
+      (remitente actual: noreply@opinilab.com, dominio verificado en Resend;
+      el estado se actualiza con el webhook de Resend).
 
 --------------------------------------------------------------------------------
 8. CÓMO PUBLICAR CAMBIOS / DESPLEGAR
@@ -177,18 +177,25 @@ QUÉ ES OPINILAB EN UNA FRASE
   Hoy la plataforma funciona, PERO algunos ajustes de producción están
   pendientes (verificado el 05/09/2026). No cobres a clientes reales hasta
   completar esto:
-  [ ] PASAR STRIPE A LIVE (ahora está en TEST):
-      - Crear cuenta Stripe LIVE y obtener pk_live_ / sk_live_.
-      - Configurar webhook: https://opinilab.com/api/stripe/webhook con los
-        eventos payment_intent.succeeded, payment_intent.payment_failed,
-        payment_intent.canceled.
-      - Actualizar las claves en Vercel y redesplegar. Probar una factura real.
-  [ ] EMAIL_FROM = noreply@opinilab.com en Vercel Production (hoy NO existe →
-      todos los correos salen de onboarding@resend.dev). Añadir dominio en
-      Resend y verificar DNS si aún no está.
-  [ ] TOTP_ENC_KEY en Vercel Production (sin ella el 2FA falla en producción).
-  [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
-      tarjeta puede romperse).
+[ ] PASAR STRIPE A LIVE (ahora está en TEST):
+       - Crear cuenta Stripe LIVE y obtener pk_live_ / sk_live_.
+       - Configurar webhook: https://www.opinilab.com/api/stripe/webhook con los
+         eventos payment_intent.succeeded, payment_intent.payment_failed,
+         payment_intent.canceled, y copiar whsec_ a STRIPE_WEBHOOK_SECRET.
+       - Actualizar las claves en Vercel (STRIPE_SECRET_KEY=
+         sk_live_..., y añadir NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...)
+         y REDESPLEGAR. Probar una factura real.
+       - CÓDIGO LISTO (commit b53dbe0): las páginas /pagar detectan por
+         STRIPE_SECRET_KEY si Stripe está live y ocultan las indicaciones de
+         tarjeta de test (4242...). No hace falta más desarrollo para LIVE.
+   [x] EMAIL_FROM = noreply@opinilab.com en Vercel Production (añadida el
+       05/09/2026). El dominio opinilab.com está añadido y verificado en
+       Resend (de ahí sale noreply@). Los emails ya salen de dirección propia
+       y el webhook de Resend viene con efecto.
+   [x] TOTP_ENC_KEY en Vercel Production (añadida el 05/09/2026; el 2FA ya
+       funciiona en producción).
+   [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
+       tarjeta puede romperse). Se añadirá junto al paso a LIVE (ver arriba).
   [x] DRIVE: RESUELTO el 05/09/2026. El código leía
       GOOGLE_APPLICATION_CREDENTIALS_JSON y GOOGLE_DRIVE_PARENT_FOLDER_ID,
       pero en Vercel están como GOOGLE_SERVICE_ACCOUNT_JSON y
@@ -196,10 +203,13 @@ QUÉ ES OPINILAB EN UNA FRASE
       creaban. Cambiado el código (src/lib/onboarding/drive.ts) para leer los
       nombres de Vercel. Para validar de verdad que crea carpetas, da de alta
       un cliente de prueba y mira que drive_folder_url se rellena.
-  [ ] COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL y
-      ADMIN_EMAIL en Vercel (contratos usaban "B00000000"; avisos de
-      borradores IA no tienen a quién ir).
-  Detalle técnico completo: ver F:\agencia-marketing\configuracion.txt.
+[ ] COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL y
+       ADMIN_EMAIL en Vercel (contratos usaban "B00000000"; avisos de
+       borradores IA no tienen a quién ir).
+   [x] COMPANY_NAME, COMPANY_NIF, COMPANY_ADDRESS, COMPANY_CITY,
+       COMPANY_POSTAL y ADMIN_EMAIL añadidas en Vercel Production el
+       05/09/2026.
+   Detalle técnico completo: ver F:\agencia-marketing\configuracion.txt.
 
   FASE 1 — HECHA EL 05/09/2026 (commits daa3ece, 35b6d3b y 45c067a). Verificado
   en producción:
