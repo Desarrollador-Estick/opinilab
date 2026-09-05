@@ -53,8 +53,9 @@ QUÉ ES OPINILAB EN UNA FRASE
                    informe gratuito de Google y envía el email de bienvenida.
 
   NOTA: para verificar que llevan a cabo su trabajo revisa cada pocos días
-  Supabase → tabla email_sends (qué se envió y con qué remitente) y la pestaña
-  Cron de Vercel (que las 4 tareas run).
+  Supabase → tabla email_sends (qué se envió, estado y remitente; desde la
+  Fase 1 el estado se actualiza SOLO con los eventos del webhook de Resend) y
+  la pestaña Cron de Vercel (que las 4 tareas run).
 
 --------------------------------------------------------------------------------
 3. TU DÍA A DÍA (si tienes solo 10-15 minutos por la mañana)
@@ -198,28 +199,45 @@ QUÉ ES OPINILAB EN UNA FRASE
       borradores IA no tienen a quién ir).
   Detalle técnico completo: ver F:\agencia-marketing\configuracion.txt.
 
-  AÑADIDO EL 05/09/2026 CON LA FASE 1 (ver commit daa3ece):
-  [ ] CRON_SECRET en Vercel Production (protege los 4 crons). Mientras NO
-      exista, los crons siguen funcionando igual (backward-compat); en cuanto
-      se añada, Vercel envía solo el Bearer y los endpoints exigen el header
-      (o sesión de equipo para los botones del dashboard).
-  [ ] Webhook de Resend: añadir en Resend → Webhooks la URL
-      https://opinilab.com/api/email/webhook para recibir eventos de entrega
-      (delivered/bounced/complained/opened/clicked) y actualizar email_sends.
-      Solo tiene efecto con los emails saliendo de EMAIL_FROM (dominio propio).
-  [ ] Plantillas de email editables: en /dashboard/configuracion → "Email" hay
-      una sección nueva ("Plantillas de email editables") con
-      lead_contact / followup_1 / followup_2. La automatización de leads usa
-      estas plantillas (variables {name}, {business}, {company}) y si una está
-      inactiva o no existe usa la plantilla por defecto del código.
-  [ ] Endpoint nuevo POST /api/leads/[id]/convert: convierte un lead en cliente
-      (mismo flujo que el botón, requiere sesión de equipo).
-  [ ] La migración supabase/migrations/019_email_templates.sql debe aplicarse en
-      la BD de producción (aplicarla igual que las anteriores 001-018 con
-      supabase db push o pegando el SQL en el SQL Editor).
+  FASE 1 — HECHA EL 05/09/2026 (commits daa3ece, 35b6d3b y 45c067a). Verificado
+  en producción:
+  [x] CRON_SECRET añadida en Vercel Production (Secret, protege los 4 crons).
+      Importante: tras añadirla hay que REDESPLEGAR (las env vars se congelan
+      por deployment). Al añadirla usa stdin limpio
+      (node -e "process.stdout.write('...')" | vercel env add CRON_SECRET
+      production): con echo/set /p queda un salto de línea final que Vercel
+      rechaza en headers ("leading or trailing whitespace"). Verificado:
+      /api/automation sin header → 401; con Bearer → 200.
+  [x] Webhook de Resend configurado con la URL
+      https://www.opinilab.com/api/email/webhook (eventos delivered, bounced,
+      complained, opened, clicked) → actualiza email_sends. Nota: solo tiene
+      efecto cuando los emails salen de EMAIL_FROM (dominio propio; hoy salen
+      de onboarding@resend.dev hasta definirla, ver pendiente arriba).
+  [x] Migración 019_email_templates.sql APLICADA en producción (SQL Editor).
+      Ojo: en la BD de prod existía un CHECK legacy (email_templates_category_
+      check) que no está en las migraciones del repo y rechazaba
+      category='lead' (rompía el seed). La migración 019 ya lo elimina antes
+      del insert (compatible con bases que lo hayan creado).
+  [x] Plantillas de email editables: /dashboard/configuracion → "Email" →
+      "Plantillas de email editables" (lead_contact / followup_1 / followup_2).
+      La automatización de leads (09:00) usa "followup_1" (variables {name},
+      {business}, {company}); si está inactiva o no existe, fallback al texto
+      del código.
+  [x] Endpoint POST /api/leads/[id]/convert: convierte un lead en cliente
+      (mismo flujo que el botón; requiere sesión de equipo).
+  [x] SEGURIDAD: /api/ai-tasks/run tenía un bypass heredado (con service role
+      configurada no autenticaba nada → cualquiera podía gastar cupo Groq).
+      Corregido en 45c067a: ahora exige CRON_SECRET (Bearer/x-cron-secret) o
+      sesión de equipo. Verificado: sin header → 401.
 
   NOTA CURIOSA: el panel nuevo te avisa por sí solo cuando Stripe está en
   modo TEST: no lo ignores, es tu recordatorio visual.
+
+  ESTADO REAL AL 05/09/2026 (tarde): paso 1 (CRON_SECRET) ✓, paso 2
+  (migración 019) ✓, paso 3 (webhook Resend) ✓ y paso 4 (verificación) ✓.
+  Siguiente día de operación: aplica los chequeos de la sección 2 (crons,
+  email_sends) y la rutina diaria de la sección 3. El token de resend/supabase
+  y el webhook secret están en C:\Users\jordi\Desktop\passo\Apy resend.txt.
 
 --------------------------------------------------------------------------------
 10. NOTAS RÁPIDAS
