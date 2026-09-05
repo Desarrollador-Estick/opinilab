@@ -1,0 +1,236 @@
+================================================================================
+OPINILAB — GUÍA DEL DÍA A DÍA (operación diaria, semanal y mensual)
+Versión: 05/09/2026 · Proyecto: F:\agencia-marketing · Prod: https://opinilab.com
+================================================================================
+
+QUÉ ES OPINILAB EN UNA FRASE
+  Plataforma que capta leads, hace seguimiento automático, factura y cobra por
+  ti. Tú te encargas de VENDER (llamas y cierras), SUPERVISAR (contenido, IA,
+  contratos) y FIDELIZAR (informes, upsell). Si un día no haces nada, el sistema
+  sigue: buscando leads, enviando follow-ups y recordatorios de facturas, y
+  el día 1 de mes facturando y cobrando.
+
+--------------------------------------------------------------------------------
+1. RUTAS EN 1 VISTA
+--------------------------------------------------------------------------------
+  https://opinilab.com            → Landing pública (captación del formulario).
+  https://opinilab.com/login      → Acceso AGENCIA (admin/manager/member).
+  /dashboard                      → Panel principal (índice de tu negocio).
+  /dashboard/leads                → Buzón de captación (inbound + scraper).
+  /dashboard/ai-tareas            → Cola de tareas IA (contenido generado).
+  /dashboard/marketing            → Calendario de redes + generación de posts.
+  /dashboard/resenas              → Reseñas y respuestas (manual o con IA).
+  /dashboard/facturas            → Facturas y cobros.
+  /dashboard/reportes            → Informes mensuales a clientes.
+  /dashboard/clientes            → Clientes dados de alta.
+  /dashboard/tareas              → Gestión de trabajo por cliente.
+  /dashboard/configuracion       → Ajustes: Empresa, Facturación, Marketing,
+                                   Seguridad, Automatización, Captura, API.
+  /portal                         → Área del CLIENTE (él ve facturas, contrato,
+                                   informes, "Mis herramientas").
+
+--------------------------------------------------------------------------------
+2. LO QUE EL SISTEMA HACE 100% SOLO (no lo toques salvo avería)
+--------------------------------------------------------------------------------
+  Nota: días y horas en UTC (España verano = UTC+2, invierno = UTC+1).
+
+  CUÁNDO (UTC)     QUÉ HACE
+  ─────────────────────────────────────────────────────────────────────────────
+  Día 1, 05:00     Facturación mensual + cobro automático con tarjeta + emails
+                   de factura (cron /api/invoices/run-monthly).
+  Todos, 06:00     Procesa la cola de tareas IA (cron /api/ai-tasks/run,
+                   hasta 20 por ejecución, respeta el cupo).
+  Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
+                   /api/lead-scraper/run) si la Captura está activada.
+  Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
+                   (reprograma a +7 días) + informes mensuales + [si activado]
+                   envío automático de informes, solicitudes de reseñas y
+                   borradores IA de respuestas (cron /api/automation).
+  En tiempo real   Webhook de Stripe: al pagar una factura pasa a "paid", se
+                   registra el pago, se activa el cliente y se le da las gra
+                   cias por email.
+  En tiempo real   Formulario de la landing: crea el lead, genera con IA el
+                   informe gratuito de Google y envía el email de bienvenida.
+
+  NOTA: para verificar que llevan a cabo su trabajo revisa cada pocos días
+  Supabase → tabla email_sends (qué se envió y con qué remitente) y la pestaña
+  Cron de Vercel (que las 4 tareas run).
+
+--------------------------------------------------------------------------------
+3. TU DÍA A DÍA (si tienes solo 10-15 minutos por la mañana)
+--------------------------------------------------------------------------------
+  Orden recomendado:
+  1) Abre https://opinilab.com → comprueba que carga.
+  2) Entra en /login → /dashboard (aquí tienes el nuevo panel con alertas).
+  3) MIRA LAS ALERTAS Y EL ESTADO DEL SISTEMA (parte de arriba del panel):
+     - Scraper: ¿OK? (si falla, mira /dashboard/configuracion → Captura).
+     - Stripe: ¿está en MODO TEST? (el panel lo avisa: aún NO cobras real).
+     - IA: ¿cola de tareas parada? → salta al paso 5.
+     - Email: ¿enviando normal?
+  4) /dashboard/leads
+     - Revisa los leads NUEVOS: primero los "website" (de la landing, ya
+       llevan informe generado → úsalos para la llamada).
+     - Contacta por teléfono/email. La plataforma NO llama por ti.
+     - Marca estado y fija next_follow_up_at en cada lead (contacted,
+       interested, proposal_sent, negotiation, won, lost).
+  5) /dashboard/ai-tareas → procesa las tareas que estén en "waiting" (las
+     que no entren en el cupo automático). Aprueba las generadas.
+  6) /dashboard/resenas → responde las reseñas pendientes (o revisa los
+     borradores IA y publícalos). También puedes SOLICITAR reseñas con el
+     botón /dashboard/resenas/solicitar.
+  7) /dashboard/facturas → mira impagos y pagos fallidos; llama al cliente
+     antes de que el recordatorio automático se repita demasiado.
+  8) Cierra sesión.
+
+--------------------------------------------------------------------------------
+4. TU RUTINA SEMANAL (una vez a la semana, ~30 min)
+--------------------------------------------------------------------------------
+  [ ] Verificar que https://opinilab.com carga.
+  [ ] Cola de tareas IA (/dashboard/ai-tareas): procesar "waiting", revisar cupo.
+  [ ] Facturas pendientes y pagos fallidos (/dashboard/facturas).
+  [ ] Leads nuevos y follow-ups pendientes (/dashboard/leads → fuente auto_scraped).
+  [ ] Verificar envíos de email (Supabase → tabla email_sends).
+  [ ] Revisar automatizaciones activadas (/dashboard/configuracion →
+      Automatización) y que sigan funcionando.
+  [ ] Logs de Vercel por errores (https://vercel.com/dashboard/esticks-projects/opinilab).
+  [ ] Que los 4 crons se ejecutan (Vercel → Cron).
+  [ ] Accesos de herramientas pendientes (clientes que aún no aportan las suyas).
+
+--------------------------------------------------------------------------------
+5. TU RUTINA MENSUAL (días 1-5 de cada mes)
+--------------------------------------------------------------------------------
+  Día 1 (05:00 UTC): el sistema factura y cobra automáticamente a todos los
+                     clientes activos.
+  Día 1 (09:00 UTC): se generan los INFORMES mensuales automáticos de los
+                     clientes activos.
+  1) /dashboard/reportes → revisa los informes generados y envía cada uno con
+     el botón "Enviar al Cliente" (O: si activaste el envío automático en
+     /dashboard/configuracion → Automatización, el sistema los envía solo tras
+     la espera configurada, y solo si el cliente está al día).
+  2) Repasa con los clientes el resultado del mes y propón mejoras/upsell
+     (más servicios del catálogo).
+  3) Revisa las facturas no pagadas del mes y contacta a los morosos.
+  4) Revisa el catálogo de servicios y precios (Supabase → tabla services o
+     /dashboard/configuracion) por si toca ajustar.
+
+--------------------------------------------------------------------------------
+6. CÓMO DAR DE ALTA A UN CLIENTE NUEVO (paso a paso)
+--------------------------------------------------------------------------------
+  VÍA A — desde el lead (recomendada):
+     /dashboard/leads/[id] → "Convertir en cliente" → asigna los servicios.
+     El sistema hace SOLO: carpeta en Google Drive, contrato (borrador),
+     email de bienvenida + credenciales + accesos necesarios, y marca que el
+     cliente debe crear su contraseña en su primer acceso.
+  VÍA B — manual: /dashboard/clientes/nuevo.
+
+  DESPUÉS DEL ALTA, TU ROL:
+  1) Revisa el contrato en /dashboard/contratos (queda en "borrador"):
+     ponlo como "firmado" una vez firmado por el cliente.
+  2) Avisa al cliente por teléfono de que revise su email.
+  3) Cuando el cliente deje sus accesos en "Mis herramientas" del portal,
+     recógelos y ponte a trabajar.
+
+--------------------------------------------------------------------------------
+7. CASOS COMUNES Y QUÉ HACER
+--------------------------------------------------------------------------------
+  1) El cobro automático falla → factura "overdue" y cliente pausado. Llama,
+     renegocia (nueva tarjeta o plan), y al pagar (webhook) se reactiva solo.
+  2) El cliente no entra en el portal → revisa su email (credenciales con
+     contraseña temporal); confirma que el primer acceso abre
+     /portal/cambiar-password para crear su contraseña.
+  3) No llegan leads del scraper → /dashboard/configuracion → "Captura":
+     enabled=ON, ciudades y categorías; mira el historial en lead_scraper_log.
+  4) La IA no genera contenido → /dashboard/configuracion → "API &
+     Integraciones": comprueba GROQ_API_KEY; revisa el cupo ai_free_quota.
+  5) El cliente no aporta herramientas → llámalo; los accesos llegan a
+     "Mis herramientas" del portal (nunca pidas contraseñas por email).
+  6) Un email no llega → mira Supabase → tabla email_sends: estado del envío
+     (también el remitente: hoy sale de onboarding@resend.dev mientras no se
+     defina EMAIL_FROM en Vercel, ver sección 9 orientado a tu equipo).
+
+--------------------------------------------------------------------------------
+8. CÓMO PUBLICAR CAMBIOS / DESPLEGAR
+--------------------------------------------------------------------------------
+  ⚠️ IMPORTANTE: F:\agencia-marketing es un USB con sistema FAT32. NO ejecutes
+  NUNCA "npm run build" ahí: fallará con errores de "junction point" o
+  "readlink" (es limitación del disco USB, no del código). Para validar un
+  build, copia el proyecto a un disco C:\ (sin node_modules/.next/.git/.env*),
+  npm install, y ahí sí npm run build.
+
+  Flujo habitual:
+    1) Trabaja y edita archivos en F:\agencia-marketing.
+    2) git add -A
+    3) git commit -m "descripción del cambio"
+    4) git pull origin main   (si hay cambios remotos; resuelve conflictos)
+    5) git push origin main   → Vercel despliega SOLO (rama main).
+    6) Ver estado: https://vercel.com/dashboard/esticks-projects/opinilab
+       o: npx vercel ls opinilab → "Ready".
+
+  Configurar producción con env vars → Vercel → Settings → Environment
+  Variables (o `npx vercel env add <NOMBRE> production`). Tras cada cambio de
+  variable, REDESPLEGAR.
+
+--------------------------------------------------------------------------------
+9. PENDIENTES ANTES DE OPERAR CON CLIENTES REALES (IMPORTANTE)
+--------------------------------------------------------------------------------
+  Hoy la plataforma funciona, PERO algunos ajustes de producción están
+  pendientes (verificado el 05/09/2026). No cobres a clientes reales hasta
+  completar esto:
+  [ ] PASAR STRIPE A LIVE (ahora está en TEST):
+      - Crear cuenta Stripe LIVE y obtener pk_live_ / sk_live_.
+      - Configurar webhook: https://opinilab.com/api/stripe/webhook con los
+        eventos payment_intent.succeeded, payment_intent.payment_failed,
+        payment_intent.canceled.
+      - Actualizar las claves en Vercel y redesplegar. Probar una factura real.
+  [ ] EMAIL_FROM = noreply@opinilab.com en Vercel Production (hoy NO existe →
+      todos los correos salen de onboarding@resend.dev). Añadir dominio en
+      Resend y verificar DNS si aún no está.
+  [ ] TOTP_ENC_KEY en Vercel Production (sin ella el 2FA falla en producción).
+  [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
+      tarjeta puede romperse).
+  [ ] DRIVE: el código lee GOOGLE_APPLICATION_CREDENTIALS_JSON y
+      GOOGLE_DRIVE_PARENT_FOLDER_ID, pero en Vercel están como
+      GOOGLE_SERVICE_ACCOUNT_JSON y DRIVE_CLIENTS_FOLDER_ID → las carpetas de
+      Drive de los clientes NO se crean hoy (el alta sigue, pero sin carpeta).
+      Renombrarlas o fijar el código.
+  [ ] COMPANY_NIF / COMPANY_ADDRESS / COMPANY_CITY / COMPANY_POSTAL y
+      ADMIN_EMAIL en Vercel (contratos usaban "B00000000"; avisos de
+      borradores IA no tienen a quién ir).
+  Detalle técnico completo: ver F:\agencia-marketing\configuracion.txt.
+
+  AÑADIDO EL 05/09/2026 CON LA FASE 1 (ver commit daa3ece):
+  [ ] CRON_SECRET en Vercel Production (protege los 4 crons). Mientras NO
+      exista, los crons siguen funcionando igual (backward-compat); en cuanto
+      se añada, Vercel envía solo el Bearer y los endpoints exigen el header
+      (o sesión de equipo para los botones del dashboard).
+  [ ] Webhook de Resend: añadir en Resend → Webhooks la URL
+      https://opinilab.com/api/email/webhook para recibir eventos de entrega
+      (delivered/bounced/complained/opened/clicked) y actualizar email_sends.
+      Solo tiene efecto con los emails saliendo de EMAIL_FROM (dominio propio).
+  [ ] Plantillas de email editables: en /dashboard/configuracion → "Email" hay
+      una sección nueva ("Plantillas de email editables") con
+      lead_contact / followup_1 / followup_2. La automatización de leads usa
+      estas plantillas (variables {name}, {business}, {company}) y si una está
+      inactiva o no existe usa la plantilla por defecto del código.
+  [ ] Endpoint nuevo POST /api/leads/[id]/convert: convierte un lead en cliente
+      (mismo flujo que el botón, requiere sesión de equipo).
+  [ ] La migración supabase/migrations/019_email_templates.sql debe aplicarse en
+      la BD de producción (aplicarla igual que las anteriores 001-018 con
+      supabase db push o pegando el SQL en el SQL Editor).
+
+  NOTA CURIOSA: el panel nuevo te avisa por sí solo cuando Stripe está en
+  modo TEST: no lo ignores, es tu recordatorio visual.
+
+--------------------------------------------------------------------------------
+10. NOTAS RÁPIDAS
+--------------------------------------------------------------------------------
+  - Roles: admin/manager/member → /dashboard · client → /portal.
+  - Contratos: se renuevan SOLOS por periodos iguales salvo aviso 30 días
+    antes. Un cliente contento = cliente fijo sin fricción.
+  - Feature flags / automatizaciones / captura se gestionan desde
+    /dashboard/configuracion (no hace falta tocar código).
+  - Documentación completa: C:\Users\jordi\Desktop\changes_summary.txt
+    (manual completo) + F:\agencia-marketing\configuracion.txt (config).
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================
