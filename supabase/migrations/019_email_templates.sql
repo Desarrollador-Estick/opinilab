@@ -47,6 +47,20 @@ create policy "Agency full access email_templates"
     )
   );
 
+-- Compatibilidad: algunas bases han creado un CHECK en `category` que limita los
+-- valores permitidos (no está en las migraciones del repo). `category` es una
+-- etiqueta libre en la app (lead, invoice, review...), así que se elimina.
+do $$
+begin
+  if exists (
+    select 1 from pg_constraint
+    where conname = 'email_templates_category_check'
+      and conrelid = 'public.email_templates'::regclass
+  ) then
+    alter table public.email_templates drop constraint email_templates_category_check;
+  end if;
+end $$;
+
 -- ============================================================
 -- SEED: plantillas por defecto (solo si no existen por key)
 -- La columna de contenido es `body` (HTML) y se usa `subject` para el asunto.
