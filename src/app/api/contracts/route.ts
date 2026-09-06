@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     if (error) throw error
 
     return NextResponse.json({ success: true, contract: data })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al crear contrato" }, { status: 500 })
   }
 }

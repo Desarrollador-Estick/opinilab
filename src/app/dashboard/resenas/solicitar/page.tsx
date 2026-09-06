@@ -30,7 +30,7 @@ export default function SolicitarResenaPage() {
       .eq("status", "active")
       .order("business_name")
       .then(({ data }) => setClients((data as Client[]) || []))
-  }, [])
+  }, [supabase])
 
   useEffect(() => {
     if (clientId) {
@@ -38,7 +38,6 @@ export default function SolicitarResenaPage() {
       if (client) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerName(client.contact_name)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerEmail(client.email)
       }
     }

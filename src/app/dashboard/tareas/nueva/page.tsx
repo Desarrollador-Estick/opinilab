@@ -44,6 +44,7 @@ export default function NuevaTareaPage() {
       setClients((clientsRes.data as Client[]) || [])
       setTeam((teamRes.data as TeamMember[]) || [])
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {

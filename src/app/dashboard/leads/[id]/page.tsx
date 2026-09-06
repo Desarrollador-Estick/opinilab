@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
-import { formatDateTime, formatDate, getStatusColor } from "@/lib/utils"
+import { formatDateTime, getStatusColor } from "@/lib/utils"
 import { convertLeadToClientAction } from "@/app/dashboard/leads/actions"
 
 interface Lead {
@@ -102,7 +102,6 @@ export default function LeadDetailPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLead()
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchStatusHistory()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId])

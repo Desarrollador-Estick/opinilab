@@ -17,9 +17,10 @@ export async function POST(request: Request) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     )
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed: ${err.message}`)
-    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err ?? "unknown")
+    console.error(`Webhook signature verification failed: ${message}`)
+    return NextResponse.json({ error: `Webhook Error: ${message}` }, { status: 400 })
   }
 
   // Manejamos el evento de checkout session completado

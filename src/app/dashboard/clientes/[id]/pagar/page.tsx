@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js"
@@ -184,6 +184,7 @@ function CheckoutForm({
 function StripeForm({ businessName, stripeLive }: { businessName: string; stripeLive: boolean }) {
   const stripe = useStripe()
   const elements = useElements()
+  const router = useRouter()
   const [processing, setProcessing] = useState(false)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -215,7 +216,7 @@ function StripeForm({ businessName, stripeLive }: { businessName: string; stripe
       setProcessing(false)
       // Pequeña pausa para que el webhook actualice la BD, luego vamos al dashboard
       window.setTimeout(() => {
-        window.location.href = "/dashboard/clientes"
+        router.push("/dashboard/clientes")
       }, 1500)
     } else {
       // Si no se pudo confirmar del todo, no nos quedamos colgados

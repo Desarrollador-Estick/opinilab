@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       message: "Solicitud de reseña enviada",
       request: data,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al enviar solicitud" }, { status: 500 })
   }
 }
@@ -59,7 +59,7 @@ export async function GET() {
     if (error) throw error
 
     return NextResponse.json({ success: true, requests: data })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al obtener solicitudes" }, { status: 500 })
   }
 }

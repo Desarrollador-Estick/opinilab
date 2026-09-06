@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { randomUUID } from "crypto"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 import Stripe from "stripe"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
@@ -46,7 +48,7 @@ async function runMonthly(request: Request) {
   // el cobro automático (cron/día 1) NO tiene sesión de usuario → usamos la
   // service role (omite RLS) siempre que esté configurada. El `CRON_SECRET`
   // añade una capa de autorización para invocarlo desde un cron externo.
-  let supabase: any
+  let supabase: SupabaseClient<Database>
   if (isServiceRoleConfigured()) {
     supabase = await createServerAdminClient()
   } else if (authHeader && process.env.CRON_SECRET && authHeader === process.env.CRON_SECRET) {
@@ -71,8 +73,8 @@ async function runMonthly(request: Request) {
     return NextResponse.json({ success: true, period, results: [], message: "No hay servicios activos" })
   }
 
-  const byClient = new Map<string, { service: any; price: number }[]>()
-  for (const cs of clientServices as any[]) {
+  const byClient = new Map<string, { service: { name: string; billing_cycle: string; base_price: string | number | null }; price: number }[]>()
+  for (const cs of clientServices ?? []) {
     const svc = Array.isArray(cs.services) ? cs.services[0] : cs.services
     if (!svc || svc.billing_cycle !== "monthly") continue
     const price = cs.custom_price != null ? Number(cs.custom_price) : Number(svc.base_price)
@@ -104,7 +106,7 @@ async function runMonthly(request: Request) {
     .gte("created_at", `${period}-01`)
     .lt("created_at", `${period}-31T23:59:59`)
 
-  const invoicedClientIds = new Set<string>((monthInvoices ?? []).map((i: any) => i.client_id))
+  const invoicedClientIds = new Set<string>((monthInvoices ?? []).map((i) => i.client_id))
 
   // Número de factura secuencial por periodo
   const { count: periodInvoiceCount } = await supabase
@@ -116,7 +118,7 @@ async function runMonthly(request: Request) {
   let sequence = periodInvoiceCount ?? 0
   const results: JobResult[] = []
 
-  for (const rawClient of clients as any[]) {
+  for (const rawClient of clients ?? []) {
     const client = rawClient
     const list = byClient.get(client.id)!
 
@@ -209,10 +211,11 @@ async function runMonthly(request: Request) {
           await markUnpaidAndPause(supabase, invoice, client, invoiceNumber, total, paymentIntent.status, period)
           results.push({ client_id: client.id, business_name: client.business_name, invoice_number: invoiceNumber, outcome: "created_unpaid", detail: paymentIntent.status })
         }
-      } catch (e: any) {
-        console.error("Cargo automático fallido:", client.id, e?.message)
-        await markUnpaidAndPause(supabase, invoice, client, invoiceNumber, total, e?.message, period)
-        results.push({ client_id: client.id, business_name: client.business_name, invoice_number: invoiceNumber, outcome: "created_unpaid", detail: e?.message })
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e ?? "unknown")
+        console.error("Cargo automático fallido:", client.id, message)
+        await markUnpaidAndPause(supabase, invoice, client, invoiceNumber, total, message, period)
+        results.push({ client_id: client.id, business_name: client.business_name, invoice_number: invoiceNumber, outcome: "created_unpaid", detail: message })
       }
     } else if (!client.stripe_default_payment_method_id) {
       // Sin tarjeta guardada: facturamos, marcamos como enviada y enviamos el
@@ -244,7 +247,15 @@ async function runMonthly(request: Request) {
   return NextResponse.json({ success: true, period, results })
 }
 
-async function markUnpaidAndPause(supabase: any, invoice: any, client: any, invoiceNumber: string, total: number, detail: string, period: string) {
+async function markUnpaidAndPause(
+  supabase: SupabaseClient<Database>,
+  invoice: { id: string },
+  client: { id: string; email: string; contact_name: string | null; business_name: string },
+  invoiceNumber: string,
+  total: number,
+  detail: string,
+  period: string
+) {
   await supabase
     .from("invoices")
     .update({ status: "overdue", updated_at: new Date().toISOString() })

@@ -84,9 +84,7 @@ async function handlePaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
   // Guardar el método de pago para cobros recurrentes del día 1.
   // Con setup_future_usage="off_session" Stripe indica los métodos reutilizables
   // en paymentIntent.payment_method (es un ID de PaymentMethod cuando se confirmó).
-  let clientPaymentMethodId: string | null = null
   if (typeof paymentIntent.payment_method === "string") {
-    clientPaymentMethodId = paymentIntent.payment_method
     await supabase
       .from("clients")
       .update({
@@ -142,13 +140,11 @@ async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   const now = new Date().toISOString()
 
   // Solo actualizamos si la factura aún no se ha pagado (evita sobrescribir un pago real)
-  const { data: invoice } = await supabase
+  await supabase
     .from("invoices")
     .update({ status: "overdue", updated_at: now })
     .eq("id", invoice_id)
     .in("status", ["draft", "sent"])
-    .select()
-    .single()
 
   console.warn(
     `Pago fallido para factura ${invoice_id} (${paymentIntent.id}). El cliente ${client_id} no se activa.`

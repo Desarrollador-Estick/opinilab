@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     if (error) throw error
 
     return NextResponse.json({ success: true, lead: data })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al crear lead" }, { status: 500 })
   }
 }
@@ -43,7 +43,7 @@ export async function GET() {
     if (error) throw error
 
     return NextResponse.json({ success: true, leads: data })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al obtener leads" }, { status: 500 })
   }
 }

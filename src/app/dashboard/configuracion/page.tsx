@@ -411,20 +411,6 @@ export default function ConfiguracionPage() {
     }
   }, [activeSection])
 
-  useEffect(() => {
-    if (activeSection === "email") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadEmailTemplates()
-    }
-  }, [activeSection])
-
-  useEffect(() => {
-    if (activeSection === "automation") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadAutoConfig()
-    }
-  }, [activeSection])
-
   async function loadAutoConfig() {
     setAutoLoading(true)
     try {
@@ -505,6 +491,20 @@ export default function ConfiguracionPage() {
       setTemplatesSaving(false)
     }
   }
+
+  useEffect(() => {
+    if (activeSection === "email") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadEmailTemplates()
+    }
+  }, [activeSection])
+
+  useEffect(() => {
+    if (activeSection === "automation") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadAutoConfig()
+    }
+  }, [activeSection])
 
   async function saveSettings() {
     setSaving(true)

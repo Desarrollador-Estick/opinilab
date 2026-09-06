@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { addClientToolAction } from "./actions"
-import { TOOL_TYPE_OPTIONS, TOOL_TYPE_LABEL } from "./constants"
+import { TOOL_TYPE_OPTIONS } from "./constants"
 
 export function AddToolForm({ clientId }: { clientId: string }) {
   const router = useRouter()

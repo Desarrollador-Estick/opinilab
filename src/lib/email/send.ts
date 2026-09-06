@@ -1,5 +1,6 @@
 import { Resend } from "resend"
 import { createServerAdminClient } from "@/lib/supabase/admin"
+import type { Json } from "@/types/database"
 
 const resendToken = process.env.RESEND_API_KEY
 
@@ -34,6 +35,7 @@ export async function sendEmail({
 }: SendEmailOptions): Promise<{ ok: boolean }> {
   const resend = getResend()
   const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev"
+  const dataJson: Json | null = data ? (data as unknown as Json) : null
 
   if (!resend) {
     console.warn(
@@ -49,7 +51,7 @@ export async function sendEmail({
         client_id: clientId || null,
         lead_id: leadId || null,
         resend_id: null,
-        data: data || {},
+        data: dataJson,
         status: "failed",
       })
     } catch {}
@@ -74,7 +76,7 @@ export async function sendEmail({
         client_id: clientId || null,
         lead_id: leadId || null,
         resend_id: emailData?.id || null,
-        data: data || {},
+        data: dataJson,
         status: error ? "failed" : "sent",
       })
     } catch {}

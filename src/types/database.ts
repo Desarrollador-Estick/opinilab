@@ -805,7 +805,7 @@ export interface Database {
           client_id: string | null
           lead_id: string | null
           resend_id: string | null
-          data: any
+          data: Json | null
           status: string
           created_at: string
         }
@@ -818,7 +818,7 @@ export interface Database {
           client_id?: string | null
           lead_id?: string | null
           resend_id?: string | null
-          data?: any
+          data?: Json | null
           status?: string
           created_at?: string
         }
@@ -831,7 +831,7 @@ export interface Database {
           client_id?: string | null
           lead_id?: string | null
           resend_id?: string | null
-          data?: any
+          data?: Json | null
           status?: string
           created_at?: string
         }

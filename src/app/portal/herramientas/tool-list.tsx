@@ -17,6 +17,12 @@ function parseImageNotes(notes: string | null): string[] {
   return after.split("; ").filter((s) => s.trim())
 }
 
+function cleanNotes(notes: string | null): string {
+  if (!notes) return ""
+  const idx = notes.indexOf("---IMAGES---")
+  return idx === -1 ? notes : notes.substring(0, idx).trimEnd()
+}
+
 export function ToolList({
   clientId,
   tools,
@@ -28,21 +34,17 @@ export function ToolList({
 }) {
   const router = useRouter()
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [busy, setBusy] = useState<Record<string, boolean>>({})
   const [error, setError] = useState("")
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
 
   async function handleDelete(tool: Tool) {
     if (!confirm(`¿Eliminar "${tool.tool_name}"?`)) return
-    setBusy({ del: true })
     setError("")
     const result = await deleteClientToolAction(clientId, tool.id)
     if (result?.error) {
       setError(result.error)
-      setBusy({})
       return
     }
-    setBusy({})
     router.refresh()
   }
 
@@ -52,15 +54,12 @@ export function ToolList({
   ) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
-    setBusy({ [tool.id]: true })
     setError("")
     const result = await updateClientToolAction(clientId, tool, fd)
     if (result?.error) {
       setError(result.error)
-      setBusy({})
       return
     }
-    setBusy({})
     setEditingId(null)
     router.refresh()
   }
@@ -85,9 +84,109 @@ export function ToolList({
       )}
 
       {tools.map((tool) => {
-        const isEditing = editingId === tool.id
-        const isRevealed = !!revealed[tool.id]
         const images = parseImageNotes(tool.notes)
+
+        if (editingId === tool.id) {
+          return (
+            <form
+              key={tool.id}
+              onSubmit={(e) => handleUpdate(e, tool)}
+              className="bg-white border border-[var(--color-border)] rounded-2xl p-5 space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg" style={{ color: "var(--color-foreground)" }}>
+                  Editar herramienta
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="px-3 py-1.5 rounded-xl border border-[var(--color-border)] text-xs font-medium hover:bg-[var(--color-muted)] transition-all duration-200"
+                    style={{ color: "var(--color-foreground)" }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white text-xs font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-300"
+                  >
+                    Guardar
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={label} style={{ color: "var(--color-foreground)" }}>Tipo</label>
+                  <select
+                    name="tool_type"
+                    defaultValue={tool.tool_type}
+                    className={field}
+                  >
+                    {TOOL_TYPE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={label} style={{ color: "var(--color-foreground)" }}>Nombre *</label>
+                  <input
+                    type="text"
+                    name="tool_name"
+                    defaultValue={tool.tool_name}
+                    className={field}
+                    placeholder="Ej: Perfil de Google de MiNegocio"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={label} style={{ color: "var(--color-foreground)" }}>URL</label>
+                  <input
+                    type="url"
+                    name="url"
+                    defaultValue={tool.url ?? ""}
+                    className={field}
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className={label} style={{ color: "var(--color-foreground)" }}>Usuario</label>
+                  <input
+                    type="text"
+                    name="username"
+                    defaultValue={tool.username ?? ""}
+                    className={field}
+                    placeholder="Ej: correo de la cuenta"
+                  />
+                </div>
+                <div>
+                  <label className={label} style={{ color: "var(--color-foreground)" }}>Contraseña</label>
+                  <input
+                    type="password"
+                    name="password_enc"
+                    defaultValue={tool.password_enc ?? ""}
+                    className={field}
+                    placeholder="Contraseña de acceso"
+                  />
+                </div>
+                <div>
+                  <label className={label} style={{ color: "var(--color-foreground)" }}>Notas</label>
+                  <textarea
+                    name="notes"
+                    defaultValue={cleanNotes(tool.notes)}
+                    className={field}
+                    rows={2}
+                    placeholder="Cualquier dato adicional que necesitemos"
+                  />
+                </div>
+              </div>
+            </form>
+          )
+        }
+
+        const isRevealed = !!revealed[tool.id]
 
         return (
           <div
@@ -130,17 +229,26 @@ export function ToolList({
                       <span className="font-mono" style={{ color: "var(--color-foreground)" }}>
                         {isRevealed ? tool.password_enc : "••••••••"}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setRevealed({ ...revealed, [tool.id]: !isRevealed })}
+                        className="ml-2 text-xs font-medium hover:underline"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        {isRevealed ? "Ocultar" : "Mostrar"}
+                      </button>
                     </p>
                   )}
                   {tool.notes && (
                     <p className="whitespace-pre-line">
                       <span style={{ color: "var(--color-muted-foreground)" }}>Notas: </span>
-                      <span style={{ color: "var(--color-foreground)" }}>{tool.notes}</span>
+                      <span style={{ color: "var(--color-foreground)" }}>{cleanNotes(tool.notes)}</span>
                     </p>
                   )}
                   {images.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {images.map((imgUrl, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           key={i}
                           src={imgUrl}

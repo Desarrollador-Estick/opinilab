@@ -69,9 +69,10 @@ export default function FacturasPage() {
       const res = await fetch("/api/invoices/run-monthly", { method: "POST" })
       const data = await res.json()
       if (data.success) {
-        const paid = data.results.filter((r: any) => r.outcome === "created_paid").length
-        const unpaid = data.results.filter((r: any) => r.outcome === "created_unpaid").length
-        const skipped = data.results.filter((r: any) => r.outcome === "already_invoiced").length
+        const results = (data.results ?? []) as Array<{ outcome: string }>
+        const paid = results.filter((r) => r.outcome === "created_paid").length
+        const unpaid = results.filter((r) => r.outcome === "created_unpaid").length
+        const skipped = results.filter((r) => r.outcome === "already_invoiced").length
         setRunResult(
           `✅ Proceso completado (${data.period}): ${paid} cobrada(s), ${unpaid} sin pagar, ${skipped} ya facturada(s).`
         )

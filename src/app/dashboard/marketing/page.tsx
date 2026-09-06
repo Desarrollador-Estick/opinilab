@@ -33,7 +33,7 @@ export default function MarketingPage() {
   const [posts, setPosts] = useState<SocialPost[]>([])
   const [clients, setClients] = useState<Client[]>([])
   const [activeTab, setActiveTab] = useState<"calendar" | "create" | "analytics">("calendar")
-  const [loading, setLoading] = useState(true)
+  const [, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [selectedClient, setSelectedClient] = useState("")
   const [selectedPlatform, setSelectedPlatform] = useState("")
@@ -48,6 +48,7 @@ export default function MarketingPage() {
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function loadData() {

@@ -80,7 +80,7 @@ export async function POST(request: Request) {
     if (error) throw error
 
     return NextResponse.json({ success: true, report, content: reportContent })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al generar reporte" }, { status: 500 })
   }
 }

@@ -40,13 +40,6 @@ const priorityLabels: Record<string, string> = {
   urgent: "Urgente",
 }
 
-const statusLabels: Record<string, string> = {
-  todo: "Por hacer",
-  in_progress: "En progreso",
-  review: "Revisión",
-  done: "Hecho",
-}
-
 export default function TareasPage() {
   const supabase = createClient()
   const [tasks, setTasks] = useState<Task[]>([])

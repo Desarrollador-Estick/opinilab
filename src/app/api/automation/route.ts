@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import type { SupabaseClient } from "@supabase/supabase-js"
+import type { Database } from "@/types/database"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
@@ -23,7 +25,7 @@ interface AutomationLog {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
-async function getAutomationEmailsConfig(supabase: any) {
+async function getAutomationEmailsConfig(supabase: SupabaseClient<Database>) {
   const { data } = await supabase
     .from("settings")
     .select("value")
@@ -46,7 +48,7 @@ function formatPeriod(start?: string | null, end?: string | null): string {
 }
 
 async function hasPaymentReminderBlockers(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   clientId: string,
   now: Date
 ): Promise<boolean> {
@@ -60,8 +62,8 @@ async function hasPaymentReminderBlockers(
 }
 
 async function clientQualifiesForReviewRequest(
-  supabase: any,
-  client: any,
+  supabase: SupabaseClient<Database>,
+  client: { id: string; email: string; created_at?: string | null },
   cfg: Record<string, unknown>,
   now: Date
 ): Promise<{ ok: boolean; reason: string }> {
@@ -105,7 +107,7 @@ async function clientQualifiesForReviewRequest(
 }
 
 async function autoSendMonthlyReports(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   cfg: Record<string, unknown>,
   now: Date,
   logs: AutomationLog[]
@@ -203,7 +205,7 @@ async function autoSendMonthlyReports(
 }
 
 async function autoSendReviewRequests(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   cfg: Record<string, unknown>,
   now: Date,
   logs: AutomationLog[]
@@ -260,7 +262,7 @@ async function autoSendReviewRequests(
 }
 
 async function autoDraftReviewResponses(
-  supabase: any,
+  supabase: SupabaseClient<Database>,
   cfg: Record<string, unknown>,
   now: Date,
   logs: AutomationLog[]
@@ -281,7 +283,7 @@ async function autoDraftReviewResponses(
     .in("key", ["company_email"])
   const adminEmail =
     process.env.ADMIN_EMAIL ||
-    String(companySettings?.find((s: any) => s.key === "company_email")?.value || "") ||
+    String(companySettings?.find((s) => s.key === "company_email")?.value || "") ||
     ""
   const notifyAdmin = Boolean(cfg.review_auto_response_notify_admin) && Boolean(adminEmail)
 

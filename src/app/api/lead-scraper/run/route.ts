@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
-import type { Database, Json } from "@/types/database"
+import type { Json } from "@/types/database"
 
 // El endpoint principal rechaza con 406 las peticiones sin User-Agent
 // identificativo (reglas anti-bots de overpass-api.de). Se intentan espejos

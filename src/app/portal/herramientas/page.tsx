@@ -22,14 +22,11 @@ export default async function HerramientasPage() {
 
   const clientId = profile.client_id
 
-  const [{ data: client }, { data: tools }] = await Promise.all([
-    supabase.from("clients").select("business_name").eq("id", clientId).maybeSingle(),
-    supabase
-      .from("client_tools")
-      .select("*")
-      .eq("client_id", clientId)
-      .order("created_at", { ascending: false }),
-  ])
+  const { data: tools } = await supabase
+    .from("client_tools")
+    .select("*")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
 
   return (
     <div className="space-y-8">

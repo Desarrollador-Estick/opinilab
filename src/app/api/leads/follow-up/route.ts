@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server"
+import type { Database } from "@/types/database"
 import { createClient } from "@/lib/supabase/server"
 
 // Automated lead scoring and follow-up
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const supabase = await createClient()
 
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
       follow_ups: followUps,
       count: followUps.length,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al obtener seguimientos" }, { status: 500 })
   }
 }
@@ -45,7 +46,7 @@ export async function PUT(request: Request) {
 
     const supabase = await createClient()
 
-    const updateData: any = {
+    const updateData: Database["public"]["Tables"]["leads"]["Update"] = {
       status,
       notes,
       last_contact_at: new Date().toISOString(),
@@ -68,7 +69,7 @@ export async function PUT(request: Request) {
     if (error) throw error
 
     return NextResponse.json({ success: true, lead: data })
-  } catch (error) {
+  } catch {
     return NextResponse.json({ success: false, error: "Error al actualizar lead" }, { status: 500 })
   }
 }

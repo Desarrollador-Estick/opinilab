@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { Database } from "@/types/database"
 
@@ -11,7 +12,7 @@ export type ClientToolState = {
   success?: boolean
 }
 
-async function assertOwnClient(supabase: any, clientId: string): Promise<boolean> {
+async function assertOwnClient(supabase: SupabaseClient<Database>, clientId: string): Promise<boolean> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -23,7 +24,7 @@ async function assertOwnClient(supabase: any, clientId: string): Promise<boolean
     .eq("id", user.id)
     .maybeSingle()
 
-  const isAgency = ["admin", "manager", "member"].includes(profile?.role)
+  const isAgency = ["admin", "manager", "member"].includes(profile?.role ?? "")
   if (isAgency) return true
   return profile?.role === "client" && profile?.client_id === clientId
 }

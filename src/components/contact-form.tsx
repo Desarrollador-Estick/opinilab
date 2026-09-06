@@ -34,8 +34,8 @@ export default function ContactForm() {
 
       setSuccess(true)
       setFormData({ name: "", email: "", business: "", message: "", googleMapsUrl: "" })
-    } catch (err: any) {
-      setError(err.message || "Error al enviar el formulario")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al enviar el formulario")
     } finally {
       setLoading(false)
     }

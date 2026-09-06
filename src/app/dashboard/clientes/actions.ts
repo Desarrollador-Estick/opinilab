@@ -12,6 +12,7 @@ import { sendEmail } from "@/lib/email/send"
 import { invoiceWithLinkEmail } from "@/lib/email/templates"
 import { generateInvoiceNumber } from "@/lib/utils"
 import { runClientOnboarding } from "@/lib/onboarding"
+import type { SupabaseClient } from "@supabase/supabase-js"
 import { Database } from "@/types/database"
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
@@ -223,7 +224,7 @@ export async function addClientServiceAction(
 // Envía al cliente un email indicando las herramientas necesarias para el
 // servicio recién asignado, invitándole a dejarlas en su portal. Tolerante a
 // fallos: cualquier error solo se loguea, nunca rompe la asignación.
-async function notifyRequiredTools(supabase: any, clientId: string, serviceId: string) {
+async function notifyRequiredTools(supabase: SupabaseClient<Database>, clientId: string, serviceId: string) {
   try {
     const [serviceRes, clientRes] = await Promise.all([
       supabase
@@ -260,7 +261,7 @@ async function notifyRequiredTools(supabase: any, clientId: string, serviceId: s
 // - intenta cobrarla off_session con la tarjeta guardada
 // - si no hay tarjeta → marca "sent" y envía el email con enlace de pago
 // Nunca rompe la asignación del servicio: cualquier error solo se loguea.
-async function chargeSetupFee(supabase: any, clientId: string, serviceId: string) {
+async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: string, serviceId: string) {
   try {
     const { data: feeRows } = await supabase
       .from("settings")
@@ -375,8 +376,9 @@ async function chargeSetupFee(supabase: any, clientId: string, serviceId: string
           })
           return
         }
-      } catch (e: any) {
-        console.warn("[setup] Cargo automático fallido:", e?.message)
+      } catch (e) {
+        const message = e instanceof Error ? e.message : String(e ?? "unknown")
+        console.warn("[setup] Cargo automático fallido:", message)
       }
     }
 
