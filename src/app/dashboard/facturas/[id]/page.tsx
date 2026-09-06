@@ -12,7 +12,6 @@ interface Client {
   business_name: string
   contact_name: string
   email: string
-  phone: string | null
   address: string | null
   city: string | null
   province: string | null

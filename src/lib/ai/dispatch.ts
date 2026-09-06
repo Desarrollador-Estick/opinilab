@@ -55,7 +55,7 @@ Reglas:
 - Asunto breve y atractivo.
 - Cuerpo en español formal y cercano, máximo 120 palabras.
 - Recuerda el valor de los servicios (gestión de reseñas, redes sociales, SEO local, publicidad online).
-- Incluye una llamada a la acción clara para agendar una llamada.
+- Incluye una llamada a la acción clara invitando a responder el email.
 - No inventes precios ni datos concretos.`,
         },
       ]
@@ -97,7 +97,7 @@ Reglas:
 Reglas:
 - Máximo 120 palabras, en español formal y cercano.
 - Describe en 2-3 puntos qué incluiría el servicio y qué resultados puedes esperar en general, sin prometer cifras concretas.
-- Termina con una invitación a agendar una llamada de diagnóstico.`,
+- Termina con una invitación a responder el email para seguir la conversación.`,
         },
       ]
       maxTokens = 300

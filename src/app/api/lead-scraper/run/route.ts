@@ -134,7 +134,6 @@ function extractLeadFromElement(el: OverpassElement) {
   const name = tags.name || tags["name:es"] || null
   if (!name) return null
 
-  const phone = tags.phone || tags["contact:phone"] || tags["phone:mobile"] || null
   const website = tags.website || tags["contact:website"] || null
   const email = tags.email || tags["contact:email"] || null
   const street = tags["addr:street"] || ""
@@ -148,7 +147,6 @@ function extractLeadFromElement(el: OverpassElement) {
 
   return {
     business_name: name,
-    phone,
     website,
     email,
     city: city || null,
@@ -251,7 +249,6 @@ async function runLeadScraper() {
       // Calcular score basado en datos disponibles
       let score = 50
       if (lead.website) score += 10
-      if (lead.phone) score += 5
       if (lead.email) score += 10
       if (lead.rating && lead.rating >= 4) score += 10
       if (lead.reviews && lead.reviews >= 20) score += 10
@@ -263,7 +260,6 @@ async function runLeadScraper() {
         business_name: lead.business_name,
         contact_name: null,
         email: lead.email,
-        phone: lead.phone,
         website: lead.website,
         city: lead.city,
         industry: null,

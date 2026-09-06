@@ -15,7 +15,7 @@ const sourceOptions = [
 ]
 
 function calculateScore(fields: Record<string, string | null>): number {
-  const fieldsToCheck = ["contact_name", "email", "phone", "website", "city", "industry", "source"]
+  const fieldsToCheck = ["contact_name", "email", "website", "city", "industry", "source"]
   const filled = fieldsToCheck.filter((f) => fields[f] && fields[f]!.trim() !== "").length
   return Math.round((filled / fieldsToCheck.length) * 100)
 }
@@ -28,7 +28,6 @@ export default function NuevoLeadPage() {
     business_name: "",
     contact_name: "",
     email: "",
-    phone: "",
     website: "",
     city: "",
     industry: "",
@@ -57,7 +56,6 @@ export default function NuevoLeadPage() {
       business_name: form.business_name.trim(),
       contact_name: form.contact_name.trim() || null,
       email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
       website: form.website.trim() || null,
       city: form.city.trim() || null,
       industry: form.industry.trim() || null,
@@ -149,29 +147,16 @@ export default function NuevoLeadPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-              <input
-                type="tel"
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="+34 600 000 000"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Web</label>
-              <input
-                type="url"
-                name="website"
-                value={form.website}
-                onChange={handleChange}
-                className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="https://ejemplo.com"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Web</label>
+            <input
+              type="url"
+              name="website"
+              value={form.website}
+              onChange={handleChange}
+              className="w-full border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="https://ejemplo.com"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">

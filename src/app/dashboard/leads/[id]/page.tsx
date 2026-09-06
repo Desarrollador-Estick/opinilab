@@ -12,7 +12,6 @@ interface Lead {
   business_name: string
   contact_name: string | null
   email: string | null
-  phone: string | null
   website: string | null
   city: string | null
   industry: string | null
@@ -240,10 +239,6 @@ export default function LeadDetailPage() {
               <div>
                 <p className="text-gray-500">Email</p>
                 <p className="font-medium">{lead.email || "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Teléfono</p>
-                <p className="font-medium">{lead.phone || "—"}</p>
               </div>
               <div>
                 <p className="text-gray-500">Web</p>

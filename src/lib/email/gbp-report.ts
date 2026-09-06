@@ -61,7 +61,7 @@ export function gbpReportEmail(
           <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
             ${renderReportBody(reportContent)}
           </div>
-          <p>Si quieres que hagamos un análisis más a fondo de tu perfil, responde a este email o pide una llamada gratuita sin compromiso.</p>
+          <p>Si quieres que hagamos un análisis más a fondo de tu perfil, responde a este email sin compromiso.</p>
           <p>¡Te esperamos!<br><strong>Equipo de ${company}</strong></p>
         </div>
       </body>

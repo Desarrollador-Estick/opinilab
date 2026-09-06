@@ -43,7 +43,6 @@ interface Settings {
   company_name: string
   company_nif: string
   company_email: string
-  company_phone: string
   company_address: string
   invoice_series: string
   invoice_next_number: number
@@ -59,7 +58,6 @@ const defaultSettings: Settings = {
   company_name: "",
   company_nif: "",
   company_email: "",
-  company_phone: "",
   company_address: "",
   invoice_series: "FAC",
   invoice_next_number: 1,
@@ -609,15 +607,6 @@ export default function ConfiguracionPage() {
                 type="email"
                 value={settings.company_email}
                 onChange={(e) => updateSetting("company_email", e.target.value)}
-                className="w-full border rounded-lg px-4 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Teléfono</label>
-              <input
-                type="tel"
-                value={settings.company_phone}
-                onChange={(e) => updateSetting("company_phone", e.target.value)}
                 className="w-full border rounded-lg px-4 py-2 text-sm"
               />
             </div>
@@ -1325,7 +1314,7 @@ export default function ConfiguracionPage() {
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Usa <strong>OpenStreetMap (Overpass API)</strong> — completamente gratis, sin API key</li>
               <li>Los leads se crean con fuente <code>auto_scraped</code> y se deduplican por nombre + ciudad</li>
-              <li>El score se calcula automáticamente según: tiene web (+10), teléfono (+5), email (+10), rating alto (+10)</li>
+              <li>El score se calcula automáticamente según: tiene web (+10), email (+10), rating alto (+10)</li>
               <li>Los leads aparecen en <code>/dashboard/leads</code> filtrables por fuente</li>
             </ul>
           </div>

@@ -41,7 +41,7 @@ Enumera 4-6 mejoras accionables y concretas para su perfil de negocio en Google 
 Explica, en 3-4 puntos, los servicios que ofrecemos (gestión de reseñas, community management, SEO local, publicidad online) y cómo se traducen en resultados (más reseñas, mejor valoración media, más visibilidad y más clientes locales).
 
 ## Siguiente paso
-Invita a que el cliente agende una llamada o responda a este email para conseguir un análisis personalizado gratuito.
+Invita a que el cliente responda a este email para conseguir un análisis personalizado gratuito.
 
 Longitud: concisa, máximo 350 palabras. En español formal y cercano.`
   try {

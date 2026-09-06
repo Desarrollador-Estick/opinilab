@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-// Automated review request - sends SMS/Email to customer
+// Automated review request - sends Email to customer
 export async function POST(request: Request) {
   try {
-    const { client_id, customer_name, customer_phone, customer_email } = await request.json()
+    const { client_id, customer_name, customer_email } = await request.json()
 
     const supabase = await createClient()
+
+    if (!customer_email) {
+      return NextResponse.json({ success: false, error: "El email es obligatorio" }, { status: 400 })
+    }
 
     // Create review request
     const { data, error } = await supabase
@@ -14,7 +18,6 @@ export async function POST(request: Request) {
       .insert({
         client_id,
         customer_name,
-        customer_phone,
         customer_email,
         status: "pending",
       })
@@ -23,9 +26,9 @@ export async function POST(request: Request) {
 
     if (error) throw error
 
-    // TODO: Integrate with SMS/Email provider
+    // TODO: Integrate with Email provider
     // For now, just log the request
-    console.log(`Review request created for ${customer_name}: ${customer_email || customer_phone}`)
+    console.log(`Review request created for ${customer_name}: ${customer_email}`)
 
     // Update status to sent
     await supabase

@@ -10,7 +10,6 @@ interface Client {
   business_name: string
   contact_name: string
   email: string
-  phone: string | null
 }
 
 export default function SolicitarResenaPage() {
@@ -19,7 +18,6 @@ export default function SolicitarResenaPage() {
   const [clients, setClients] = useState<Client[]>([])
   const [clientId, setClientId] = useState("")
   const [customerName, setCustomerName] = useState("")
-  const [customerPhone, setCustomerPhone] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -28,7 +26,7 @@ export default function SolicitarResenaPage() {
   useEffect(() => {
     supabase
       .from("clients")
-      .select("id, business_name, contact_name, email, phone")
+      .select("id, business_name, contact_name, email")
       .eq("status", "active")
       .order("business_name")
       .then(({ data }) => setClients((data as Client[]) || []))
@@ -40,8 +38,6 @@ export default function SolicitarResenaPage() {
       if (client) {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerName(client.contact_name)
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setCustomerPhone(client.phone || "")
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setCustomerEmail(client.email)
       }
@@ -55,8 +51,8 @@ export default function SolicitarResenaPage() {
       setError("El nombre del cliente es obligatorio")
       return
     }
-    if (!customerEmail && !customerPhone) {
-      setError("Introduce al menos un email o teléfono")
+    if (!customerEmail) {
+      setError("El email del cliente es obligatorio")
       return
     }
 
@@ -67,7 +63,6 @@ export default function SolicitarResenaPage() {
       body: JSON.stringify({
         client_id: clientId || null,
         customer_name: customerName,
-        customer_phone: customerPhone || null,
         customer_email: customerEmail || null,
       }),
     })
@@ -88,7 +83,7 @@ Esperamos que estés bien. Desde nuestra agencia queríamos agradecerte por conf
 
 ¿Podrías tomarte un momento para dejarnos una reseña? Tu opinión nos ayuda a seguir mejorando y a que otros negocios nos conozcan.
 
-${customerEmail ? "Haz clic aquí para dejarnos tu reseña: [enlace]" : "Responde a este mensaje con tu valoración del 1 al 5 y un comentario corto."}
+Haz clic aquí para dejarnos tu reseña: [enlace]
 
 ¡Muchas gracias por tu tiempo!
 
@@ -154,27 +149,16 @@ Tu equipo de marketing`
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  className="w-full border rounded-lg px-4 py-2 text-sm"
-                  placeholder="cliente@email.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Teléfono</label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full border rounded-lg px-4 py-2 text-sm"
-                  placeholder="+34 600 000 000"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Email *</label>
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                className="w-full border rounded-lg px-4 py-2 text-sm"
+                placeholder="cliente@email.com"
+                required
+              />
             </div>
           </div>
 

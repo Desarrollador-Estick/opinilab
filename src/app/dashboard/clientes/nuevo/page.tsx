@@ -93,17 +93,6 @@ export default function NuevoClientePage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Teléfono
-              </label>
-              <input
-                name="phone"
-                type="tel"
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                placeholder="+34 600 000 000"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Sitio Web
               </label>
               <input

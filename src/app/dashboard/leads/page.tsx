@@ -10,7 +10,6 @@ interface Lead {
   business_name: string
   contact_name: string | null
   email: string | null
-  phone: string | null
   website: string | null
   city: string | null
   industry: string | null
@@ -130,7 +129,6 @@ export default function LeadsPage() {
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Negocio</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Contacto</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Email</th>
-                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Teléfono</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Ciudad</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Industria</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Fuente</th>
@@ -142,7 +140,7 @@ export default function LeadsPage() {
             <tbody className="divide-y">
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-gray-500">
+                  <td colSpan={9} className="text-center py-12 text-gray-500">
                     <p className="text-4xl mb-2">🎯</p>
                     <p>{search ? "No se encontraron leads" : "No hay leads todavía"}</p>
                     {!search && (
@@ -162,7 +160,6 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">{lead.contact_name || "—"}</td>
                     <td className="px-4 py-3 text-sm">{lead.email || "—"}</td>
-                    <td className="px-4 py-3 text-sm">{lead.phone || "—"}</td>
                     <td className="px-4 py-3 text-sm">{lead.city || "—"}</td>
                     <td className="px-4 py-3 text-sm">{lead.industry || "—"}</td>
                     <td className="px-4 py-3 text-sm">{sourceLabels[lead.source || ""] || "—"}</td>

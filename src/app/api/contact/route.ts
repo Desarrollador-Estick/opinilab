@@ -52,7 +52,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, phone, business, message, googleMapsUrl } = await request.json()
+    const { name, email, business, message, googleMapsUrl } = await request.json()
 
     if (!name || !email || !business) {
       return NextResponse.json(
@@ -75,7 +75,6 @@ export async function POST(request: Request) {
         business_name: business,
         contact_name: name,
         email: email,
-        phone: phone || null,
         source: "website",
         status: "new",
         score: 70, // Higher score for inbound leads

@@ -6,7 +6,6 @@ export default function ContactForm() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phone: "",
     business: "",
     message: "",
     googleMapsUrl: "",
@@ -34,7 +33,7 @@ export default function ContactForm() {
       }
 
       setSuccess(true)
-      setFormData({ name: "", email: "", phone: "", business: "", message: "", googleMapsUrl: "" })
+      setFormData({ name: "", email: "", business: "", message: "", googleMapsUrl: "" })
     } catch (err: any) {
       setError(err.message || "Error al enviar el formulario")
     } finally {
@@ -79,23 +78,14 @@ export default function ContactForm() {
           required
         />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <input
-          type="tel"
-          placeholder="Tu teléfono"
-          value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 transition"
-        />
-        <input
-          type="text"
-          placeholder="Nombre de tu negocio"
-          value={formData.business}
-          onChange={(e) => setFormData({ ...formData, business: e.target.value })}
-          className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 transition"
-          required
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Nombre de tu negocio"
+        value={formData.business}
+        onChange={(e) => setFormData({ ...formData, business: e.target.value })}
+        className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 transition"
+        required
+      />
       <input
         type="url"
         placeholder="Enlace de tu negocio en Google Maps (opcional)"

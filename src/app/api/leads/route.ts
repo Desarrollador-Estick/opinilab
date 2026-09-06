@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
   try {
-    const { business_name, contact_name, email, phone, website, city, industry, source } = await request.json()
+    const { business_name, contact_name, email, website, city, industry, source } = await request.json()
 
     const supabase = await createClient()
 
@@ -13,7 +13,6 @@ export async function POST(request: Request) {
         business_name,
         contact_name,
         email,
-        phone,
         website,
         city,
         industry,

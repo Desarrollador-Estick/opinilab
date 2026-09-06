@@ -140,7 +140,6 @@ export default async function ClienteDetailPage({
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <InfoRow label="Email" value={client.email} />
-          <InfoRow label="Teléfono" value={client.phone} />
           <InfoRow label="Sitio Web" value={client.website} link />
           <InfoRow label="NIF/CIF" value={client.nif_cif} />
           <InfoRow label="Dirección" value={client.address} />

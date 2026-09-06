@@ -26,7 +26,7 @@ export default function PrivacidadPage() {
               En OpiniLab recopilamos información que usted nos proporciona directamente al utilizar nuestros servicios:
             </p>
             <ul className="list-disc pl-6 space-y-2">
-              <li><strong>Datos de identificación:</strong> nombre, apellidos, correo electrónico, teléfono y nombre de su negocio.</li>
+              <li><strong>Datos de identificación:</strong> nombre, apellidos, correo electrónico y nombre de su negocio.</li>
               <li><strong>Datos de facturación:</strong> información de pago procesada a través de Stripe (no almacenamos datos de tarjeta de crédito).</li>
               <li><strong>Datos de uso:</strong> información sobre cómo utiliza nuestra plataforma, incluyendo páginas visitadas, acciones realizadas y preferencias.</li>
               <li><strong>Datos de terceros:</strong> información de su perfil de Google Business, redes sociales y plataformas publicitarias que usted nos autoriza a gestionar.</li>
