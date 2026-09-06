@@ -850,6 +850,45 @@ export interface Database {
           }
         ]
       }
+      promo_recipients: {
+        Row: {
+          id: string
+          name: string | null
+          email: string
+          business_name: string | null
+          notes: string | null
+          status: 'pending' | 'sent' | 'failed'
+          sent_at: string | null
+          last_error: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name?: string | null
+          email: string
+          business_name?: string | null
+          notes?: string | null
+          status?: 'pending' | 'sent' | 'failed'
+          sent_at?: string | null
+          last_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string | null
+          email?: string
+          business_name?: string | null
+          notes?: string | null
+          status?: 'pending' | 'sent' | 'failed'
+          sent_at?: string | null
+          last_error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           id: string

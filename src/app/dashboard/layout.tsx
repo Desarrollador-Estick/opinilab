@@ -11,6 +11,7 @@ const navigation = [
   { name: "Servicios", href: "/dashboard/servicios", icon: "🧩" },
   { name: "Reseñas", href: "/dashboard/resenas", icon: "⭐" },
   { name: "Marketing", href: "/dashboard/marketing", icon: "📱" },
+  { name: "Promos", href: "/dashboard/promos", icon: "📣" },
   { name: "Contratos", href: "/dashboard/contratos", icon: "📋" },
   { name: "Facturas", href: "/dashboard/facturas", icon: "💰" },
   { name: "Reportes", href: "/dashboard/reportes", icon: "📈" },
