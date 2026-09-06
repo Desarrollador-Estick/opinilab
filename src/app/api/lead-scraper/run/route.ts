@@ -4,7 +4,14 @@ import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase
 import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
 import type { Database, Json } from "@/types/database"
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+// El endpoint principal rechaza con 406 las peticiones sin User-Agent
+// identificativo (reglas anti-bots de overpass-api.de). Se intentan espejos
+// si el principal responde 406/429/5xx.
+const OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://z.overpass-api.de/api/interpreter",
+]
 
 // Mapeo de categorías del admin a tags de OpenStreetMap
 const CATEGORY_TO_OSM: Record<string, string[]> = {
@@ -96,18 +103,30 @@ function buildOverpassQuery(
 }
 
 async function queryOverpass(query: string): Promise<OverpassElement[]> {
-  const response = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(query)}`,
-  })
+  const errors: string[] = []
 
-  if (!response.ok) {
-    throw new Error(`Overpass API error: ${response.status}`)
+  for (const url of OVERPASS_ENDPOINTS) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+        "User-Agent":
+          "OpiniLab-LeadScraper/1.0 (https://opinilab.com; cron lead-scraper)",
+      },
+      body: `data=${encodeURIComponent(query)}`,
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.elements || []
+    }
+
+    errors.push(`${new URL(url).host}: ${response.status}`)
+    if (response.status === 400) break
   }
 
-  const data = await response.json()
-  return data.elements || []
+  throw new Error(`Overpass API error: ${errors.join(", ")}`)
 }
 
 function extractLeadFromElement(el: OverpassElement) {
