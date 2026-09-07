@@ -3,7 +3,11 @@ import type { SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "@/types/database"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
-import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
+import {
+  isCronRequestAuthorized,
+  requireCronOrTeamAuth,
+  unauthorizedResponse,
+} from "@/lib/cron-auth"
 import { sendEmail } from "@/lib/email/send"
 import {
   paymentReminder,
@@ -174,32 +178,32 @@ async function autoLeadOutreach(
           })
 
           if (emailResult.skipped) {
-          // Dado de baja: se marca como contactado sin más seguimiento.
-          await supabase
-            .from("leads")
-            .update({
-              status: "contacted",
-              next_follow_up_at: null,
-              updated_at: now.toISOString(),
-            })
-            .eq("id", lead.id)
-        } else if (emailResult.ok) {
-          await supabase
-            .from("leads")
-            .update({
-              status: "contacted",
-              next_follow_up_at: new Date(now.getTime() + 7 * DAY_MS).toISOString(),
-              last_contact_at: now.toISOString(),
-              updated_at: now.toISOString(),
-            })
-            .eq("id", lead.id)
-        }
+            // Dado de baja: se marca como contactado sin más seguimiento.
+            await supabase
+              .from("leads")
+              .update({
+                status: "contacted",
+                next_follow_up_at: null,
+                updated_at: now.toISOString(),
+              })
+              .eq("id", lead.id)
+          } else if (emailResult.ok) {
+            await supabase
+              .from("leads")
+              .update({
+                status: "contacted",
+                next_follow_up_at: new Date(now.getTime() + 7 * DAY_MS).toISOString(),
+                last_contact_at: now.toISOString(),
+                updated_at: now.toISOString(),
+              })
+              .eq("id", lead.id)
+          }
 
-        logs.push({
-          action: "lead_outbound",
-          details: `Primer contacto con ${lead.business_name} (${lead.email}). Result: ${emailResult.skipped ? "skipped" : emailResult.ok ? "success" : "failed"}`,
-          timestamp: now.toISOString(),
-        })
+          logs.push({
+            action: "lead_outbound",
+            details: `Primer contacto con ${lead.business_name} (${lead.email}). Result: ${emailResult.skipped ? "skipped" : emailResult.ok ? "success" : "failed"}`,
+            timestamp: now.toISOString(),
+          })
         } catch (err) {
           logs.push({
             action: "lead_outbound_error",
@@ -556,13 +560,8 @@ async function autoDraftReviewResponses(
   }
 }
 
-export async function GET(request: Request) {
+async function runAutomation(now: Date): Promise<NextResponse> {
   const logs: AutomationLog[] = []
-  const now = new Date()
-
-  if (!isCronRequestAuthorized(request)) {
-    return unauthorizedResponse()
-  }
 
   try {
     // El cron de Vercel no tiene sesión de usuario: usamos service role (omite
@@ -743,4 +742,18 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
+}
+
+export async function GET(request: Request) {
+  if (!isCronRequestAuthorized(request)) {
+    return unauthorizedResponse()
+  }
+  return runAutomation(new Date())
+}
+
+// Ejecución manual desde el dashboard (sesión de equipo) o con header de cron.
+export async function POST(request: Request) {
+  const denied = await requireCronOrTeamAuth(request)
+  if (denied) return denied
+  return runAutomation(new Date())
 }

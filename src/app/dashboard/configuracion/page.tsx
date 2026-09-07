@@ -136,6 +136,13 @@ export default function ConfiguracionPage() {
   const [autoLoading, setAutoLoading] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
   const [autoSaved, setAutoSaved] = useState(false)
+  const [campaignRunning, setCampaignRunning] = useState(false)
+  const [campaignResult, setCampaignResult] = useState<string | null>(null)
+  const [campaignLog, setCampaignLog] = useState<Array<{
+    action: string
+    details: string
+    created_at: string
+  }>>([])
 
   // Plantillas de email editables state
   const [emailTemplates, setEmailTemplates] = useState<Array<{
@@ -449,9 +456,58 @@ export default function ConfiguracionPage() {
       if (res.ok) {
         setAutoSaved(true)
         setTimeout(() => setAutoSaved(false), 3000)
+        return true
       }
+      return false
     } finally {
       setAutoSaving(false)
+    }
+  }
+
+  async function loadCampaignLog() {
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from("automation_logs")
+        .select("action, details, created_at")
+        .order("created_at", { ascending: false })
+        .limit(10)
+      if (data) {
+        setCampaignLog(
+          (data as Array<{
+            action: string
+            details: string | null
+            created_at: string
+          }>).map((l) => ({ ...l, details: l.details ?? "" }))
+        )
+      }
+    } catch {}
+  }
+
+  async function runCampaignNow() {
+    setCampaignRunning(true)
+    setCampaignResult(null)
+    try {
+      // Guardar la configuración más reciente antes de ejecutar
+      await handleSaveAutomations()
+      const res = await fetch("/api/automation", { method: "POST" })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        const acts: Array<{ action: string; details: string }> = Array.isArray(data.logs)
+          ? data.logs
+          : []
+        setCampaignResult(
+          `Acciones realizadas: ${data.actions_performed ?? 0}\n` +
+            acts.map((a) => `• ${a.details || a.action}`).join("\n")
+        )
+        loadCampaignLog()
+      } else {
+        setCampaignResult(`Error: ${data.error ?? `HTTP ${res.status}`}`)
+      }
+    } catch {
+      setCampaignResult("Error al ejecutar la campaña")
+    } finally {
+      setCampaignRunning(false)
     }
   }
 
@@ -514,6 +570,7 @@ export default function ConfiguracionPage() {
     if (activeSection === "automation") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadAutoConfig()
+      loadCampaignLog()
     }
   }, [activeSection])
 
@@ -1028,6 +1085,70 @@ export default function ConfiguracionPage() {
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold">▶ Campaña de captación (ejecutar ahora)</h3>
+                <p className="text-sm text-gray-500">
+                  Dispara el auto-contacto de leads ya mismo: primer email a los leads en estado{" "}
+                  <code className="text-xs">new</code> con email y seguimientos vencidos
+                  (outbound_1 → followup_1 → followup_2). Normalmente lo lanza el cron diario{" "}
+                  <code className="text-xs">/api/automation</code> a las 09:00; este botón sirve para
+                  forzarlo y ver el historial sin esperar.
+                </p>
+              </div>
+              <button
+                onClick={runCampaignNow}
+                disabled={campaignRunning}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm shrink-0"
+              >
+                {campaignRunning ? "Ejecutando..." : "▶ Ejecutar campaña ahora"}
+              </button>
+            </div>
+
+            {campaignResult && (
+              <div
+                className={`p-3 rounded-lg text-sm whitespace-pre-wrap ${
+                  campaignResult.startsWith("Error")
+                    ? "bg-red-50 text-red-700"
+                    : "bg-green-50 text-green-700"
+                }`}
+              >
+                {campaignResult}
+              </div>
+            )}
+
+            {campaignLog.length > 0 && (
+              <div>
+                <h4 className="font-medium text-sm mb-2">Historial de automatización</h4>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 border-b">
+                      <tr>
+                        <th className="text-left px-4 py-2 font-medium text-gray-500">Fecha</th>
+                        <th className="text-left px-4 py-2 font-medium text-gray-500">Acción</th>
+                        <th className="text-left px-4 py-2 font-medium text-gray-500">Detalle</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {campaignLog.map((log, i) => (
+                        <tr key={`${log.created_at}-${i}`} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 whitespace-nowrap text-gray-500">
+                            {new Date(log.created_at).toLocaleString("es-ES")}
+                          </td>
+                          <td className="px-4 py-2 font-medium">{log.action}</td>
+                          <td className="px-4 py-2 text-gray-500 max-w-[420px] truncate" title={log.details}>
+                            {log.details}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

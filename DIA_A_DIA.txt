@@ -231,18 +231,13 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
        funciiona en producción).
 [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
         tarjeta puede romperse). Se añadirá junto al paso a LIVE (ver arriba).
-   [ ] CAMPAÑA DE CAPTACIÓN (07/09/2026): hay MIGRACIONES NUEVAS SIN APLICAR en
-       producción — aplica en SQL Editor, EN ESTE ORDEN:
-         1) 021_lead_social_enrichment.sql  (redes sociales + seguimiento de
-            emails en leads; es PRE-REQUISITO de la 022).
-         2) 022_launch_campaign.sql  (cuota "Gestión de datos", waive_setup,
-            scraper estética Madrid, auto-contacto de leads, plantillas de la
-            campaña y servicio "Plan Lanzamiento 29€/mes").
-         3) 023_email_unsubscribe.sql  (tabla de bajas + 'skipped' en promos;
-            habilita el enlace "darse de baja" de los correos comerciales).
-       Después: git add -A && git commit + git push origin main → redeploy.
-       Y verifica que el cron 09:00 empieza a enviar (Supabase → email_sends,
-       template outbound_1; y automation_logs con action lead_outbound).
+   [x] CAMPAÑA DE CAPTACIÓN (07/09/2026): migraciones 021 → 022 → 023 APLICADAS en
+       SQL Editor el 08/09/2026 y código desplegado (commit a89d06e).
+       Ahora: verifica que el cron 09:00 envía (Supabase → email_sends, template
+       outbound_1; y automation_logs con action lead_outbound). Si no envía,
+       revisa el toggle "Auto-contacto de leads" en /dashboard/configuracion →
+       Automatización y que la config del scraper (estética/ Madrid) tenga leads
+       nuevos sin contactar.
   [x] DRIVE: RESUELTO el 05/09/2026. El código leía
       GOOGLE_APPLICATION_CREDENTIALS_JSON y GOOGLE_DRIVE_PARENT_FOLDER_ID,
       pero en Vercel están como GOOGLE_SERVICE_ACCOUNT_JSON y
@@ -298,12 +293,30 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
   email_sends) y la rutina diaria de la sección 3. El token de resend/supabase
   y el webhook secret están en C:\Users\jordi\Desktop\passo\Apy resend.txt.
 
-  ESTADO AL 07/09/2026: campaña de captación implementada (estética, 29€/mes,
-  cuota "Gestión de datos") + enlace de baja en correos comerciales.
-  PENDIENTE EN PRODUCCIÓN: aplicar migraciones 021 → 022 → 023 (SQL Editor),
-  commit + push + redeploy, y monitorizar email_sends/automation_logs.
-  Checklist de la campaña en /dashboard/configuracion → Automatización
-  ("Auto-contacto de leads") y "Captura" (estética/ Madrid).
+  ESTADO AL 08/09/2026: campaña de captación y baja APLICADAS en producción
+  (migraciones 021 → 022 → 023 en SQL Editor + commit a89d06e desplegado).
+  Solo falta VERIFICAR el cron 09:00: email_sends (template outbound_1) y
+  automation_logs (action lead_outbound). Checklist de la campaña en
+  /dashboard/configuracion → Automatización ("Auto-contacto de leads") y
+  "Captura" (estética/ Madrid).
+
+  ESTADO AL 08/09/2026 (tarde) — DIAGNÓSTICO Y FIX DE "LA CAMPAÑA NO ENVÍA":
+  Síntoma: leads del scraper con email en estado "new" pero NINGÚN correo de
+  promoción (outbound_1). Causa encontrada (Reactividad directa con Supabase,
+  45 leads auto_scraped / 6 con email): automation_logs = 0 filas y email_sends
+  NO tiene ningún outbound_1 → el cron 09:00 NUNCA ejecutó /api/automation.
+  No era un bug del envío: la config estaba bien (lead_auto_outreach_enabled
+  = true y plantillas activas). SIMPLEMENTE no había disparado.
+  FIX desplegado localmente (pendiente de commit+push): el endpoint ahora
+  expone POST /api/automation con auth de equipo (además del cron GET), y el
+  panel /dashboard/configuracion → Automatización gana "▶ Ejecutar campaña
+  ahora" + "Historial de automatización" (legible desde automation_logs). Así
+  puedes lanzarla a mano y verificar el resultado sin esperar al cron.
+  VALIDAR DESPUÉS DE DESPLEGAR: en Automatización pulsa "▶ Ejecutar campaña
+  ahora" → debe aparecer lead_outbound y en Supabase email_sends salir
+  outbound_1 = sent (a los 6 leads con email). Si aún no sale, mira Resend.
+  (No se pudo verificar el estado del cron en Vercel: el token daba 403 SAML
+  en el equipo esticks-projects; revisar Vercel → Cron al desplegar.)
 
 --------------------------------------------------------------------------------
 10. NOTAS RÁPIDAS
