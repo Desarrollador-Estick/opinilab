@@ -14,10 +14,13 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
   Nicho: ESTÉTICA / PELUQUERÍAS / SALONES en Madrid. Todo automático por email.
    1. El scraper (07:00) busca belleza/peluquería/spa en Madrid (ver
       /dashboard/configuracion → "Captura") y los guarda como leads.
-   2. El cron 09:00 les contacta SOLOS por email: outbound_1 → followup_1 →
-      followup_2 (7 días entre toques; se detiene al tercero). Oferta de
-      lanzamiento: "29€/mes SIN cuota de gestión de datos". ON/OFF en
-      /dashboard/configuracion → Automatización → "Auto-contacto de leads".
+   2. NADA MÁS haber dirección de correo (en la ficha o encontrada en el
+      seguimiento), la campaña arranca SOLA de inmediato: envía outbound_1.
+      No espera al cron de las 09:00 ni al botón manual. Luego sigue sola
+      con followup_1 → followup_2 (7 días entre toques; se detiene al
+      tercero). Oferta de lanzamiento: "29€/mes SIN cuota de gestión de
+      datos". ON/OFF en /dashboard/configuracion → Automatización →
+      "Auto-contacto de leads".
    3. Los textos se editan en /dashboard/configuracion → Email → plantillas
       outbound_1 / followup_1 / followup_2.
    4. Al CONVERTIR un lead, la PRIMERA factura incluye el mes corriente + la

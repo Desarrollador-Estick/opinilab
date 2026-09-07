@@ -2,6 +2,10 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
+import {
+  autoLeadOutreach,
+  getAutomationEmailsConfig,
+} from "@/lib/automation/lead-outreach"
 import type { Json } from "@/types/database"
 
 // El endpoint principal rechaza con 406 las peticiones sin User-Agent
@@ -593,6 +597,28 @@ async function runLeadScraper(forced = false) {
       }
     }
 
+    // 5b. AUTO-CONTACTO INMEDIATO: nada más haber leads con email (recién
+    //     capturados o enriquecidos en esta ejecución), se lanza la campaña
+    //     automáticamente (outbound_1). No espera al cron de las 09:00 ni al
+    //     botón manual. El envío real solo ocurre si "Auto-contacto de leads"
+    //     está activado en Configuración → Automatización.
+    let leadsOutreached = 0
+    try {
+      const automationConfig = await getAutomationEmailsConfig(adminSupabase)
+      const outreachLogs: Array<{
+        action: string
+        details: string
+        timestamp: string
+      }> = []
+      await autoLeadOutreach(adminSupabase, automationConfig, new Date(), outreachLogs)
+      leadsOutreached = outreachLogs.filter(
+        (l) => l.action === "lead_outbound" && l.details.includes("success")
+      ).length
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error"
+      errors.push(`outreach: ${msg}`)
+    }
+
     // 6. Log de la ejecución
     const duration = Date.now() - startTime
     await adminSupabase.from("lead_scraper_log").insert({
@@ -600,6 +626,7 @@ async function runLeadScraper(forced = false) {
       leads_created: created,
       leads_skipped: skipped,
       leads_enriched: enriched,
+      leads_outreached: leadsOutreached,
       errors: errors.length > 0 ? errors.join("\n") : null,
       config_snapshot: config as unknown as Json,
       duration_ms: duration,
@@ -612,6 +639,7 @@ async function runLeadScraper(forced = false) {
       leads_created: created,
       leads_skipped: skipped,
       leads_enriched: enriched,
+      leads_outreached: leadsOutreached,
       remaining: Math.max(remaining - created, 0),
       duration_ms: duration,
       errors: errors.length > 0 ? errors : undefined,

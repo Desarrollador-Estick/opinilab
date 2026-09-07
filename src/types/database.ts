@@ -1358,6 +1358,7 @@ export interface Database {
           leads_created: number | null
           leads_skipped: number | null
           leads_enriched: number | null
+          leads_outreached: number | null
           errors: string | null
           config_snapshot: Json | null
           duration_ms: number | null
@@ -1370,6 +1371,7 @@ export interface Database {
           leads_created?: number | null
           leads_skipped?: number | null
           leads_enriched?: number | null
+          leads_outreached?: number | null
           errors?: string | null
           config_snapshot?: Json | null
           duration_ms?: number | null
@@ -1382,6 +1384,7 @@ export interface Database {
           leads_created?: number | null
           leads_skipped?: number | null
           leads_enriched?: number | null
+          leads_outreached?: number | null
           errors?: string | null
           config_snapshot?: Json | null
           duration_ms?: number | null
