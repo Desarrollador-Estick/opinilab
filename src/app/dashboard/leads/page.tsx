@@ -17,6 +17,7 @@ interface Lead {
   status: string
   score: number
   notes: string | null
+  social_media: Record<string, string> | null
   last_contact_at: string | null
   next_follow_up_at: string | null
   converted_client_id: string | null
@@ -61,7 +62,7 @@ export default function LeadsPage() {
     if (error) {
       setError(error.message)
     } else {
-      setLeads(data || [])
+      setLeads((data || []) as Lead[])
     }
     setLoading(false)
   }
@@ -129,6 +130,7 @@ export default function LeadsPage() {
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Negocio</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Contacto</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Email</th>
+                <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Redes</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Ciudad</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Industria</th>
                 <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Fuente</th>
@@ -140,7 +142,7 @@ export default function LeadsPage() {
             <tbody className="divide-y">
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-gray-500">
+                  <td colSpan={10} className="text-center py-12 text-gray-500">
                     <p className="text-4xl mb-2">🎯</p>
                     <p>{search ? "No se encontraron leads" : "No hay leads todavía"}</p>
                     {!search && (
@@ -160,6 +162,29 @@ export default function LeadsPage() {
                     </td>
                     <td className="px-4 py-3 text-sm">{lead.contact_name || "—"}</td>
                     <td className="px-4 py-3 text-sm">{lead.email || "—"}</td>
+                    <td className="px-4 py-3 text-sm">
+                      {lead.social_media && Object.keys(lead.social_media).length > 0 ? (
+                        <span className="inline-flex flex-wrap gap-1">
+                          {Object.entries(lead.social_media).slice(0, 3).map(([net, url]) => (
+                            <a
+                              key={net}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 hover:bg-purple-100"
+                              title={url}
+                            >
+                              {net}
+                            </a>
+                          ))}
+                          {Object.keys(lead.social_media).length > 3 && (
+                            <span className="text-xs text-gray-400">+{Object.keys(lead.social_media).length - 3}</span>
+                          )}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-sm">{lead.city || "—"}</td>
                     <td className="px-4 py-3 text-sm">{lead.industry || "—"}</td>
                     <td className="px-4 py-3 text-sm">{sourceLabels[lead.source || ""] || "—"}</td>

@@ -62,10 +62,18 @@ export async function POST(request: Request) {
 
     const monthlyPrice = clientServiceRes.data?.custom_price ?? Number(service.base_price)
 
-    // Setup fee (por defecto: un mes extra como coste de alta configurable)
-    const setupFeeAmount = Number(setup_fee ?? monthlyPrice)
+    // Cuota de "Gestión de datos" (alta): el importe configurado en settings
+    // ("setup_fee") o, si no hay ninguno, una mensualidad del servicio. Si el
+    // servicio está marcado para no cobrarla (waive_setup, plan de lanzamiento),
+    // la cuota es 0 y solo se cobra la mensualidad.
+    const [{ data: feeRows }] = await Promise.all([
+      supabase.from("settings").select("value").eq("key", "setup_fee").maybeSingle(),
+    ])
+    const configuredFee = Number(feeRows?.value ?? 0)
+    const defaultFee = Number.isFinite(configuredFee) && configuredFee > 0 ? configuredFee : monthlyPrice
+    const setupFeeAmount = Boolean(service.waive_setup) ? 0 : Number(setup_fee ?? defaultFee)
 
-    // Crear factura (setup + mes corriente) pagadera por adelantado
+    // Crear factura (Gestión de datos + mes corriente) pagadera por adelantado
     const now = new Date()
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, "0")
@@ -103,14 +111,18 @@ export async function POST(request: Request) {
     if (invoiceError || !invoice)
       return NextResponse.json({ success: false, error: "Error al crear la factura" }, { status: 500 })
 
-    await supabase.from("invoice_items").insert([
-      {
-        invoice_id: invoice.id,
-        description: `Alta de servicio: ${service.name}`,
-        quantity: 1,
-        unit_price: setupFeeAmount,
-        total: setupFeeAmount,
-      },
+    const setupItems = [
+      ...(setupFeeAmount > 0
+        ? [
+            {
+              invoice_id: invoice.id,
+              description: `Gestión de datos - ${service.name}`,
+              quantity: 1,
+              unit_price: setupFeeAmount,
+              total: setupFeeAmount,
+            },
+          ]
+        : []),
       {
         invoice_id: invoice.id,
         description: `Servicio ${service.name} - mes corriente`,
@@ -118,7 +130,9 @@ export async function POST(request: Request) {
         unit_price: monthlyPrice,
         total: monthlyPrice,
       },
-    ])
+    ]
+
+    await supabase.from("invoice_items").insert(setupItems)
 
     // Crear PaymentIntent (en céntimos)
     // setup_future_usage: "off_session" → Stripe guarda el método de pago en el

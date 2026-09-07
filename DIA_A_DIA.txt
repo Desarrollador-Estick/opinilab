@@ -1,6 +1,6 @@
 ================================================================================
 OPINILAB — GUÍA DEL DÍA A DÍA (operación diaria, semanal y mensual)
-Versión: 05/09/2026 · Proyecto: F:\agencia-marketing · Prod: https://opinilab.com
+Versión: 07/09/2026 · Proyecto: F:\agencia-marketing · Prod: https://opinilab.com
 ================================================================================
 
 QUÉ ES OPINILAB EN UNA FRASE
@@ -9,6 +9,28 @@ QUÉ ES OPINILAB EN UNA FRASE
   contratos) y FIDELIZAR (informes, upsell). Si un día no haces nada, el sistema
   sigue: buscando leads, enviando follow-ups y recordatorios de facturas, y
   el día 1 de mes facturando y cobrando.
+
+CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
+  Nicho: ESTÉTICA / PELUQUERÍAS / SALONES en Madrid. Todo automático por email.
+   1. El scraper (07:00) busca belleza/peluquería/spa en Madrid (ver
+      /dashboard/configuracion → "Captura") y los guarda como leads.
+   2. El cron 09:00 les contacta SOLOS por email: outbound_1 → followup_1 →
+      followup_2 (7 días entre toques; se detiene al tercero). Oferta de
+      lanzamiento: "29€/mes SIN cuota de gestión de datos". ON/OFF en
+      /dashboard/configuracion → Automatización → "Auto-contacto de leads".
+   3. Los textos se editan en /dashboard/configuracion → Email → plantillas
+      outbound_1 / followup_1 / followup_2.
+   4. Al CONVERTIR un lead, la PRIMERA factura incluye el mes corriente + la
+      cuota de "GESTIÓN DE DATOS" (importe por defecto 49€ en Configuración →
+      Facturación; 0 = sin cuota). El servicio de la oferta "Plan Lanzamiento
+      29€/mes" lleva la casilla "Sin cuota de Gestión de datos" (waive_setup),
+      así que NO cobra cuota de alta.
+   5. BAJA RESPETADA: todos los correos comerciales (promociones y la campaña
+      de captación) llevan enlace "darse de baja". Quien lo use pasa a
+      email_suppressions y no vuelve a recibir estos correos (en /dashboard/
+      promos se marca como "Dado de baja"; en la campaña, la secuencia se
+      detiene). Se puede marcar un email como dado de baja sin que el scraper
+      vuelva a contactarlo.
 
 --------------------------------------------------------------------------------
 1. RUTAS EN 1 VISTA
@@ -41,11 +63,17 @@ QUÉ ES OPINILAB EN UNA FRASE
   Todos, 06:00     Procesa la cola de tareas IA (cron /api/ai-tasks/run,
                    hasta 20 por ejecución, respeta el cupo).
   Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
-                   /api/lead-scraper/run) si la Captura está activada.
-  Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
-                   (reprograma a +7 días) + informes mensuales + [si activado]
-                   envío automático de informes, solicitudes de reseñas y
-                   borradores IA de respuestas (cron /api/automation).
+                   /api/lead-scraper/run) si la Captura está activada. Prioriza
+                   negocios con EMAIL y REDES SOCIALES (columna "Redes" en
+                   /dashboard/leads), y les busca el email a negocios sin correo
+                   (sigue su web / búsqueda; reintenta cada 7 días, límite diario
+                   en Configuración → Captura).
+Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
+                    (reprograma a +7 días) + AUTO-CONTACTO DE LEADS DEL SCRAPER
+                    (outbound_1 → followup_1 → followup_2, 7 días entre toques)
+                    + informes mensuales + [si activado] envío automático de
+                    informes, solicitudes de reseñas y borradores IA de
+                    respuestas (cron /api/automation).
   En tiempo real   Webhook de Stripe: al pagar una factura pasa a "paid", se
                    registra el pago, se activa el cliente y se le da las gra
                    cias por email.
@@ -64,16 +92,23 @@ QUÉ ES OPINILAB EN UNA FRASE
   1) Abre https://opinilab.com → comprueba que carga.
   2) Entra en /login → /dashboard (aquí tienes el nuevo panel con alertas).
   3) MIRA LAS ALERTAS Y EL ESTADO DEL SISTEMA (parte de arriba del panel):
-     - Scraper: ¿OK? (si falla, mira /dashboard/configuracion → Captura).
-     - Stripe: ¿está en MODO TEST? (el panel lo avisa: aún NO cobras real).
-     - IA: ¿cola de tareas parada? → salta al paso 5.
-     - Email: ¿enviando normal?
-  4) /dashboard/leads
-     - Revisa los leads NUEVOS: primero los "website" (de la landing, ya
-       llevan informe generado → úsalos para la llamada).
-     - Contacta por teléfono/email. La plataforma NO llama por ti.
-     - Marca estado y fija next_follow_up_at en cada lead (contacted,
-       interested, proposal_sent, negotiation, won, lost).
+- Scraper: ¿OK? (si falla, mira /dashboard/configuracion → Captura).
+      - Stripe: ¿está en MODO TEST? (el panel lo avisa: aún NO cobras real;
+        el usuario confirmó el 07/09/2026 que ya está en LIVE).
+      - IA: ¿cola de tareas parada? → salta al paso 5.
+      - Email: ¿enviando normal?
+4) /dashboard/leads
+      - Revisa los leads NUEVOS: primero los "website" (de la landing, ya
+        llevan informe generado → úsalos para la llamada).
+      - Los leads del scraper (estética) YA RECIBEN SOLOS el primer email y los
+        seguimientos de la campaña 29€/mes. Tú solo conviertes los que
+        respondan (marca estado y fija next_follow_up_at). Si no responde tras
+        el 3er email, el sistema los deja de molestar.
+      - Benefíciate de la columna "Redes": los leads con email y/o redes
+        sociales (del scraper) son más fáciles de contactar y de valorar.
+      - Contacta por email. La plataforma NO llama por ti.
+      - Marca estado y fija next_follow_up_at en cada lead (contacted,
+        interested, proposal_sent, negotiation, won, lost).
   5) /dashboard/ai-tareas → procesa las tareas que estén en "waiting" (las
      que no entren en el cupo automático). Aprueba las generadas.
   6) /dashboard/resenas → responde las reseñas pendientes (o revisa los
@@ -139,8 +174,11 @@ QUÉ ES OPINILAB EN UNA FRASE
   2) El cliente no entra en el portal → revisa su email (credenciales con
      contraseña temporal); confirma que el primer acceso abre
      /portal/cambiar-password para crear su contraseña.
-  3) No llegan leads del scraper → /dashboard/configuracion → "Captura":
-     enabled=ON, ciudades y categorías; mira el historial en lead_scraper_log.
+3) No llegan leads del scraper → /dashboard/configuracion → "Captura":
+      enabled=ON, ciudades y categorías. Usa el botón "Ejecutar Ahora" (funciona
+      siempre, aunque la programación esté apagada; guarda la config y muestra
+      los errores en el mensaje). Cuando vuelvan, revisa el historial en
+      lead_scraper_log.
   4) La IA no genera contenido → /dashboard/configuracion → "API &
      Integraciones": comprueba GROQ_API_KEY; revisa el cupo ai_free_quota.
   5) El cliente no aporta herramientas → llámalo; los accesos llegan a
@@ -152,20 +190,24 @@ QUÉ ES OPINILAB EN UNA FRASE
 --------------------------------------------------------------------------------
 8. CÓMO PUBLICAR CAMBIOS / DESPLEGAR
 --------------------------------------------------------------------------------
-  ⚠️ IMPORTANTE: F:\agencia-marketing es un USB con sistema FAT32. NO ejecutes
+⚠️ IMPORTANTE: F:\agencia-marketing es un USB con sistema FAT32. NO ejecutes
   NUNCA "npm run build" ahí: fallará con errores de "junction point" o
   "readlink" (es limitación del disco USB, no del código). Para validar un
   build, copia el proyecto a un disco C:\ (sin node_modules/.next/.git/.env*),
   npm install, y ahí sí npm run build.
+  PERO "npm run lint" y "npx tsc --noEmit" SÍ se ejecutan directamente en F:
+  (no usan Turbopack). Correlos antes de cada commit. Validado el 06/09/2026:
+  lint 0 errores/0 warnings · tsc limpio · build completo 68/68 en NTFS.
 
   Flujo habitual:
-    1) Trabaja y edita archivos en F:\agencia-marketing.
-    2) git add -A
-    3) git commit -m "descripción del cambio"
-    4) git pull origin main   (si hay cambios remotos; resuelve conflictos)
-    5) git push origin main   → Vercel despliega SOLO (rama main).
-    6) Ver estado: https://vercel.com/dashboard/esticks-projects/opinilab
-       o: npx vercel ls opinilab → "Ready".
+     0) Antes de commitear (en F:): npm run lint  y  npx tsc --noEmit.
+     1) Trabaja y edita archivos en F:\agencia-marketing.
+     2) git add -A
+     3) git commit -m "descripción del cambio"
+     4) git pull origin main   (si hay cambios remotos; resuelve conflictos)
+     5) git push origin main   → Vercel despliega SOLO (rama main).
+     6) Ver estado: https://vercel.com/dashboard/esticks-projects/opinilab
+        o: npx vercel ls opinilab → "Ready".
 
   Configurar producción con env vars → Vercel → Settings → Environment
   Variables (o `npx vercel env add <NOMBRE> production`). Tras cada cambio de
@@ -177,25 +219,30 @@ QUÉ ES OPINILAB EN UNA FRASE
   Hoy la plataforma funciona, PERO algunos ajustes de producción están
   pendientes (verificado el 05/09/2026). No cobres a clientes reales hasta
   completar esto:
-[ ] PASAR STRIPE A LIVE (ahora está en TEST):
-       - Crear cuenta Stripe LIVE y obtener pk_live_ / sk_live_.
-       - Configurar webhook: https://www.opinilab.com/api/stripe/webhook con los
-         eventos payment_intent.succeeded, payment_intent.payment_failed,
-         payment_intent.canceled, y copiar whsec_ a STRIPE_WEBHOOK_SECRET.
-       - Actualizar las claves en Vercel (STRIPE_SECRET_KEY=
-         sk_live_..., y añadir NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...)
-         y REDESPLEGAR. Probar una factura real.
-       - CÓDIGO LISTO (commit b53dbe0): las páginas /pagar detectan por
-         STRIPE_SECRET_KEY si Stripe está live y ocultan las indicaciones de
-         tarjeta de test (4242...). No hace falta más desarrollo para LIVE.
+[x] PASAR STRIPE A LIVE — HECHO (el usuario confirmó el 07/09/2026 que las
+        keys LIVE ya están configuradas en Vercel; el sistema lo detecta solo).
+        Sigue pendiente de validar NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (ver
+        más abajo). Webhook de Stripe ya configurado con los eventos de pago.
    [x] EMAIL_FROM = noreply@opinilab.com en Vercel Production (añadida el
        05/09/2026). El dominio opinilab.com está añadido y verificado en
        Resend (de ahí sale noreply@). Los emails ya salen de dirección propia
        y el webhook de Resend viene con efecto.
    [x] TOTP_ENC_KEY en Vercel Production (añadida el 05/09/2026; el 2FA ya
        funciiona en producción).
-   [ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
-       tarjeta puede romperse). Se añadirá junto al paso a LIVE (ver arriba).
+[ ] NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY en Vercel (sin ella /pagar con
+        tarjeta puede romperse). Se añadirá junto al paso a LIVE (ver arriba).
+   [ ] CAMPAÑA DE CAPTACIÓN (07/09/2026): hay MIGRACIONES NUEVAS SIN APLICAR en
+       producción — aplica en SQL Editor, EN ESTE ORDEN:
+         1) 021_lead_social_enrichment.sql  (redes sociales + seguimiento de
+            emails en leads; es PRE-REQUISITO de la 022).
+         2) 022_launch_campaign.sql  (cuota "Gestión de datos", waive_setup,
+            scraper estética Madrid, auto-contacto de leads, plantillas de la
+            campaña y servicio "Plan Lanzamiento 29€/mes").
+         3) 023_email_unsubscribe.sql  (tabla de bajas + 'skipped' en promos;
+            habilita el enlace "darse de baja" de los correos comerciales).
+       Después: git add -A && git commit + git push origin main → redeploy.
+       Y verifica que el cron 09:00 empieza a enviar (Supabase → email_sends,
+       template outbound_1; y automation_logs con action lead_outbound).
   [x] DRIVE: RESUELTO el 05/09/2026. El código leía
       GOOGLE_APPLICATION_CREDENTIALS_JSON y GOOGLE_DRIVE_PARENT_FOLDER_ID,
       pero en Vercel están como GOOGLE_SERVICE_ACCOUNT_JSON y
@@ -250,6 +297,13 @@ QUÉ ES OPINILAB EN UNA FRASE
   Siguiente día de operación: aplica los chequeos de la sección 2 (crons,
   email_sends) y la rutina diaria de la sección 3. El token de resend/supabase
   y el webhook secret están en C:\Users\jordi\Desktop\passo\Apy resend.txt.
+
+  ESTADO AL 07/09/2026: campaña de captación implementada (estética, 29€/mes,
+  cuota "Gestión de datos") + enlace de baja en correos comerciales.
+  PENDIENTE EN PRODUCCIÓN: aplicar migraciones 021 → 022 → 023 (SQL Editor),
+  commit + push + redeploy, y monitorizar email_sends/automation_logs.
+  Checklist de la campaña en /dashboard/configuracion → Automatización
+  ("Auto-contacto de leads") y "Captura" (estética/ Madrid).
 
 --------------------------------------------------------------------------------
 10. NOTAS RÁPIDAS

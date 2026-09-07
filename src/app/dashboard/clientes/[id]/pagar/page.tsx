@@ -78,7 +78,7 @@ export default function PagarPage() {
         </Link>
         <h2 className="text-2xl font-bold mt-2">Cobrar a {businessName}</h2>
         <p className="text-gray-500">
-          Se cobra la cuota de alta + el mes corriente en un único pago por adelantado.
+          Se cobra la cuota de gestión de datos + el mes corriente en un único pago por adelantado.
         </p>
       </div>
 
@@ -143,7 +143,7 @@ export default function PagarPage() {
             {initiating ? "Preparando pago..." : "Continuar al pago"}
           </button>
           <p className="text-xs text-gray-400 text-center">
-            El importe total incluye el mes corriente + la cuota de alta.
+            El importe total incluye el mes corriente + la cuota de gestión de datos.
             {stripeLive && " Pago en modo real."}
           </p>
         </div>

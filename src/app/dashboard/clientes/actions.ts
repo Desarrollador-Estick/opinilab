@@ -194,9 +194,9 @@ export async function addClientServiceAction(
   const { error } = await supabase.from("client_services").insert(data)
   if (error) return { error: error.message }
 
-  // Cargo de setup (alta): si hay un importe configurado en Administración →
-  // Configuración → Facturación, se crea una factura inmediata y se intenta
-  // cobrar con la tarjeta guardada. Este paso nunca rompe la asignación.
+  // Cuota de "Gestión de datos" (alta): si el servicio lo requiere, se crea
+  // una factura inmediata y se intenta cobrar con la tarjeta guardada. Este
+  // paso nunca rompe la asignación.
   await chargeSetupFee(supabase, clientId, serviceId)
 
   // Informa al cliente qué herramientas debe aportar para este servicio.
@@ -255,35 +255,48 @@ async function notifyRequiredTools(supabase: SupabaseClient<Database>, clientId:
   }
 }
 
-// Crea y cobra la factura de setup (alta) al asignar un servicio nuevo.
-// - lee el importe desde settings ("setup_fee")
+// Crea y cobra la cuota de "Gestión de datos" (alta) al asignar un servicio
+// nuevo. Se omite si el servicio está marcado para no cobrarla (waive_setup,
+// p.ej. el plan de lanzamiento). Importe: el de settings ("setup_fee") o, si
+// no está definido, una mensualidad del servicio.
 // - crea una factura inmediata
 // - intenta cobrarla off_session con la tarjeta guardada
 // - si no hay tarjeta → marca "sent" y envía el email con enlace de pago
 // Nunca rompe la asignación del servicio: cualquier error solo se loguea.
 async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: string, serviceId: string) {
   try {
-    const { data: feeRows } = await supabase
-      .from("settings")
-      .select("value")
-      .eq("key", "setup_fee")
-      .maybeSingle()
-    const setupFee = Number(feeRows?.value ?? 0)
-    if (!feeRows || isNaN(setupFee) || setupFee <= 0) return
-
-    const [serviceRes, clientRes] = await Promise.all([
+    const [serviceRes, feeRows] = await Promise.all([
       supabase
         .from("services")
-        .select("name, billing_cycle")
+        .select("name, base_price, billing_cycle, waive_setup")
         .eq("id", serviceId)
         .maybeSingle(),
       supabase
-        .from("clients")
-        .select("id, business_name, contact_name, email, status, stripe_customer_id, stripe_default_payment_method_id")
-        .eq("id", clientId)
+        .from("settings")
+        .select("value")
+        .eq("key", "setup_fee")
         .maybeSingle(),
     ])
     const service = Array.isArray(serviceRes.data) ? serviceRes.data[0] : serviceRes.data
+    if (!service || service.waive_setup) return
+
+    const configuredFee = Number(feeRows.data?.value ?? 0)
+    const monthlyPrice = Number(service.base_price) || 0
+    // Importe de la cuota: el configurado, o una mensualidad del servicio si
+    // el servicio es mensual y no se configuró ningún importe.
+    const setupFee =
+      Number.isFinite(configuredFee) && configuredFee > 0
+        ? configuredFee
+        : service.billing_cycle === "monthly" && monthlyPrice > 0
+          ? monthlyPrice
+          : 0
+    if (setupFee <= 0) return
+
+    const clientRes = await supabase
+      .from("clients")
+      .select("id, business_name, contact_name, email, status, stripe_customer_id, stripe_default_payment_method_id")
+      .eq("id", clientId)
+      .maybeSingle()
     const client = Array.isArray(clientRes.data) ? clientRes.data[0] : clientRes.data
     if (!client?.email) return
 
@@ -316,7 +329,7 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
         total,
         issue_date: issueDate,
         due_date: dueDate,
-        notes: `Setup de alta del servicio ${service?.name ?? ""}`.trim(),
+        notes: `Gestión de datos - alta del servicio ${service?.name ?? ""}`.trim(),
         payment_token: paymentToken,
       })
       .select()
@@ -329,7 +342,7 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
 
     await supabase.from("invoice_items").insert({
       invoice_id: invoice.id,
-      description: `Setup de alta - ${service?.name ?? "servicio"}`,
+      description: `Gestión de datos - ${service?.name ?? "servicio"}`,
       quantity: 1,
       unit_price: setupFee,
       total: setupFee,
@@ -372,7 +385,7 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
             payment_method: "card",
             payment_date: new Date().toISOString().split("T")[0],
             reference: paymentIntent.id,
-            notes: `Cobro setup de alta (${paymentIntent.id})`,
+            notes: `Cobro de gestión de datos (${paymentIntent.id})`,
           })
           return
         }

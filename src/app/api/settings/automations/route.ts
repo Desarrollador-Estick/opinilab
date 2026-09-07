@@ -11,6 +11,7 @@ export const AUTOMATION_EMAILS_DEFAULT = {
   report_auto_send_enabled: false,
   report_send_delay_hours: 1,
   report_send_only_if_paid: true,
+  lead_auto_outreach_enabled: true,
 }
 
 function parseBool(v: unknown): boolean {
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
         ? 0
         : parseNum(body.report_send_delay_hours, 1, 0, 720),
     report_send_only_if_paid: parseBool(body.report_send_only_if_paid),
+    lead_auto_outreach_enabled: parseBool(body.lead_auto_outreach_enabled),
   }
 
   const { error } = await supabase.from("settings").upsert(
@@ -84,7 +86,7 @@ export async function POST(request: Request) {
       value: config,
       category: "automation",
       description:
-        "Configuración de automatizaciones de email: solicitudes de reseñas, borradores IA e informes mensuales",
+        "Configuración de automatizaciones de email: auto-contacto de leads del scraper, solicitudes de reseñas, borradores IA e informes mensuales",
       updated_at: new Date().toISOString(),
     },
     { onConflict: "key" }

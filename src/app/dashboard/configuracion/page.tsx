@@ -103,6 +103,8 @@ export default function ConfiguracionPage() {
     min_reviews: 5,
     search_radius_m: 5000,
     exclude_without_website: false,
+    enrich_without_email: true,
+    enrich_limit: 15,
   })
   const [scraperSaving, setScraperSaving] = useState(false)
   const [scraperSaved, setScraperSaved] = useState(false)
@@ -113,6 +115,7 @@ export default function ConfiguracionPage() {
     leads_found: number | null
     leads_created: number | null
     leads_skipped: number | null
+    leads_enriched: number | null
     errors: string | null
     duration_ms: number | null
   }>>([])
@@ -128,6 +131,7 @@ export default function ConfiguracionPage() {
     report_auto_send_enabled: false,
     report_send_delay_hours: 1,
     report_send_only_if_paid: true,
+    lead_auto_outreach_enabled: true,
   })
   const [autoLoading, setAutoLoading] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
@@ -163,7 +167,7 @@ export default function ConfiguracionPage() {
       const supabase = createClient()
       const { data } = await supabase
         .from("lead_scraper_log")
-        .select("run_date, leads_found, leads_created, leads_skipped, errors, duration_ms")
+        .select("run_date, leads_found, leads_created, leads_skipped, leads_enriched, errors, duration_ms")
         .order("run_date", { ascending: false })
         .limit(10)
       if (data) setScraperLog(data)
@@ -182,7 +186,9 @@ export default function ConfiguracionPage() {
       if (res.ok) {
         setScraperSaved(true)
         setTimeout(() => setScraperSaved(false), 3000)
+        return true
       }
+      return false
     } finally {
       setScraperSaving(false)
     }
@@ -192,11 +198,16 @@ export default function ConfiguracionPage() {
     setScraperRunning(true)
     setScraperResult(null)
     try {
+      // Guardar la configuración más reciente antes de ejecutar
+      await saveScraperConfig()
       const res = await fetch("/api/lead-scraper/run", { method: "POST" })
       const data = await res.json()
       if (data.ok) {
+        const base = `Encontrados: ${data.leads_found ?? 0} | Creados: ${data.leads_created ?? 0} | Saltados: ${data.leads_skipped ?? 0} | Emails encontrados en seguimiento: ${data.leads_enriched ?? 0} | Restantes hoy: ${data.remaining ?? 0} | ${data.duration_ms ?? 0}ms`
         setScraperResult(
-          `Encontrados: ${data.leads_found} | Creados: ${data.leads_created} | Saltados: ${data.leads_skipped} | Restantes hoy: ${data.remaining} | ${data.duration_ms}ms`
+          Array.isArray(data.errors) && data.errors.length > 0
+            ? `${base}\nErrores: ${data.errors.join(" | ")}`
+            : base
         )
         loadScraperLog()
       } else {
@@ -664,7 +675,7 @@ export default function ConfiguracionPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Setup de servicio (€)</label>
+              <label className="block text-sm font-medium mb-1">Gestión de datos (€)</label>
               <input
                 type="number"
                 value={settings.setup_fee}
@@ -674,8 +685,8 @@ export default function ConfiguracionPage() {
                 className="w-full border rounded-lg px-4 py-2 text-sm"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Cargo de alta que se factura al contratar cada servicio nuevo.
-                {" "}0 para no cobrar setup.
+                Cuota de gestión de datos que se factura al contratar cada servicio nuevo.
+                {" "}0 para no cobrarla.
               </p>
             </div>
             <div>
@@ -867,6 +878,22 @@ export default function ConfiguracionPage() {
               <p className="text-sm text-gray-500">Cargando configuración...</p>
             ) : (
               <div className="space-y-4">
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Auto-contacto de leads (campaña de captación)</p>
+                      <p className="text-xs text-gray-500">
+                        Los leads captados por el scraper reciben automáticamente el primer email y la
+                        secuencia de seguimiento: outbound_1 → followup_1 → followup_2 (7 días de espera
+                        entre cada toque, se detiene al tercero).
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.lead_auto_outreach_enabled}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, lead_auto_outreach_enabled: v }))}
+                    />
+                  </div>
+                </div>
                 <div className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-center justify-between gap-4">
                     <div>
@@ -1137,8 +1164,9 @@ export default function ConfiguracionPage() {
               <div className="flex gap-2">
                 <button
                   onClick={runScraperNow}
-                  disabled={scraperRunning || !scraperConfig.enabled}
+                  disabled={scraperRunning}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:opacity-50 text-sm"
+                  title="Ejecuta una búsqueda manual (no depende del programa automático)"
                 >
                   {scraperRunning ? "Ejecutando..." : "▶ Ejecutar Ahora"}
                 </button>
@@ -1161,8 +1189,8 @@ export default function ConfiguracionPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-center justify-between border rounded-lg p-4">
                 <div>
-                  <p className="text-sm font-medium">Activar búsqueda automática</p>
-                  <p className="text-xs text-gray-500">Ejecuta el scraper diariamente a las 07:00 UTC</p>
+                  <p className="text-sm font-medium">Programación diaria automatica</p>
+                  <p className="text-xs text-gray-500">Ejecuta el scraper todos los días a las 07:00 UTC. El botón «Ejecutar Ahora» siempre funciona.</p>
                 </div>
                 <button
                   role="switch"
@@ -1274,6 +1302,42 @@ export default function ConfiguracionPage() {
                   />
                 </button>
               </div>
+
+              <div className="flex items-center justify-between border rounded-lg p-4">
+                <div>
+                  <p className="text-sm font-medium">Seguir negocios sin email 🔎</p>
+                  <p className="text-xs text-gray-500">
+                    Si un negocio se captura sin correo, se busca el email (y redes sociales) en su web o en buscadores cada día
+                  </p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={scraperConfig.enrich_without_email}
+                  onClick={() => setScraperConfig((p) => ({ ...p, enrich_without_email: !p.enrich_without_email }))}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
+                    scraperConfig.enrich_without_email ? "bg-green-500" : "bg-gray-300"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                      scraperConfig.enrich_without_email ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="border rounded-lg p-4">
+                <label className="block text-sm font-medium mb-1">Seguimientos por día</label>
+                <input
+                  type="number"
+                  value={scraperConfig.enrich_limit}
+                  onChange={(e) => setScraperConfig((p) => ({ ...p, enrich_limit: parseInt(e.target.value) || 0 }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm"
+                  min={0}
+                  max={50}
+                />
+                <p className="text-xs text-gray-400 mt-1">Máximo de negocios a los que se les busca el email cada ejecución (0 = ninguno)</p>
+              </div>
             </div>
           </div>
 
@@ -1287,6 +1351,7 @@ export default function ConfiguracionPage() {
                       <th className="text-left px-4 py-2 font-medium text-gray-500">Fecha</th>
                       <th className="text-left px-4 py-2 font-medium text-gray-500">Encontrados</th>
                       <th className="text-left px-4 py-2 font-medium text-gray-500">Creados</th>
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Emails en seguimiento</th>
                       <th className="text-left px-4 py-2 font-medium text-gray-500">Saltados</th>
                       <th className="text-left px-4 py-2 font-medium text-gray-500">Duración</th>
                       <th className="text-left px-4 py-2 font-medium text-gray-500">Errores</th>
@@ -1298,6 +1363,7 @@ export default function ConfiguracionPage() {
                         <td className="px-4 py-2">{new Date(log.run_date).toLocaleString("es-ES")}</td>
                         <td className="px-4 py-2">{log.leads_found ?? 0}</td>
                         <td className="px-4 py-2 text-green-600 font-medium">{log.leads_created ?? 0}</td>
+                        <td className="px-4 py-2 text-blue-600 font-medium">{log.leads_enriched ?? 0}</td>
                         <td className="px-4 py-2 text-gray-400">{log.leads_skipped ?? 0}</td>
                         <td className="px-4 py-2 text-gray-400">{log.duration_ms ?? 0}ms</td>
                         <td className="px-4 py-2 text-red-600 text-xs max-w-[200px] truncate">{log.errors || "—"}</td>
@@ -1313,9 +1379,10 @@ export default function ConfiguracionPage() {
             <p className="font-medium mb-1">ℹ️ Sobre la captura automática</p>
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Usa <strong>OpenStreetMap (Overpass API)</strong> — completamente gratis, sin API key</li>
-              <li>Los leads se crean con fuente <code>auto_scraped</code> y se deduplican por nombre + ciudad</li>
-              <li>El score se calcula automáticamente según: tiene web (+10), email (+10), rating alto (+10)</li>
-              <li>Los leads aparecen en <code>/dashboard/leads</code> filtrables por fuente</li>
+              <li>Se <strong>priorizan negocios con email y redes sociales</strong>; los que no tienen email también se capturan y se les hace <strong>seguimiento diario</strong> para encontrar su correo (en su web o vía buscador) y sus redes</li>
+              <li>Los leads se crean con fuente <code>auto_scraped</code> y se deduplican por nombre + ciudad, pudiendo completar email/redes en ejecuciones posteriores</li>
+              <li>El score se calcula automáticamente según: tiene web (+10), email (+15), redes sociales (+10 c/u, máx 2), rating alto (+10)</li>
+              <li>El cron se ejecuta <strong>todos los días a las 07:00 UTC</strong>; se enciende y apaga con el interruptor «Activar búsqueda automática»</li>
             </ul>
           </div>
         </div>

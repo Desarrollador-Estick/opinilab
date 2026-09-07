@@ -30,6 +30,7 @@ export async function POST(request: Request) {
 
   const company = process.env.COMPANY_NAME || "OpiniLab"
   const sent: string[] = []
+  const skipped: string[] = []
   const failed: { email: string; reason: string }[] = []
 
   for (const recipient of recipients || []) {
@@ -52,19 +53,26 @@ export async function POST(request: Request) {
       subject,
       html,
       data: { name, business },
+      promotional: true,
     })
 
     const { error: updateError } = await supabase
       .from("promo_recipients")
       .update({
-        status: res.ok ? "sent" : "failed",
-        sent_at: res.ok ? new Date().toISOString() : null,
-        last_error: res.ok ? null : "Error al enviar por el proveedor de email",
+        status: res.skipped ? "skipped" : res.ok ? "sent" : "failed",
+        sent_at: res.ok && !res.skipped ? new Date().toISOString() : null,
+        last_error: res.skipped
+          ? "Destinatario dado de baja"
+          : res.ok
+            ? null
+            : "Error al enviar por el proveedor de email",
         updated_at: new Date().toISOString(),
       })
       .eq("id", recipient.id)
 
-    if (res.ok && !updateError) {
+    if (res.skipped) {
+      skipped.push(recipient.email)
+    } else if (res.ok && !updateError) {
       sent.push(recipient.email)
     } else {
       failed.push({
@@ -79,6 +87,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     ok: true,
     sent: sent.length,
+    skipped: skipped.length,
     failed: failed.length,
     failed_details: failed,
   })

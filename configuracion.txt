@@ -1,6 +1,6 @@
 ================================================================================
 CONFIGURACIÓN DE OPINILAB (Agencia Marketing)
-Fichero generado el 05/09/2026. Proyecto local: F:\agencia-marketing
+Fichero generado el 05/09/2026 · actualizado el 06/09/2026. Proyecto local: F:\agencia-marketing
 Producción: https://opinilab.com (Vercel, proyecto "opinilab", equipo esticks-projects)
 ================================================================================
 
@@ -335,4 +335,9 @@ NOTAS FINALES
   (commit b53dbe0).
 - Emails: EMAIL_FROM=noreply@opinilab.com ya está en Vercel y el dominio opinilab.com
   está verificado en Resend. Los email_sends se actualizan con el webhook de Resend.
+- Lint y tipos (06/09/2026, commit b05f89b): ESLint a 0 errores/0 warnings y tipado
+  estricto en todo el código (sin "any"; SupabaseClient<Database>, Json, catch {).
+  "npm run lint" y "npx tsc --noEmit" se ejecutan directamente en F:\agencia-marketing
+  (FAT32 solo bloquea "npm run build", no ESLint ni TypeScript). Cambio SIN efecto en
+  configuración/env vars: no hay nada que modificar aquí por este commit.
 ================================================================================

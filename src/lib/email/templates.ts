@@ -284,12 +284,67 @@ export function followUpEmail(leadName: string, businessName: string): EmailTemp
           </ul>
           <p>Ofrecemos una <strong>consulta gratuita</strong> sin compromiso.</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="mailto:${process.env.EMAIL_FROM || 'hola@agenciamarketing.com'}?subject=Consulta%20gratuita" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+            <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=Consulta%20gratuita" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
               Responder a este email
             </a>
           </div>
           <p>¡Esperamos poder trabajar juntos!</p>
           <p><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+}
+
+export function coldLeadEmail(name: string, businessName: string): EmailTemplate {
+  const company = process.env.COMPANY_NAME || "Agencia Marketing"
+  return {
+    subject: `Reseñas y visibilidad para ${businessName} (oferta 29€/mes)`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">🚀 ${company}</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <p>Hola <strong>${name}</strong>,</p>
+          <p>Hemos visto <strong>${businessName}</strong> en Google y en redes sociales, y creemos que puedes atraer más clientes de tu zona de una forma sencilla.</p>
+          <p>En ${company} nos encargamos de que tu ficha de Google y tus reseñas trabajen por ti:</p>
+          <ul>
+            <li>✅ Conseguir reseñas nuevas de forma continuada</li>
+            <li>✅ Responderlas y cuidar tu reputación online</li>
+            <li>✅ Mejorar tu presencia para que te encuentren más vecinos</li>
+          </ul>
+          <p>Para tu zona, solo durante el lanzamiento: <strong>29€/mes</strong> sin cuota de alta.</p>
+          <p>Te enviamos un <strong>análisis gratuito de tu ficha de Google</strong> sin compromiso: responde a este email y lo preparamos.</p>
+          <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+}
+
+export function finalFollowUpEmail(name: string, businessName: string): EmailTemplate {
+  const company = process.env.COMPANY_NAME || "Agencia Marketing"
+  return {
+    subject: `Último aviso: 29€/mes para ${businessName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">⏳ Último aviso</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <p>Hola <strong>${name}</strong>,</p>
+          <p>Esta es nuestra última comunicación sobre <strong>${businessName}</strong>.</p>
+          <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>29€/mes</strong> y sin cuota de gestión de datos.</p>
+          <p>Si todavía te interesa ver tu análisis gratuito, responde a este email.</p>
+          <p>Si ya no te interesa, responde con "no interesado" y no volveremos a escribirte.</p>
+          <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
         </div>
       </body>
       </html>

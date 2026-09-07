@@ -11,6 +11,7 @@ interface Service {
   base_price: number
   billing_cycle: "one_time" | "monthly" | "quarterly" | "yearly" | null
   is_active: boolean
+  waive_setup: boolean
   created_at: string
 }
 
@@ -37,6 +38,7 @@ const emptyForm = {
   category: "reviews",
   base_price: 0,
   billing_cycle: "monthly",
+  waive_setup: false,
 }
 
 export default function ServiciosPage() {
@@ -97,10 +99,22 @@ export default function ServiciosPage() {
       category: form.category as "reviews" | "social_media" | "seo" | "ads" | "email" | "branding" | "web",
       base_price: Number(form.base_price),
       billing_cycle: form.billing_cycle as "one_time" | "monthly" | "quarterly" | "yearly",
+      waive_setup: Boolean(form.waive_setup),
     }
 
     if (!payload.name) {
       setMessage("El nombre es obligatorio")
+      setSaving(false)
+      return
+    }
+
+    // Evitar duplicados (insensible a mayúsculas/minúsculas)
+    const normalized = payload.name.toLowerCase()
+    const duplicate = services.find(
+      (s) => s.name.toLowerCase() === normalized && s.id !== editing?.id
+    )
+    if (duplicate) {
+      setMessage(`Ya existe un servicio llamado "${duplicate.name}". Usa otro nombre o edita el existente.`)
       setSaving(false)
       return
     }
@@ -110,7 +124,11 @@ export default function ServiciosPage() {
       : await supabase.from("services").insert(payload)
 
     if (error) {
-      setMessage(`Error: ${error.message}`)
+      if (error.message.toLowerCase().includes("duplicate") || error.code === "23505") {
+        setMessage(`Ya existe un servicio con ese nombre. Usa otro nombre o edita el existente.`)
+      } else {
+        setMessage(`Error: ${error.message}`)
+      }
     } else {
       resetForm()
       load()
@@ -127,6 +145,7 @@ export default function ServiciosPage() {
       category: service.category ?? "",
       base_price: service.base_price,
       billing_cycle: service.billing_cycle ?? "",
+      waive_setup: !!service.waive_setup,
     })
     setMessage("")
   }
@@ -214,6 +233,23 @@ export default function ServiciosPage() {
               </select>
             </div>
             <div className="md:col-span-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.waive_setup}
+                  onChange={(e) => setForm({ ...form, waive_setup: e.target.checked })}
+                  className="mt-0.5 rounded border-gray-300"
+                />
+                <span className="text-sm">
+                  <span className="font-medium">Sin cuota de Gestión de datos</span>
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    Marcar solo servicios de oferta/lanzamiento: al contratarlo no se cobra la
+                    cuota de alta en la primera factura.
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium mb-1">Descripción</label>
               <textarea
                 rows={2}
@@ -285,6 +321,11 @@ export default function ServiciosPage() {
                     </td>
                     <td className="px-4 py-3 font-semibold text-gray-900">
                       {Number(s.base_price).toFixed(2)}€
+                      {s.waive_setup && (
+                        <span className="ml-2 inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700">
+                          Sin cuota de alta
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {cycles.find((c) => c.value === s.billing_cycle)?.label ?? s.billing_cycle}

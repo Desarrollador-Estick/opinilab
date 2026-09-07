@@ -21,6 +21,7 @@ const statusLabels: Record<Status, { label: string; classes: string }> = {
   pending: { label: "Pendiente", classes: "bg-amber-100 text-amber-800" },
   sent: { label: "Enviado", classes: "bg-green-100 text-green-800" },
   failed: { label: "Error", classes: "bg-red-100 text-red-800" },
+  skipped: { label: "Dado de baja", classes: "bg-gray-200 text-gray-700" },
 }
 
 const filters: { value: Status | "all"; label: string }[] = [
@@ -28,6 +29,7 @@ const filters: { value: Status | "all"; label: string }[] = [
   { value: "pending", label: "Pendientes" },
   { value: "sent", label: "Enviados" },
   { value: "failed", label: "Errores" },
+  { value: "skipped", label: "Dados de baja" },
 ]
 
 function parseBulkLine(line: string): { name?: string; email: string } {

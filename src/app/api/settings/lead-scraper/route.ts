@@ -30,6 +30,8 @@ export async function POST(request: Request) {
     min_reviews: Number(body.min_reviews) || 0,
     search_radius_m: Number(body.search_radius_m) || 5000,
     exclude_without_website: Boolean(body.exclude_without_website),
+    enrich_without_email: body.enrich_without_email !== false,
+    enrich_limit: Math.min(Math.max(Number(body.enrich_limit) || 0, 0), 50),
   }
 
   const { error } = await supabase

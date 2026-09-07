@@ -151,6 +151,7 @@ export interface Database {
           base_price: number
           billing_cycle: 'one_time' | 'monthly' | 'quarterly' | 'yearly'
           is_active: boolean
+          waive_setup: boolean
           created_at: string
         }
         Insert: {
@@ -161,6 +162,7 @@ export interface Database {
           base_price?: number
           billing_cycle?: 'one_time' | 'monthly' | 'quarterly' | 'yearly'
           is_active?: boolean
+          waive_setup?: boolean
           created_at?: string
         }
         Update: {
@@ -171,6 +173,7 @@ export interface Database {
           base_price?: number
           billing_cycle?: 'one_time' | 'monthly' | 'quarterly' | 'yearly'
           is_active?: boolean
+          waive_setup?: boolean
           created_at?: string
         }
         Relationships: []
@@ -703,6 +706,8 @@ export interface Database {
           status: 'new' | 'contacted' | 'interested' | 'proposal_sent' | 'negotiation' | 'won' | 'lost'
           score: number
           notes: string | null
+          social_media: Json | null
+          email_last_attempt_at: string | null
           last_contact_at: string | null
           next_follow_up_at: string | null
           converted_client_id: string | null
@@ -722,6 +727,8 @@ export interface Database {
           status?: 'new' | 'contacted' | 'interested' | 'proposal_sent' | 'negotiation' | 'won' | 'lost'
           score?: number
           notes?: string | null
+          social_media?: Json | null
+          email_last_attempt_at?: string | null
           last_contact_at?: string | null
           next_follow_up_at?: string | null
           converted_client_id?: string | null
@@ -741,6 +748,8 @@ export interface Database {
           status?: 'new' | 'contacted' | 'interested' | 'proposal_sent' | 'negotiation' | 'won' | 'lost'
           score?: number
           notes?: string | null
+          social_media?: Json | null
+          email_last_attempt_at?: string | null
           last_contact_at?: string | null
           next_follow_up_at?: string | null
           converted_client_id?: string | null
@@ -857,7 +866,7 @@ export interface Database {
           email: string
           business_name: string | null
           notes: string | null
-          status: 'pending' | 'sent' | 'failed'
+          status: 'pending' | 'sent' | 'failed' | 'skipped'
           sent_at: string | null
           last_error: string | null
           created_at: string
@@ -869,7 +878,7 @@ export interface Database {
           email: string
           business_name?: string | null
           notes?: string | null
-          status?: 'pending' | 'sent' | 'failed'
+          status?: 'pending' | 'sent' | 'failed' | 'skipped'
           sent_at?: string | null
           last_error?: string | null
           created_at?: string
@@ -881,11 +890,29 @@ export interface Database {
           email?: string
           business_name?: string | null
           notes?: string | null
-          status?: 'pending' | 'sent' | 'failed'
+          status?: 'pending' | 'sent' | 'failed' | 'skipped'
           sent_at?: string | null
           last_error?: string | null
           created_at?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_suppressions: {
+        Row: {
+          email: string
+          source: string | null
+          created_at: string | null
+        }
+        Insert: {
+          email: string
+          source?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          email?: string
+          source?: string | null
+          created_at?: string | null
         }
         Relationships: []
       }
@@ -1294,6 +1321,7 @@ export interface Database {
           leads_found: number | null
           leads_created: number | null
           leads_skipped: number | null
+          leads_enriched: number | null
           errors: string | null
           config_snapshot: Json | null
           duration_ms: number | null
@@ -1305,6 +1333,7 @@ export interface Database {
           leads_found?: number | null
           leads_created?: number | null
           leads_skipped?: number | null
+          leads_enriched?: number | null
           errors?: string | null
           config_snapshot?: Json | null
           duration_ms?: number | null
@@ -1316,6 +1345,7 @@ export interface Database {
           leads_found?: number | null
           leads_created?: number | null
           leads_skipped?: number | null
+          leads_enriched?: number | null
           errors?: string | null
           config_snapshot?: Json | null
           duration_ms?: number | null
