@@ -1090,6 +1090,42 @@ export interface Database {
         }
         Relationships: []
       }
+      page_events: {
+        Row: {
+          id: string
+          event_type: string
+          label: string | null
+          path: string
+          url: string | null
+          referrer: string | null
+          user_agent: string | null
+          visitor_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          event_type: string
+          label?: string | null
+          path?: string
+          url?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          visitor_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          event_type?: string
+          label?: string | null
+          path?: string
+          url?: string | null
+          referrer?: string | null
+          user_agent?: string | null
+          visitor_id?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
       usage_logs: {
         Row: {
           id: string

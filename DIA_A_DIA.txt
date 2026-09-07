@@ -44,6 +44,11 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
   /dashboard/resenas              → Reseñas y respuestas (manual o con IA).
   /dashboard/facturas            → Facturas y cobros.
   /dashboard/reportes            → Informes mensuales a clientes.
+  /dashboard/analytics           → Visitas y clics de la landing (por día +
+                                   acumulado). Se registra desde el 09/09/2026:
+                                   /api/analytics/track (público) → tabla
+                                   page_events (Supabase); /api/analytics/stats
+                                   (solo admin) lo muestra.
   /dashboard/clientes            → Clientes dados de alta.
   /dashboard/tareas              → Gestión de trabajo por cliente.
   /dashboard/configuracion       → Ajustes: Empresa, Facturación, Marketing,
