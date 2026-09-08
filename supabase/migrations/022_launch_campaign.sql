@@ -2,7 +2,7 @@
 --  - Cuota de "Gestión de datos" (alta) configurable y omisible por servicio.
 --  - Scraper enfocado a estética/peluquería/salones en Madrid.
 --  - Auto-contacto por email de leads (outbound_1 -> followup_1 -> followup_2).
---  - Servicio de oferta de lanzamiento a 29€/mes sin cuota de alta.
+--  - Servicio de oferta de lanzamiento a 49€/mes sin cuota de alta.
 
 -- ============================================================
 -- 1. services.waive_setup: permite contratar un servicio sin cobrar
@@ -83,7 +83,7 @@ select * from (values
        <li>- Respondemos por ti y cuidamos tu reputación online</li>
        <li>- Mejoramos tu presencia para que te encuentren más clientes del barrio</li>
      </ul>
-     <p>Oferta de lanzamiento para los primeros negocios de tu zona: <strong>29€/mes</strong>, sin cuota de gestión de datos.</p>
+      <p>Oferta de lanzamiento para los primeros negocios de tu zona: <strong>49€/mes</strong>, sin cuota de gestión de datos.</p>
      <p>Te enviamos un <strong>análisis gratuito de tu ficha</strong> sin compromiso: responde a este email y lo preparamos.</p>
      <p>Un saludo,<br><strong>Equipo de {company}</strong></p>
    </div>',
@@ -95,7 +95,7 @@ select * from (values
    '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
      <h2>Hola {name},</h2>
      <p>Hace unos días te escribimos sobre <strong>{business}</strong>.</p>
-     <p>La oferta de lanzamiento para los primeros negocios de tu zona sigue disponible: <strong>29€/mes</strong>, sin cuota de gestión de datos.</p>
+      <p>La oferta de lanzamiento para los primeros negocios de tu zona sigue disponible: <strong>49€/mes</strong>, sin cuota de gestión de datos.</p>
      <p>¿Quieres que te preparemos el análisis gratuito de tu ficha de Google?</p>
      <p>Puedes responder directamente a este email.</p>
      <p>¡Gracias por tu tiempo!<br><strong>Equipo de {company}</strong></p>
@@ -104,11 +104,11 @@ select * from (values
    true),
   ('followup_2',
    'Follow-up 2',
-   'Último aviso: oferta 29€/mes para {business}',
+    'Último aviso: oferta 49€/mes para {business}',
    '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
      <h2>Hola {name},</h2>
      <p>Esta es nuestra última comunicación sobre <strong>{business}</strong>.</p>
-     <p>La oferta de lanzamiento es <strong>29€/mes</strong> y sin cuota de gestión de datos.</p>
+      <p>La oferta de lanzamiento es <strong>49€/mes</strong> y sin cuota de gestión de datos.</p>
      <p>Si todavía te interesa tu análisis gratuito, responde a este email.</p>
      <p>Si ya no te interesa, responde con "no interesado" y no volveremos a escribirte.</p>
      <p>Un saludo,<br><strong>Equipo de {company}</strong></p>
@@ -125,17 +125,17 @@ on conflict (key) do update
       updated_at = now();
 
 -- ============================================================
--- 6. Servicio de oferta de lanzamiento (29€/mes, sin cuota de alta).
+-- 6. Servicio de oferta de lanzamiento (49€/mes, sin cuota de alta).
 -- ============================================================
 insert into public.services (name, description, category, base_price, billing_cycle, is_active, waive_setup)
 select
-  'Plan Lanzamiento 29€/mes',
-  'Oferta de lanzamiento para los primeros negocios de estética: gestión de reseñas de Google y reputación online por 29€/mes, sin cuota de gestión de datos.',
+  'Plan Lanzamiento 49€/mes',
+  'Oferta de lanzamiento para los primeros negocios de estética: gestión de reseñas de Google y reputación online por 49€/mes, sin cuota de gestión de datos.',
   'reviews',
-  29,
+  49,
   'monthly',
   true,
   true
 where not exists (
-  select 1 from public.services where lower(name) = lower('Plan Lanzamiento 29€/mes')
+  select 1 from public.services where lower(name) = lower('Plan Lanzamiento 49€/mes')
 );

@@ -18,7 +18,7 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
       seguimiento), la campaña arranca SOLA de inmediato: envía outbound_1.
       No espera al cron de las 09:00 ni al botón manual. Luego sigue sola
       con followup_1 → followup_2 (7 días entre toques; se detiene al
-      tercero). Oferta de lanzamiento: "29€/mes SIN cuota de gestión de
+      tercero). Oferta de lanzamiento: "49€/mes SIN cuota de gestión de
       datos". ON/OFF en /dashboard/configuracion → Automatización →
       "Auto-contacto de leads".
    3. Los textos se editan en /dashboard/configuracion → Email → plantillas
@@ -26,7 +26,7 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
    4. Al CONVERTIR un lead, la PRIMERA factura incluye el mes corriente + la
       cuota de "GESTIÓN DE DATOS" (importe por defecto 49€ en Configuración →
       Facturación; 0 = sin cuota). El servicio de la oferta "Plan Lanzamiento
-      29€/mes" lleva la casilla "Sin cuota de Gestión de datos" (waive_setup),
+      49€/mes" lleva la casilla "Sin cuota de Gestión de datos" (waive_setup),
       así que NO cobra cuota de alta.
    5. BAJA RESPETADA: todos los correos comerciales (promociones y la campaña
       de captación) llevan enlace "darse de baja". Quien lo use pasa a
@@ -34,6 +34,12 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
       promos se marca como "Dado de baja"; en la campaña, la secuencia se
       detiene). Se puede marcar un email como dado de baja sin que el scraper
       vuelva a contactarlo.
+   6. EMAIL DE BIENVENIDA CON CTA (08/09/2026): el primer correo que recibe un
+      lead del formulario ya NO es pasivo. Ahora pide el enlace de Google Maps
+      con una promesa clara ("en 24h tu diagnóstico + 3 acciones para 7 días"),
+      muestra patrones clave y un "siguiente paso" 1-2-3 con urgencia y bonus.
+      Objetivo: que el lead PASE de esperar a actuar y no se pierda en el primer
+      contacto. También llevan botón CTA los correos outbound_1 y followup_2.
 
 --------------------------------------------------------------------------------
 1. RUTAS EN 1 VISTA
@@ -109,7 +115,7 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
       - Revisa los leads NUEVOS: primero los "website" (de la landing, ya
         llevan informe generado → úsalos para la llamada).
       - Los leads del scraper (estética) YA RECIBEN SOLOS el primer email y los
-        seguimientos de la campaña 29€/mes. Tú solo conviertes los que
+        seguimientos de la campaña 49€/mes. Tú solo conviertes los que
         respondan (marca estado y fija next_follow_up_at). Si no responde tras
         el 3er email, el sistema los deja de molestar.
       - Benefíciate de la columna "Redes": los leads con email y/o redes
@@ -325,6 +331,21 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
   outbound_1 = sent (a los 6 leads con email). Si aún no sale, mira Resend.
   (No se pudo verificar el estado del cron en Vercel: el token daba 403 SAML
   en el equipo esticks-projects; revisar Vercel → Cron al desplegar.)
+
+  ESTADO AL 08/09/2026 (noche) — EMAIL CON CTA + FACTURACIÓN SPLIT + MIGRACIÓN 026:
+  - El email de bienvenida del formulario quedó rediseñado con CTA de conversión
+    (ya desplegado, www.opinilab.com → 200) y los correos outbound_1/followup_2
+    ganaron botón. Los leads inbound ya no "esperan pasivos": tienen una acción
+    clara (enviar su enlace GBP) y un bonus por responder pronto.
+  - Migración 026_billing_split_and_freeze.sql APLICADA en producción vía
+    Management API (ver cambiado: client_services.project_status /
+    project_progress / managed_by; facturación 50/50 para one_time; GRACE_DAYS
+    a 3). Verificadas las columnas tras migrar.
+  - Fix de build: se quitó un updated_at inexistente en client_services
+    (clientes/actions.ts) que rompía el deploy.
+  - Todo en commit d335b5f (main local + push). Comprobar que el deploy en
+    Vercel queda "Ready" y opinilab.com responde 200. (El token de Supabase
+    Management API válido es el de Apy resend.txt; el de token.txt da 401.)
 
 --------------------------------------------------------------------------------
 10. NOTAS RÁPIDAS

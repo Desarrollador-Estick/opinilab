@@ -300,7 +300,7 @@ export function followUpEmail(leadName: string, businessName: string): EmailTemp
 export function coldLeadEmail(name: string, businessName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "Agencia Marketing"
   return {
-    subject: `Reseñas y visibilidad para ${businessName} (oferta 29€/mes)`,
+    subject: `Reseñas y visibilidad para ${businessName} (oferta 49€/mes)`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -317,7 +317,7 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
             <li>✅ Responderlas y cuidar tu reputación online</li>
             <li>✅ Mejorar tu presencia para que te encuentren más vecinos</li>
           </ul>
-          <p>Para tu zona, solo durante el lanzamiento: <strong>29€/mes</strong> sin cuota de alta.</p>
+          <p>Para tu zona, solo durante el lanzamiento: <strong>49€/mes</strong> sin cuota de alta.</p>
           <p>Te enviamos un <strong>análisis gratuito de tu ficha de Google</strong> sin compromiso:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito%20para%20${encodeURIComponent(businessName)}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
@@ -336,7 +336,7 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
 export function finalFollowUpEmail(name: string, businessName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "Agencia Marketing"
   return {
-    subject: `Último aviso: 29€/mes para ${businessName}`,
+    subject: `Último aviso: 49€/mes para ${businessName}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -347,7 +347,7 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${name}</strong>,</p>
           <p>Esta es nuestra última comunicación sobre <strong>${businessName}</strong>.</p>
-          <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>29€/mes</strong> y sin cuota de gestión de datos.</p>
+          <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>49€/mes</strong> y sin cuota de gestión de datos.</p>
           <p>Si todavía te interesa ver tu análisis gratuito, responde a este email.</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=S%C3%AD%2C%20quiero%20mi%20an%C3%A1lisis%20gratuito" style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
