@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getQuotaStatus } from "@/lib/ai/ai-tasks"
 import { AddTaskForm } from "./add-form"
 import { AI_TASK_LABEL, AI_TASK_STATUS_LABEL, AiTaskCategory } from "./constants"
+import NoClientPlaceholder from "../no-client-placeholder"
 
 const CATEGORY_ORDER: AiTaskCategory[] = [
   "reviews",
@@ -28,7 +29,7 @@ export default async function TareasPage() {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (!profile?.client_id) redirect("/dashboard")
+  if (!profile?.client_id) return <NoClientPlaceholder />
   const clientId = profile.client_id
 
   const [{ data: client }, { data: clientServices }, { data: ai_tasks }, { data: allServices }, quota] =

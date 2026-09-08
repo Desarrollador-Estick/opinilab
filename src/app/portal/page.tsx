@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/server"
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils"
+import NoClientPlaceholder from "./no-client-placeholder"
 
 export default async function PortalHomePage() {
   const supabase = await createClient()
@@ -20,8 +21,12 @@ export default async function PortalHomePage() {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (!profile || profile.role !== "client" || !profile.client_id) {
+  if (!profile || profile.role !== "client") {
     redirect("/dashboard")
+  }
+
+  if (!profile.client_id) {
+    return <NoClientPlaceholder />
   }
 
   const clientId = profile.client_id

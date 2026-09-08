@@ -397,7 +397,6 @@ async function chargeInitialInvoice(supabase: SupabaseClient<Database>, clientId
 
     if (isOneTime) {
       await supabase
-        // @ts-ignore
         .from("client_services")
         .update({ project_status: "in_progress" })
         .eq("client_id", clientId)
@@ -548,8 +547,7 @@ export async function completeProjectAction(clientServiceId: string): Promise<Cl
 // El proyecto ya no se puede volver a marcar como completado.
   await supabase
     .from("client_services")
-    // @ts-ignore
-    .update({ project_status: "completed", updated_at: new Date().toISOString() })
+    .update({ project_status: "completed" })
     .eq("id", clientServiceId)
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { AddToolForm } from "./add-form"
 import { ToolList } from "./tool-list"
 import { TOOL_TYPE_LABEL } from "./constants"
+import NoClientPlaceholder from "../no-client-placeholder"
 
 export default async function HerramientasPage() {
   const supabase = await createClient()
@@ -18,7 +19,7 @@ export default async function HerramientasPage() {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (!profile?.client_id) redirect("/dashboard")
+  if (!profile?.client_id) return <NoClientPlaceholder />
 
   const clientId = profile.client_id
 
