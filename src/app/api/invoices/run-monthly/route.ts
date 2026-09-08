@@ -10,7 +10,7 @@ import { sendEmail } from "@/lib/email/send"
 import { invoiceWithLinkEmail, paymentReminder } from "@/lib/email/templates"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const GRACE_DAYS = 5
+const GRACE_DAYS = 3
 
 interface JobResult {
   client_id: string

@@ -141,24 +141,70 @@ export async function POST(request: Request) {
     <html>
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f3f4f6;">
       <div style="background: #0f172a; padding: 28px 32px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: white; margin: 0; font-size: 20px;">Bienvenido a ${companyName}</h1>
-        <p style="color: #94a3b8; margin: 8px 0 0; font-size: 14px;">Hemos recibido tu solicitud</p>
+        <h1 style="color: white; margin: 0; font-size: 20px;">Hola ${name}, tu diagnóstico gratuito de Google está a un paso</h1>
+        <p style="color: #94a3b8; margin: 8px 0 0; font-size: 14px;">Gracias por confiar en ${companyName}</p>
       </div>
       <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-radius: 0 0 10px 10px;">
         <p style="margin: 0 0 16px; line-height: 1.6;">Hola <strong>${name}</strong>,</p>
-        <p style="margin: 0 0 16px; line-height: 1.6;">Gracias por contactar con nosotros. Hemos recibido la solicitud de <strong>${business}</strong> y un asesor la revisará en las próximas horas laborables.</p>
+        <p style="margin: 0 0 16px; line-height: 1.6;">Gracias por confiar en <strong>${companyName}</strong>. Hemos recibido tu solicitud y queremos que sepas que tu caso ya está en nuestra agenda de prioridades.</p>
 
-        <h3 style="margin: 24px 0 12px; font-size: 15px;">Qué ocurre a continuación</h3>
-        <ol style="margin: 0 0 20px; padding-left: 20px; line-height: 1.7;">
-          <li>Revisamos la información de tu negocio y preparamos una propuesta.</li>
-          <li>Te contactamos para acordar los servicios y condiciones.</li>
-          <li>Al confirmar el alta, recibirás automáticamente tu acceso al portal de cliente con tus credenciales.</li>
-        </ol>
+        <p style="margin: 0 0 16px; line-height: 1.6;">Antes de empezar, necesitamos un dato clave para que nuestro análisis sea realmente útil: el enlace directo a tu ficha de Google Business Profile. Sin él, cualquier recomendación sería genérica, y eso no es lo que mereces.</p>
 
-        ${reportHtml ? `<h3 style="margin: 24px 0 12px; font-size: 15px;">Tu informe gratuito de presencia en Google</h3><div style="line-height: 1.6;">${reportHtml}</div>` : ""}
+        <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0; font-weight: bold; color: #166534;">Respondiendo a este correo con tu enlace, en menos de 24 horas laborables tendrás en tus manos:</p>
+          <ul style="margin: 12px 0 0; padding-left: 20px; line-height: 1.8;">
+            <li>Tu valoración media real y comparativa con tu competencia local.</li>
+            <li>Un mapa de oportunidades personalizado (fotos, palabras clave, volumen de reseñas).</li>
+            <li>3 acciones concretas para mejorar tu visibilidad en los próximos 7 días.</li>
+          </ul>
+        </div>
 
-        <p style="margin: 20px 0 0; line-height: 1.6;">Si tienes alguna duda mientras tanto, responde directamente a este correo.</p>
-        <p style="margin: 20px 0 0;">Un saludo,<br><strong>Equipo de ${companyName}</strong></p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+        <p style="margin: 0 0 16px; line-height: 1.6;">Mientras tanto, te comparto lo que suele marcar la diferencia en negocios como el tuyo (sin necesidad de ver tu perfil, porque son patrones que repetimos en cientos de clientes):</p>
+
+        <div style="background: #f8fafc; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0 0 8px; line-height: 1.6;">✅ Fotos que venden experiencias, no productos.</p>
+          <p style="margin: 0 0 8px; line-height: 1.6;">✅ Descripciones que responden a lo que el cliente realmente busca en tu zona.</p>
+          <p style="margin: 0 0 8px; line-height: 1.6;">✅ Respuestas a reseñas que humanizan tu marca (y que Google premia con mejor posicionamiento).</p>
+          <p style="margin: 0; line-height: 1.6;">✅ Sistema proactivo para pedir opiniones en el momento justo (justo después de la compra).</p>
+        </div>
+
+        <p style="margin: 20px 0 16px; line-height: 1.6;">Pero lo importante no es lo que te contamos, sino lo que podemos hacer juntos cuando tengamos tus datos reales.</p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+        <h3 style="margin: 0 0 12px; font-size: 15px;">¿Cómo te ayudamos en ${companyName}?</h3>
+        <p style="margin: 0 0 16px; line-height: 1.6;">No vendemos humo. Vendemos resultados medibles:</p>
+        <ul style="margin: 0 0 20px; padding-left: 20px; line-height: 1.8;">
+          <li><strong>Gestión de reseñas:</strong> aumentamos tu volumen y tu media, con estrategias probadas.</li>
+          <li><strong>Community management:</strong> respondemos por ti con un tono que encaja con tu marca.</li>
+          <li><strong>SEO local:</strong> te colocamos donde tus clientes te buscan.</li>
+          <li><strong>Publicidad local:</strong> solo invertimos en lo que funciona, con datos en tiempo real.</li>
+        </ul>
+        <p style="margin: 0 0 20px; line-height: 1.6;">Y todo, con un panel de control donde tú ves el progreso día a día.</p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+        <h3 style="margin: 0 0 12px; font-size: 15px;">El siguiente paso es sencillo:</h3>
+        <div style="background: #eff6ff; padding: 16px; border-radius: 8px; margin: 20px 0;">
+          <ol style="margin: 0; padding-left: 20px; line-height: 1.8;">
+            <li>Responde a este correo con el enlace de tu ficha de Google Maps.</li>
+            <li>Nuestro equipo prepara tu diagnóstico personalizado y gratuito.</li>
+            <li>En 24h te enviaremos un análisis completo y, si quieres, una propuesta a medida.</li>
+          </ol>
+        </div>
+        <p style="margin: 0 0 20px; line-height: 1.6; font-weight: bold; color: #1e40af;">Sin compromiso. Solo información valiosa para que decidas con criterio.</p>
+
+        ${reportHtml ? `<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;"><h3 style="margin: 0 0 12px; font-size: 15px;">Tu informe gratuito de presencia en Google</h3><div style="line-height: 1.6;">${reportHtml}</div>` : ""}
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
+        <p style="margin: 0 0 16px; line-height: 1.6;">¿Tienes dudas? Estamos aquí para resolverlas. Puedes responder directamente a este mensaje.</p>
+
+        <p style="margin: 20px 0 0;">Gracias de nuevo por abrirnos la puerta de tu negocio.</p>
+        <p style="margin: 12px 0 0;">Un abrazo,<br><strong>Equipo ${companyName}</strong></p>
+        <p style="margin: 20px 0 0; font-size: 12px; color: #6b7280;">Si ya tienes el enlace, no esperes a mañana. Los primeros en responder reciben un bonus exclusivo: un checklist de 5 errores que matan el posicionamiento local (y que el 90% de los negocios comete).</p>
       </div>
     </body>
     </html>
@@ -166,7 +212,7 @@ export async function POST(request: Request) {
 
     await sendEmail(
       email,
-      `Bienvenido a ${companyName} — tu informe gratuito y próximos pasos`,
+      `${name}, tu diagnóstico gratuito de Google está a un paso`,
       unifiedHtml
     )
 

@@ -8,10 +8,11 @@ import {
   getContracts,
   getReviews,
 } from "@/lib/supabase/queries"
+import { ServicesPanel } from "./services-panel"
+import { ClientServiceItem } from "./services-panel"
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils"
 import { DeleteClientButton } from "./delete-button"
 import { CreateClientAccountButton } from "./create-client-account-button"
-import { ServicesPanel } from "./services-panel"
 
 export default async function ClienteDetailPage({
   params,
@@ -222,7 +223,7 @@ export default async function ClienteDetailPage({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ServicesPanel clientId={client.id} services={services} catalog={catalog} />
+        <ServicesPanel clientId={client.id} services={services as unknown as ClientServiceItem[]} catalog={catalog} />
 
         <div className="bg-white rounded-xl border p-6">
           <div className="flex items-center justify-between mb-4">

@@ -318,7 +318,13 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
             <li>✅ Mejorar tu presencia para que te encuentren más vecinos</li>
           </ul>
           <p>Para tu zona, solo durante el lanzamiento: <strong>29€/mes</strong> sin cuota de alta.</p>
-          <p>Te enviamos un <strong>análisis gratuito de tu ficha de Google</strong> sin compromiso: responde a este email y lo preparamos.</p>
+          <p>Te enviamos un <strong>análisis gratuito de tu ficha de Google</strong> sin compromiso:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito%20para%20${encodeURIComponent(businessName)}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+              Quiero mi análisis gratuito →
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #9ca3af;">También puedes simplemente responder a este email.</p>
           <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
         </div>
       </body>
@@ -343,7 +349,12 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
           <p>Esta es nuestra última comunicación sobre <strong>${businessName}</strong>.</p>
           <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>29€/mes</strong> y sin cuota de gestión de datos.</p>
           <p>Si todavía te interesa ver tu análisis gratuito, responde a este email.</p>
-          <p>Si ya no te interesa, responde con "no interesado" y no volveremos a escribirte.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=S%C3%AD%2C%20quiero%20mi%20an%C3%A1lisis%20gratuito" style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+              Sí, quiero mi análisis gratuito →
+            </a>
+          </div>
+          <p style="font-size: 12px; color: #9ca3af;">Si ya no te interesa, responde con "no interesado" y no volveremos a escribirte.</p>
           <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
         </div>
       </body>
@@ -400,6 +411,32 @@ export function paymentThanksEmail(businessName: string, contactName: string, in
           <p>Gracias por tu confianza. Estamos trabajando para que tu negocio crezca.</p>
           <p>Si tienes cualquier duda, no dudes en contactarnos.</p>
           <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+}
+
+export function projectReadyEmail(contactName: string, businessName: string, serviceName: string, remainingTotal: number, invoiceNumber: string, payUrl: string): EmailTemplate {
+  return {
+    subject: `🎉 ${serviceName} listo para entregar - ${businessName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #7c3aed; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">🎉 ¡Tu proyecto está acabado!</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <p>Hola <strong>${contactName}</strong>,</p>
+          <p>Buenas noticias: hemos terminado <strong>${serviceName}</strong> para <strong>${businessName}</strong> y ya está listo para entregarte.</p>
+          <p>Para recibirlo, solo falta abonar la factura restante de <strong>${remainingTotal.toFixed(2)}€</strong> (factura <strong>${invoiceNumber}</strong>).</p>
+          <p style="text-align: center; margin: 28px 0;">
+            <a href="${payUrl}" style="background: #7c3aed; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">Abonar y recibir mi proyecto</a>
+          </p>
+          <p>En cuanto confirmemos el pago, te lo entregamos de inmediato.</p>
+          <p>¡Gracias por tu confianza!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
         </div>
       </body>
       </html>

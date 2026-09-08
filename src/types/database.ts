@@ -187,6 +187,9 @@ export interface Database {
           status: 'active' | 'paused' | 'cancelled'
           start_date: string
           end_date: string | null
+          project_status: string | null
+          project_progress: number | null
+          managed_by: string | null
           created_at: string
         }
         Insert: {
@@ -197,6 +200,9 @@ export interface Database {
           status?: 'active' | 'paused' | 'cancelled'
           start_date?: string
           end_date?: string | null
+          project_status?: string | null
+          project_progress?: number | null
+          managed_by?: string | null
           created_at?: string
         }
         Update: {
@@ -207,6 +213,9 @@ export interface Database {
           status?: 'active' | 'paused' | 'cancelled'
           start_date?: string
           end_date?: string | null
+          project_status?: string | null
+          project_progress?: number | null
+          managed_by?: string | null
           created_at?: string
         }
                 Relationships: [

@@ -155,10 +155,12 @@ export type ClientServiceState = {
   success?: boolean
 }
 
-// Asigna un servicio del catálogo a un cliente (lo activa y registra la fecha de inicio).
+// Asigna un servicio del catálogo a un cliente (lo activa, registra la fecha
+// de inicio y el responsable del proyecto: IA o manual).
 export async function addClientServiceAction(
   clientId: string,
-  serviceId: string
+  serviceId: string,
+  managedBy?: "ai" | "manual" | null
 ): Promise<ClientServiceState> {
   const supabase = await createClient()
 
@@ -174,7 +176,7 @@ export async function addClientServiceAction(
     if (existing.status === "cancelled") {
       const { error } = await supabase
         .from("client_services")
-        .update({ status: "active", end_date: null })
+        .update({ status: "active", end_date: null, managed_by: managedBy ?? null })
         .eq("id", existing.id)
       if (error) return { error: error.message }
       revalidatePath(`/dashboard/clientes/${clientId}`)
@@ -189,15 +191,16 @@ export async function addClientServiceAction(
     status: "active",
     custom_price: null,
     start_date: new Date().toISOString(),
+    ...(managedBy ? { managed_by: managedBy } : {}),
   }
 
   const { error } = await supabase.from("client_services").insert(data)
   if (error) return { error: error.message }
 
-  // Cuota de "Gestión de datos" (alta): si el servicio lo requiere, se crea
-  // una factura inmediata y se intenta cobrar con la tarjeta guardada. Este
-  // paso nunca rompe la asignación.
-  await chargeSetupFee(supabase, clientId, serviceId)
+  // Factura inicial: para servicios mensuales = Iniciación (setup) + mes en
+  // curso; para servicios one_time = 50% del total (el 50% restante se cobra
+  // al marcar el proyecto como completado). Este paso nunca rompe la asignación.
+  await chargeInitialInvoice(supabase, clientId, serviceId)
 
   // Informa al cliente qué herramientas debe aportar para este servicio.
   await notifyRequiredTools(supabase, clientId, serviceId)
@@ -255,15 +258,19 @@ async function notifyRequiredTools(supabase: SupabaseClient<Database>, clientId:
   }
 }
 
-// Crea y cobra la cuota de "Gestión de datos" (alta) al asignar un servicio
-// nuevo. Se omite si el servicio está marcado para no cobrarla (waive_setup,
-// p.ej. el plan de lanzamiento). Importe: el de settings ("setup_fee") o, si
-// no está definido, una mensualidad del servicio.
-// - crea una factura inmediata
+// Crea y cobra la factura inicial al asignar un servicio:
+//  - Servicios MENSUALES: una sola factura con la "Iniciación" (setup_fee o,
+//    si no está configurado, una mensualidad del servicio) + la "Servicios del
+//    mes [YYYY-MM]" (el mes en curso, por adelantado). Si waive_setup, no se
+//    cobra cuota de alta (solo el mes).
+//  - Servicios ONE_TIME: factura del 50% del total ("Pago inicial"); el 50%
+//    restante se factura al marcar el proyecto como completado. Se ignora
+//    waive_setup (el split 50/50 aplica siempre).
+// - crea la factura inmediata
 // - intenta cobrarla off_session con la tarjeta guardada
 // - si no hay tarjeta → marca "sent" y envía el email con enlace de pago
 // Nunca rompe la asignación del servicio: cualquier error solo se loguea.
-async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: string, serviceId: string) {
+async function chargeInitialInvoice(supabase: SupabaseClient<Database>, clientId: string, serviceId: string) {
   try {
     const [serviceRes, feeRows] = await Promise.all([
       supabase
@@ -278,19 +285,51 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
         .maybeSingle(),
     ])
     const service = Array.isArray(serviceRes.data) ? serviceRes.data[0] : serviceRes.data
-    if (!service || service.waive_setup) return
+    if (!service) return
 
     const configuredFee = Number(feeRows.data?.value ?? 0)
     const monthlyPrice = Number(service.base_price) || 0
-    // Importe de la cuota: el configurado, o una mensualidad del servicio si
-    // el servicio es mensual y no se configuró ningún importe.
-    const setupFee =
-      Number.isFinite(configuredFee) && configuredFee > 0
-        ? configuredFee
-        : service.billing_cycle === "monthly" && monthlyPrice > 0
-          ? monthlyPrice
-          : 0
-    if (setupFee <= 0) return
+    const isMonthly = service.billing_cycle === "monthly"
+    const isOneTime = service.billing_cycle === "one_time"
+
+    // Líneas de la factura inicial.
+    const items: Array<{ description: string; amount: number }> = []
+
+    if (isOneTime) {
+      // 50% del total (el precio base se trata como el total del proyecto).
+      const half = Math.round((monthlyPrice * 50) / 100) / 1
+      items.push({
+        description: `Pago inicial (50%) - Proyecto: ${service.name}`,
+        amount: Math.round(half * 100) / 100,
+      })
+    } else if (isMonthly) {
+      const now = new Date()
+      const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+      // Iniciación: solo si no waive_setup.
+      if (!service.waive_setup) {
+        const setupFee =
+          Number.isFinite(configuredFee) && configuredFee > 0
+            ? configuredFee
+            : monthlyPrice > 0
+              ? monthlyPrice
+              : 0
+        if (setupFee > 0) {
+          items.push({
+            description: `Iniciación (puesta en marcha) - ${service.name}`,
+            amount: Math.round(setupFee * 100) / 100,
+          })
+        }
+      }
+      // Mes en curso (por adelantado).
+      if (monthlyPrice > 0) {
+        items.push({
+          description: `Servicios del mes ${period} - ${service.name}`,
+          amount: Math.round(monthlyPrice * 100) / 100,
+        })
+      }
+    }
+
+    if (items.length === 0) return
 
     const clientRes = await supabase
       .from("clients")
@@ -299,6 +338,9 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
       .maybeSingle()
     const client = Array.isArray(clientRes.data) ? clientRes.data[0] : clientRes.data
     if (!client?.email) return
+
+    const subtotal = Math.round(items.reduce((acc, i) => acc + i.amount, 0) * 100) / 100
+    if (subtotal <= 0) return
 
     const { count } = await supabase
       .from("invoices")
@@ -312,10 +354,13 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
     due.setDate(due.getDate() + 30)
     const dueDate = due.toISOString().split("T")[0]
 
-    const subtotal = Math.round(setupFee * 100) / 100
     const tax_rate = 21
     const taxAmount = Math.round(subtotal * (tax_rate / 100) * 100) / 100
     const total = Math.round((subtotal + taxAmount) * 100) / 100
+
+    const notes = isOneTime
+      ? `Pago inicial del proyecto ${service.name} (50%). El 50% restante se factura al completarlo.`
+      : `Iniciación + mes en curso del servicio ${service.name}.`
 
     const { data: invoice, error: invoiceError } = await supabase
       .from("invoices")
@@ -329,24 +374,35 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
         total,
         issue_date: issueDate,
         due_date: dueDate,
-        notes: `Gestión de datos - alta del servicio ${service?.name ?? ""}`.trim(),
+        notes,
         payment_token: paymentToken,
       })
       .select()
       .single()
 
     if (invoiceError || !invoice) {
-      console.warn("[setup] No se pudo crear la factura de setup:", invoiceError?.message || "sin datos")
+      console.warn("[billing] No se pudo crear la factura inicial:", invoiceError?.message || "sin datos")
       return
     }
 
-    await supabase.from("invoice_items").insert({
-      invoice_id: invoice.id,
-      description: `Gestión de datos - ${service?.name ?? "servicio"}`,
-      quantity: 1,
-      unit_price: setupFee,
-      total: setupFee,
-    })
+    await supabase.from("invoice_items").insert(
+      items.map((i) => ({
+        invoice_id: invoice.id,
+        description: i.description,
+        quantity: 1,
+        unit_price: i.amount,
+        total: i.amount,
+      }))
+    )
+
+    if (isOneTime) {
+      await supabase
+        // @ts-ignore
+        .from("client_services")
+        .update({ project_status: "in_progress" })
+        .eq("client_id", clientId)
+        .eq("service_id", serviceId)
+    }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
     const payUrl = `${appUrl}/pagar/${paymentToken}`
@@ -365,7 +421,7 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
             client_id: clientId,
             invoice_id: invoice.id,
             invoice_number: invoiceNumber,
-            type: "setup",
+            type: isOneTime ? "project_initial" : "initial_invoice",
           },
         })
 
@@ -385,13 +441,13 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
             payment_method: "card",
             payment_date: new Date().toISOString().split("T")[0],
             reference: paymentIntent.id,
-            notes: `Cobro de gestión de datos (${paymentIntent.id})`,
+            notes: `Cobro de factura inicial (${paymentIntent.id})`,
           })
           return
         }
       } catch (e) {
         const message = e instanceof Error ? e.message : String(e ?? "unknown")
-        console.warn("[setup] Cargo automático fallido:", message)
+        console.warn("[billing] Cargo automático fallido:", message)
       }
     }
 
@@ -410,8 +466,199 @@ async function chargeSetupFee(supabase: SupabaseClient<Database>, clientId: stri
       data: { invoiceNumber, total, dueDate, clientName: client.business_name, payUrl },
     })
   } catch (e) {
-    console.warn("[setup] Error procesando el cargo de setup:", e instanceof Error ? e.message : e)
+    console.warn("[billing] Error procesando la factura inicial:", e instanceof Error ? e.message : e)
   }
+}
+
+// Marca un proyecto one_time como COMPLETADO: crea la factura del 50% restante
+// ("Pago final") y avisa al cliente de que el proyecto está acabado y listo
+// para entregar. Solo se puede llamar una vez (si ya está completed/delivered
+// no hace nada). El cobro se intenta off_session; si falla, se envía el email
+// con enlace de pago.
+export async function completeProjectAction(clientServiceId: string): Promise<ClientServiceState> {
+  const supabase = await createClient()
+
+  const { data: cs } = await supabase
+    .from("client_services")
+    .select("id, client_id, service_id, project_status, services(name, base_price, billing_cycle, waive_setup), clients(id, business_name, contact_name, email)")
+    .eq("id", clientServiceId)
+    .maybeSingle()
+
+  const svc = Array.isArray(cs?.services) ? cs?.services[0] : cs?.services
+  const cli = Array.isArray(cs?.clients) ? cs?.clients[0] : cs?.clients
+  if (!cs || !svc || !cli) return { error: "Servicio no encontrado" }
+  if (svc.billing_cycle !== "one_time") return { error: "Este servicio no es de pago único" }
+  if (cs.project_status === "completed" || cs.project_status === "delivered") {
+    return { error: "El proyecto ya está completado" }
+  }
+
+  const total = Number(svc.base_price) || 0
+  const remaining = Math.round((total * 50) / 100) / 1
+  const remainingRounded = Math.round(remaining * 100) / 100
+  if (remainingRounded <= 0) {
+    return { error: "El proyecto no tiene importe pendiente" }
+  }
+
+  const { count } = await supabase
+    .from("invoices")
+    .select("id", { count: "exact", head: true })
+  const year = new Date().getFullYear()
+  const invoiceNumber = generateInvoiceNumber(year, (count || 0) + 1)
+  const paymentToken = randomUUID().replace(/-/g, "")
+
+  const issueDate = new Date().toISOString().split("T")[0]
+  const due = new Date()
+  due.setDate(due.getDate() + 3)
+  const dueDate = due.toISOString().split("T")[0]
+
+  const tax_rate = 21
+  const taxAmount = Math.round(remainingRounded * (tax_rate / 100) * 100) / 100
+  const totalWithTax = Math.round((remainingRounded + taxAmount) * 100) / 100
+
+  const { data: invoice, error: invoiceError } = await supabase
+    .from("invoices")
+    .insert({
+      client_id: cli.id,
+      invoice_number: invoiceNumber,
+      status: "draft",
+      subtotal: remainingRounded,
+      tax_rate,
+      tax_amount: taxAmount,
+      total: totalWithTax,
+      issue_date: issueDate,
+      due_date: dueDate,
+      notes: `Pago final del proyecto ${svc.name} (50% restante) - listo para entregar.`,
+      payment_token: paymentToken,
+    })
+    .select()
+    .single()
+
+  if (invoiceError || !invoice) {
+    return { error: invoiceError?.message || "No se pudo crear la factura final" }
+  }
+
+  await supabase.from("invoice_items").insert({
+    invoice_id: invoice.id,
+    description: `Pago final (50%) - Proyecto: ${svc.name} - Listo para entregar`,
+    quantity: 1,
+    unit_price: remainingRounded,
+    total: remainingRounded,
+  })
+
+// El proyecto ya no se puede volver a marcar como completado.
+  await supabase
+    .from("client_services")
+    // @ts-ignore
+    .update({ project_status: "completed", updated_at: new Date().toISOString() })
+    .eq("id", clientServiceId)
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
+  const payUrl = `${appUrl}/pagar/${paymentToken}`
+
+  // Intentar cobro automático con la tarjeta guardada.
+  if (stripe && cli.stripe_customer_id && cli.stripe_default_payment_method_id) {
+    try {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(totalWithTax * 100),
+        currency: "eur",
+        customer: cli.stripe_customer_id,
+        payment_method: cli.stripe_default_payment_method_id,
+        off_session: true,
+        confirm: true,
+        metadata: {
+          client_id: cli.id,
+          invoice_id: invoice.id,
+          invoice_number: invoiceNumber,
+          type: "project_final",
+        },
+      })
+      await supabase
+        .from("invoices")
+        .update({ stripe_payment_intent_id: paymentIntent.id, updated_at: new Date().toISOString() })
+        .eq("id", invoice.id)
+      if (paymentIntent.status === "succeeded") {
+        await supabase
+          .from("invoices")
+          .update({ status: "paid", paid_at: new Date().toISOString(), stripe_payment_method: "card", updated_at: new Date().toISOString() })
+          .eq("id", invoice.id)
+        await supabase.from("payments").insert({
+          invoice_id: invoice.id,
+          amount: totalWithTax,
+          payment_method: "card",
+          payment_date: new Date().toISOString().split("T")[0],
+          reference: paymentIntent.id,
+          notes: `Pago final de proyecto (${paymentIntent.id})`,
+        })
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e ?? "unknown")
+      console.warn("[billing] Cargo automático final fallido:", message)
+    }
+  }
+
+  // Si no se pudo cobrar off_session, está "sent" con enlace de pago.
+  const { data: currentInvoice } = await supabase
+    .from("invoices")
+    .select("status")
+    .eq("id", invoice.id)
+    .maybeSingle()
+  if (!currentInvoice || currentInvoice.status === "draft") {
+    await supabase
+      .from("invoices")
+      .update({ status: "sent", updated_at: new Date().toISOString() })
+      .eq("id", invoice.id)
+  }
+
+  // Email: el proyecto está acabado y listo para entregar.
+  const { projectReadyEmail } = await import("@/lib/email/templates")
+  const tpl = projectReadyEmail(
+    cli.contact_name || cli.business_name,
+    cli.business_name,
+    svc.name,
+    totalWithTax,
+    invoiceNumber,
+    payUrl
+  )
+  await sendEmail({
+    to: cli.email,
+    template: "projectReady",
+    subject: tpl.subject,
+    html: tpl.html,
+    clientId: cli.id,
+    data: { businessName: cli.business_name, serviceName: svc.name, remainingTotal: totalWithTax, invoiceNumber, payUrl },
+  })
+
+  revalidatePath(`/dashboard/clientes/${cli.id}`)
+  return { success: true }
+}
+
+// Actualiza el progreso (%) y, opcionalmente, el responsable (IA o manual) de
+// un servicio. Tope 0-100. Se usa desde la barra de seguimiento del panel.
+export async function updateClientServiceProgressAction(
+  clientServiceId: string,
+  progress: number,
+  managedBy?: "ai" | "manual" | null
+): Promise<ClientServiceState> {
+  const supabase = await createClient()
+  const clamped = Math.max(0, Math.min(100, Math.round(progress)))
+
+  const update: ClientServiceUpdate = { project_progress: clamped }
+  if (typeof managedBy !== "undefined") update.managed_by = managedBy
+
+  const { error } = await supabase
+    .from("client_services")
+    .update(update)
+    .eq("id", clientServiceId)
+  if (error) return { error: error.message }
+
+  const { data: cs } = await supabase
+    .from("client_services")
+    .select("client_id")
+    .eq("id", clientServiceId)
+    .maybeSingle()
+  const clientId = Array.isArray(cs) ? cs[0]?.client_id : cs?.client_id
+  if (clientId) revalidatePath(`/dashboard/clientes/${clientId}`)
+  return { success: true }
 }
 export async function removeClientServiceAction(
   clientServiceId: string

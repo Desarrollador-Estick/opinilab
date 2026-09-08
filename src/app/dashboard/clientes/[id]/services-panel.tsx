@@ -7,6 +7,8 @@ import {
   addClientServiceAction,
   removeClientServiceAction,
   toggleClientServiceStatusAction,
+  completeProjectAction,
+  updateClientServiceProgressAction,
 } from "../actions"
 
 export type ClientServiceItem = {
@@ -15,10 +17,15 @@ export type ClientServiceItem = {
   service_id: string
   custom_price: number | null
   status: "active" | "paused" | "cancelled"
+  project_status: "not_started" | "in_progress" | "completed" | "delivered" | null
+  project_progress: number | null
+  managed_by: "ai" | "manual" | null | null
   services: {
     name: string
     category: string | null
     base_price: number | null
+    billing_cycle: "one_time" | "monthly" | "quarterly" | "yearly"
+    waive_setup: boolean
   } | null
 }
 
@@ -58,6 +65,9 @@ export function ServicesPanel({
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState("")
   const [aiContent, setAiContent] = useState("")
+  const [projectOpen, setProjectOpen] = useState<string | null>(null)
+  const [projectProgress, setProjectProgress] = useState(0)
+  const [managedBy, setManagedBy] = useState<"ai" | "manual" | null>(null)
 
   const assignedIds = new Set(services.map((s) => s.service_id))
   const available = catalog.filter(
@@ -68,12 +78,13 @@ export function ServicesPanel({
     if (!selectedService) return
     setBusy({ add: true })
     setMessage("")
-    const result = await addClientServiceAction(clientId, selectedService)
+    const result = await addClientServiceAction(clientId, selectedService, managedBy)
     if (result?.error) {
       setMessage(result.error)
     } else {
       setSelectedService("")
       setAdding(false)
+      setManagedBy(null)
       router.refresh()
     }
     setBusy({})
@@ -118,6 +129,43 @@ export function ServicesPanel({
       setAiError("Error de conexión al ejecutar la IA")
     }
     setAiLoading(false)
+  }
+
+  async function handleProjectOpen(cs: ClientServiceItem) {
+    if (cs.project_status !== "in_progress" || cs.managed_by !== "manual") return
+    setProjectOpen(cs.id)
+    setProjectProgress(cs.project_progress ?? 0)
+    setManagedBy(cs.managed_by ?? "manual")
+  }
+
+  async function handleProjectClose() {
+    setProjectOpen(null)
+  }
+
+  async function handleProgressChange(newProgress: number) {
+    setProjectProgress(newProgress)
+  }
+
+  async function handleSaveProgress() {
+    if (!projectOpen) return
+    await updateClientServiceProgressAction(projectOpen, projectProgress, managedBy)
+    setProjectOpen(null)
+    setProjectProgress(0)
+    setManagedBy(null)
+    router.refresh()
+  }
+
+  async function handleCompleteProject(cs: ClientServiceItem) {
+    if (cs.project_status !== "in_progress" || cs.managed_by !== "manual") return
+    const result = await completeProjectAction(cs.id)
+    if (result?.error) setMessage(result.error)
+    else {
+      setMessage("Proyecto marcado como completado. Factura final generada.")
+      setTimeout(() => {
+        setMessage("")
+        router.refresh()
+      }, 3000)
+    }
   }
 
   return (
@@ -192,6 +240,11 @@ export function ServicesPanel({
               <div className="min-w-0">
                 <p className="font-medium text-sm">{cs.services?.name}</p>
                 <p className="text-xs text-gray-500">{cs.services?.category}</p>
+                {cs.services?.billing_cycle === "one_time" && (
+                  <p className="text-xs text-blue-600 font-medium">
+                    Pago único: 50% al inicio, 50% al entregar
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span
@@ -225,6 +278,53 @@ export function ServicesPanel({
         </div>
       )}
 
+      {/* Barra de progreso + botón completar proyecto (solo one_time en progreso manual) */}
+      {services.some((cs) => cs.project_status === "in_progress" && cs.managed_by === "manual") && (
+        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+          <h4 className="font-semibold text-sm text-blue-800 mb-3">📊 Seguimiento de proyecto</h4>
+          {services
+            .filter(
+              (cs) => cs.project_status === "in_progress" && cs.managed_by === "manual"
+            )
+            .map((cs) => (
+              <div key={cs.id} className="space-y-2">
+                <p className="text-sm text-gray-700">
+                  <strong>{cs.services?.name}</strong> — Estado: {cs.project_status}
+                </p>
+                <label className="block">
+                  <span className="text-xs text-gray-500">Progreso</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={projectProgress}
+                    onChange={(e) => handleProgressChange(Number(e.target.value))}
+                    className="w-full mt-1"
+                  />
+                </label>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+                <button
+                  onClick={() => handleSaveProgress()}
+                  disabled={busy.add}
+                  className="mt-2 text-sm text-blue-600 hover:underline"
+                >
+                  Guardar progreso
+                </button>
+              </div>
+            ))}
+          <button
+            onClick={() => services.some((cs) => cs.project_status === "in_progress" && cs.managed_by === "manual") && handleCompleteProject(services.find((cs) => cs.project_status === "in_progress" && cs.managed_by === "manual")!)}
+            disabled={busy.add}
+            className="mt-2 text-sm text-red-600 hover:underline"
+          >
+            Marcar proyecto como completado
+          </button>
+        </div>
+      )}
+
       {aiOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 max-h-[80vh] overflow-y-auto">
@@ -239,7 +339,6 @@ export function ServicesPanel({
                 ✕
               </button>
             </div>
-
             {aiLoading ? (
               <div className="text-center py-8 text-gray-500">
                 <p>Generando con IA...</p>
@@ -254,7 +353,6 @@ export function ServicesPanel({
                 {aiContent}
               </pre>
             )}
-
             {!aiLoading && (
               <div className="flex justify-end">
                 <button

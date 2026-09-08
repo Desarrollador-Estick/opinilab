@@ -344,11 +344,12 @@ async function runAutomation(now: Date): Promise<NextResponse> {
       ? await createServerAdminClient()
       : await createClient()
 
-    // 1. Check overdue invoices → send reminders
+    // 1. Check overdue invoices → send reminders y mantener congelado hasta
+    //    que abone. Se revisan tanto "sent" con due_date pasado como "overdue".
     const { data: overdueInvoices } = await supabase
       .from("invoices")
-      .select("id, client_id, invoice_number, total, due_date, clients(business_name, email)")
-      .eq("status", "sent")
+      .select("id, client_id, invoice_number, total, due_date, status, clients(business_name, email, status)")
+      .in("status", ["sent", "overdue"])
       .lt("due_date", now.toISOString())
 
     if (overdueInvoices && overdueInvoices.length > 0) {
@@ -356,6 +357,15 @@ async function runAutomation(now: Date): Promise<NextResponse> {
         const overdueDays = Math.floor(
           (now.getTime() - (invoice.due_date ? new Date(invoice.due_date).getTime() : now.getTime())) / (1000 * 60 * 60 * 24)
         )
+
+        // Congelar: si el cliente sigue activo y tiene una factura impaga, se
+        // le mantiene en "paused" (congelado) hasta que abone.
+        if (invoice.clients?.status === "active") {
+          await supabase
+            .from("clients")
+            .update({ status: "paused", updated_at: now.toISOString() })
+            .eq("id", invoice.client_id)
+        }
 
         // Check if we already sent a reminder today
         const { data: existingReminder } = await supabase
