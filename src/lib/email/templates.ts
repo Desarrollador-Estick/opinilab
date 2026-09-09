@@ -11,37 +11,37 @@ export function welcomeEmail(businessName: string, contactName: string): EmailTe
       <!DOCTYPE html>
       <html>
       <body style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f5f7;">
-        <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 36px 30px; border-radius: 14px 14px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0; font-size: 26px; letter-spacing: -0.5px;">⭐ OpiniLab</h1>
-          <p style="color: #e0e7ff; margin: 8px 0 0; font-size: 15px;">Tu presencia online, gestionada por expertos</p>
+        <div style="background: #2563eb; background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 40px 30px 44px; border-radius: 14px 14px 0 0; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: -0.5px;">⭐ OpiniLab</h1>
+          <p style="color: #ffffff; margin: 10px 0 0; font-size: 15px; font-weight: 500; letter-spacing: 0.2px;">Tu presencia online, gestionada por expertos</p>
         </div>
         <div style="background: #ffffff; padding: 32px 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 14px 14px;">
-          <p style="color: #111827; font-size: 16px;">Hola <strong>${contactName}</strong>,</p>
-          <p style="color: #374151; line-height: 1.7;">Gracias por confiar en OpiniLab para hacer crecer <strong>${businessName}</strong>. Ya has dado el primer paso para que más clientes encuentren tu negocio.</p>
+          <p style="color: #111827; font-size: 16px; margin: 0 0 22px;">Hola <strong>${contactName}</strong>,</p>
+          <p style="color: #374151; line-height: 1.8; margin: 0 0 0;">Gracias por confiar en OpiniLab para hacer crecer <strong>${businessName}</strong>. Ya has dado el primer paso para que más clientes encuentren tu negocio.</p>
 
-          <h3 style="color: #111827; margin: 24px 0 14px; font-size: 15px;">¿Qué ocurre ahora?</h3>
+          <h3 style="color: #111827; margin: 34px 0 18px; font-size: 15px;">¿Qué ocurre ahora?</h3>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 10px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">1.</td>
-              <td style="padding: 10px 0; color: #374151; line-height: 1.6;">Auditamos tu ficha de Google y tu presencia online actual.</td>
+              <td style="padding: 10px 0; color: #374151; line-height: 1.8;">Auditamos tu ficha de Google y tu presencia online actual.</td>
             </tr>
             <tr>
-              <td style="padding: 10px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">2.</td>
-              <td style="padding: 10px 0; color: #374151; line-height: 1.6;">Activamos tu estrategia de reseñas, visibilidad y captación de clientes.</td>
+              <td style="padding: 12px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">2.</td>
+              <td style="padding: 12px 0; color: #374151; line-height: 1.8;">Activamos tu estrategia de reseñas, visibilidad y captación de clientes.</td>
             </tr>
             <tr>
-              <td style="padding: 10px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">3.</td>
-              <td style="padding: 10px 0; color: #374151; line-height: 1.6;">Recibes tu primer informe de resultados en los próximos 7 días.</td>
+              <td style="padding: 12px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">3.</td>
+              <td style="padding: 12px 0; color: #374151; line-height: 1.8;">Recibes tu primer informe de resultados en los próximos 7 días.</td>
             </tr>
           </table>
 
-          <div style="background: #eef2ff; border-radius: 10px; padding: 16px 18px; margin: 24px 0;">
-            <p style="margin: 0; color: #3730a3; font-size: 13px; line-height: 1.6;">💡 <strong>Consejo:</strong> comparte con nosotros el enlace de tu perfil de Google (Google Maps) para que nuestro equipo empiece a trabajar cuanto antes.</p>
+          <div style="background: #eef2ff; border-radius: 10px; padding: 18px 20px; margin: 34px 0 30px;">
+            <p style="margin: 0; color: #3730a3; font-size: 13px; line-height: 1.8;">💡 <strong>Consejo:</strong> comparte con nosotros el enlace de tu perfil de Google (Google Maps) para que nuestro equipo empiece cuanto antes.</p>
           </div>
 
-          <p style="color: #374151; line-height: 1.7;">Si tienes cualquier duda, basta con responder a este email. Estamos aquí para ayudarte.</p>
+          <p style="color: #374151; line-height: 1.8; margin: 0;">Si tienes cualquier duda, basta con responder a este email. Estamos aquí para ayudarte.</p>
 
-          <div style="text-align: center; margin: 28px 0 12px; padding-top: 24px; border-top: 1px solid #eef2f7;">
+          <div style="text-align: center; margin: 36px 0 12px; padding-top: 28px; border-top: 1px solid #eef2f7;">
             <p style="margin: 0; color: #6b7280; font-size: 13px;">¡Mucho éxito y bienvenido a bordo!</p>
             <p style="margin: 6px 0 0; color: #111827; font-size: 14px;"><strong>El equipo de ${company}</strong></p>
             <p style="margin: 4px 0 0; color: #9ca3af; font-size: 12px;">www.opinilab.com</p>
