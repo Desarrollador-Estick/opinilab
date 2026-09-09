@@ -39,7 +39,7 @@ export function welcomeEmail(businessName: string, contactName: string): EmailTe
             <p style="margin: 0; color: #3730a3; font-size: 13px; line-height: 1.8;">💡 <strong>Consejo:</strong> comparte con nosotros el enlace de tu perfil de Google (Google Maps) para que nuestro equipo empiece cuanto antes.</p>
           </div>
 
-          <p style="color: #374151; line-height: 1.8; margin: 0;">Si tienes cualquier duda, basta con responder a este email. Estamos aquí para ayudarte.</p>
+          <p style="color: #374151; line-height: 1.8; margin: 0;">Si tienes cualquier duda, escríbenos a <a href="mailto:info@opinilab.com" style="color: #2563eb; text-decoration: underline;">info@opinilab.com</a>. Estamos aquí para ayudarte.</p>
 
           <div style="text-align: center; margin: 36px 0 12px; padding-top: 28px; border-top: 1px solid #eef2f7;">
             <p style="margin: 0; color: #6b7280; font-size: 13px;">¡Mucho éxito y bienvenido a bordo!</p>
