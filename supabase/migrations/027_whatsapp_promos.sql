@@ -13,7 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_promo_recipients_whatsapp_status
 
 -- 2. Create whatsapp_sends table (parallel to email_sends)
 CREATE TABLE IF NOT EXISTS public.whatsapp_sends (
-  id          uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   recipient_id uuid REFERENCES public.promo_recipients(id) ON DELETE SET NULL,
   phone       text NOT NULL,
   message     text NOT NULL,
@@ -52,8 +52,9 @@ CREATE POLICY "Agency full access whatsapp_sends"
   ));
 
 -- 4. Add whatsapp message template to email_templates
-INSERT INTO public.email_templates (key, category, subject, body, variables, is_active)
+INSERT INTO public.email_templates (name, key, category, subject, body, variables, is_active)
 VALUES (
+  'Promoción WhatsApp',
   'whatsapp_promo',
   'promo',
   'Promoción WhatsApp',
