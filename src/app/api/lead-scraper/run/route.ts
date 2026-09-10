@@ -524,18 +524,24 @@ async function runLeadScraper(forced = false) {
     for (const lead of priorityLeads.slice(0, Math.max(remaining, 0))) {
       if (!lead) continue
 
-      // Deduplicar por business_name + city (normalizado para evitar duplicados por
-// variaciones de mayúsculas/espacios). Se usa .ilike para búsqueda insensible a
-// mayúsculas y .trim() para quitar espacios sobrantes.
-      const normalizedName = (lead.business_name || "").toString().toLowerCase().trim()
-      const normalizedCity = (lead.city || "").toString().toLowerCase().trim()
+      // Deduplicar por business_name + city (normalizado para evitar duplicados
+      // por variaciones de mayúsculas/espacios). Se usa ilike (insensible a
+      // mayúsculas). Si la ciudad es null/"" se busca solo por nombre, porque
+      // ilike(null) nunca coincide en PostgreSQL.
+      const normalizedName = ((lead.business_name || "").toString().trim())
+        .replace(/[%_\\]/g, (ch) => "\\" + ch)
+      const normalizedCity = (lead.city || "").toString().trim()
 
-      const { data: existing } = await adminSupabase
+      let dedupQuery = adminSupabase
         .from("leads")
         .select("id")
         .ilike("business_name", normalizedName)
-        .ilike("city", normalizedCity)
-        .limit(1)
+      if (normalizedCity) {
+        dedupQuery = dedupQuery.ilike("city", normalizedCity)
+      } else {
+        dedupQuery = dedupQuery.or("city.is.null,city.eq.''")
+      }
+      const { data: existing } = await dedupQuery.limit(1)
 
       if (existing && existing.length > 0) {
         skipped++
