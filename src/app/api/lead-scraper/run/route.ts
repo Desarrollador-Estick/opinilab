@@ -92,6 +92,40 @@ const IMG_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "css
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
 
+// Números de teléfono españoles: 9 dígitos (fijos 8x/9x, móviles 6x/7x),
+// opcionalmente con prefijo +34/0034. Se descartan dentro de números largos.
+const PHONE_RE = /(?<![\d+])(?:\+?34[\s.-]?|0034[\s.-]?)?[6789]\d{2}(?:[\s.-]?\d{3}){2}(?!\d)/g
+
+function normalizePhone(raw: string): string | null {
+  let digits = (raw || "").replace(/\D/g, "")
+  if (digits.startsWith("0034")) digits = digits.slice(4)
+  else if (digits.startsWith("34") && digits.length === 11) digits = digits.slice(2)
+  if (digits.length !== 9 || !/^[6789]/.test(digits)) return null
+  return `+34 ${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 9)}`
+}
+
+function extractPhonesFromText(text: string): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+  // 1. Enlaces tel: son la fuente más fiable
+  for (const m of text.matchAll(/href=["']tel:([^"']+)["']/gi)) {
+    const phone = normalizePhone(m[1])
+    if (phone && !seen.has(phone)) {
+      seen.add(phone)
+      result.push(phone)
+    }
+  }
+  // 2. Patrón general de número español
+  for (const m of text.matchAll(PHONE_RE)) {
+    const phone = normalizePhone(m[0])
+    if (phone && !seen.has(phone)) {
+      seen.add(phone)
+      result.push(phone)
+    }
+  }
+  return result
+}
+
 interface OverpassElement {
   type: string
   id: number
@@ -185,6 +219,11 @@ function extractLeadFromElement(el: OverpassElement) {
 
   const website = tags.website || tags["contact:website"] || tags["url"] || null
   const email = tags.email || tags["contact:email"] || null
+  // Teléfono de contacto de OpenStreetMap (varias claves según el mapeo).
+  // Puede venir con separadores o extensiones; se normaliza a formato +34.
+  const phoneRaw =
+    tags.phone || tags["contact:phone"] || tags["contact:mobile"] || null
+  const phone = phoneRaw ? normalizePhone(phoneRaw) : null
   const street = tags["addr:street"] || ""
   const housenumber = tags["addr:housenumber"] || ""
   const city = tags["addr:city"] || ""
@@ -200,6 +239,7 @@ function extractLeadFromElement(el: OverpassElement) {
     business_name: name,
     website,
     email,
+    phone,
     city: city || null,
     industry: null,
     address,
@@ -220,12 +260,14 @@ function extractLeadFromElement(el: OverpassElement) {
 // ---------------------------------------------------------------------------
 function leadPriority(lead: {
   email?: string | null
+  phone?: string | null
   social_media?: Record<string, string> | null
   website?: string | null
   reviews?: number | null
 }): number {
   let p = 0
   if (lead.email) p += 3
+  if (lead.phone) p += 2
   if (lead.social_media && Object.keys(lead.social_media).length > 0) p += 2
   if (lead.website) p += 1
   if (lead.reviews) p += 1
@@ -329,6 +371,7 @@ interface LeadForEnrichment {
   id: string
   business_name: string
   email: string | null
+  phone: string | null
   website: string | null
   city: string | null
   score: number | null
@@ -343,6 +386,8 @@ async function enrichSingleLead(
   const today = new Date().toISOString()
   const emailSeen = new Set<string>()
   const emails: string[] = []
+  const phoneSeen = new Set<string>()
+  const phones: string[] = []
   const socials: Record<string, string> =
     lead.social_media && typeof lead.social_media === "object"
       ? { ...(lead.social_media as Record<string, string>) }
@@ -352,7 +397,23 @@ async function enrichSingleLead(
     ? buildCandidateUrls(lead.website)
     : []
 
-  // Sin web: búsqueda en Bing como seguimiento para localizar email/redes
+  // Hostname real del negocio: los teléfonos solo se aceptan de aquí.
+  // Las páginas de directorios que devuelve Bing pueden contener números
+  // de otros negocios (se detectó el mismo teléfono repetido en muchos),
+  // y el cron enriquece un lead a la vez sin filtro global de frecuencia.
+  const ownHost = lead.website
+    ? (() => {
+        try {
+          return new URL(
+            lead.website.startsWith("http") ? lead.website : `https://${lead.website}`
+          ).hostname.replace(/^www\./, "")
+        } catch {
+          return null
+        }
+      })()
+    : null
+
+  // Sin web: búsqueda en Bing como seguimiento para localizar email/redes.
   if (candidateUrls.length === 0) {
     const query = `${lead.business_name} ${lead.city || ""} contacto email`.trim()
     const search = await bingSearch(query)
@@ -374,16 +435,34 @@ async function enrichSingleLead(
         emails.push(email)
       }
     }
+    // Teléfono: solo desde el dominio oficial del negocio
+    const urlOwn = (() => {
+      try {
+        return new URL(url).hostname.replace(/^www\./, "")
+      } catch {
+        return null
+      }
+    })()
+    if (ownHost && urlOwn === ownHost) {
+      for (const phone of extractPhonesFromText(text)) {
+        if (!phoneSeen.has(phone)) {
+          phoneSeen.add(phone)
+          phones.push(phone)
+        }
+      }
+    }
     Object.assign(socials, extractSocialUrlsFromText(text))
   }
 
   const socialCount = Object.keys(socials).length
   const emailFound = emails.length > 0
+  const phoneFound = phones.length > 0
 
   // Actualizar siempre la marca de intento; solo se cambia email/redes si hay éxito
   const updatePayload: {
     email_last_attempt_at: string
     email?: string
+    phone?: string
     social_media?: Json
     notes?: string
     score?: number
@@ -403,9 +482,20 @@ async function enrichSingleLead(
     updatePayload.social_media = socials as Json
   }
 
+  if (phoneFound && !lead.phone) {
+    updatePayload.phone = phones[0]
+    // El email encontrado ya añade su nota; el teléfono se anota solo si no hubo email
+    if (!emailFound) {
+      updatePayload.notes = lead.notes
+        ? `${lead.notes} | Teléfono encontrado (seguimiento): ${phones.join(", ")}`
+        : `Teléfono encontrado (seguimiento): ${phones.join(", ")}`
+      updatePayload.score = Math.min((lead.score ?? 50) + 5, 100)
+    }
+  }
+
   await client.from("leads").update(updatePayload).eq("id", lead.id)
 
-  return emailFound
+  return emailFound || phoneFound
 }
 
 async function enrichLeadsWithoutEmail(
@@ -417,9 +507,11 @@ async function enrichLeadsWithoutEmail(
 
   const { data: leads, error } = await client
     .from("leads")
-    .select("id, business_name, email, website, city, score, social_media, notes")
+    .select("id, business_name, email, phone, website, city, score, social_media, notes")
     .eq("source", "auto_scraped")
-    .is("email", null)
+    // Le falta email o teléfono; se procesa para rellenar cualquiera de los dos.
+    .or("email.is.null,phone.is.null")
+    // No re-intentar antes de 7 días para evitar golpear webs repetidamente
     .or(`email_last_attempt_at.is.null,email_last_attempt_at.lt.${retryAfter}`)
     .order("created_at", { ascending: true })
     .limit(limit)
@@ -553,6 +645,7 @@ async function runLeadScraper(forced = false) {
       let score = 50
       if (lead.website) score += 10
       if (lead.email) score += 15
+      if (lead.phone) score += 10
       if (socialCount > 0) score += Math.min(socialCount, 2) * 10
       if (lead.rating && lead.rating >= 4) score += 10
       if (lead.reviews && lead.reviews >= 20) score += 10
@@ -565,6 +658,7 @@ async function runLeadScraper(forced = false) {
         business_name: lead.business_name,
         contact_name: null,
         email: lead.email,
+        phone: lead.phone,
         website: lead.website,
         city: lead.city,
         industry: null,
@@ -579,6 +673,7 @@ async function runLeadScraper(forced = false) {
                 .join(", ")}`
             : null,
           lead.email ? "Email en ficha OSM" : "Sin email: se buscará email automáticamente",
+          lead.phone ? `Teléfono: ${lead.phone}` : null,
           lead.rating ? `Rating: ${lead.rating}/5` : null,
           lead.reviews ? `${lead.reviews} reseñas` : null,
           lead.address ? `Dirección: ${lead.address}` : null,
