@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import type { Database } from "@/types/database"
+import { buildWhatsAppLink, buildPromoMessage } from "@/lib/whatsapp/wa-link"
 
 type Recipient = Database["public"]["Tables"]["promo_recipients"]["Row"]
 type Status = Recipient["status"]
+type WhatsAppStatus = Recipient["whatsapp_status"]
 
 interface ApiResult {
   ok?: boolean
@@ -24,6 +26,13 @@ const statusLabels: Record<Status, { label: string; classes: string }> = {
   skipped: { label: "Dado de baja", classes: "bg-gray-200 text-gray-700" },
 }
 
+const waStatusLabels: Record<WhatsAppStatus, { label: string; classes: string }> = {
+  pending: { label: "Pendiente", classes: "bg-amber-100 text-amber-800" },
+  sent: { label: "Enviado", classes: "bg-green-100 text-green-800" },
+  failed: { label: "Error", classes: "bg-red-100 text-red-800" },
+  skipped: { label: "Sin teléfono", classes: "bg-gray-200 text-gray-700" },
+}
+
 const filters: { value: Status | "all"; label: string }[] = [
   { value: "all", label: "Todos" },
   { value: "pending", label: "Pendientes" },
@@ -32,20 +41,42 @@ const filters: { value: Status | "all"; label: string }[] = [
   { value: "skipped", label: "Dados de baja" },
 ]
 
-function parseBulkLine(line: string): { name?: string; email: string } {
+function parseBulkLine(line: string): { name?: string; email: string; phone?: string } {
   const trimmed = line.trim()
-  const angle = trimmed.match(/^(.*?)\s*<([^<>]+@[^<>]+)>$/)
+
+  // Format: Name <email> [+34600000000]
+  const angle = trimmed.match(/^(.*?)\s*<([^<>]+@[^<>]+)>\s*(.*)?$/)
   if (angle) {
-    return { name: angle[1].trim() || undefined, email: angle[2].trim() }
+    const phone = angle[3]?.match(/\+?[\d\s\-()]{7,}/)?.[0]?.trim()
+    return {
+      name: angle[1].trim() || undefined,
+      email: angle[2].trim(),
+      phone: phone || undefined,
+    }
   }
+
+  // Format: Name, email, phone  OR  Name, email
   const comma = trimmed.replace(/^"+|"+$/g, "").split(",")
-  if (comma.length === 2 && comma[1]?.trim().includes("@")) {
-    return { name: comma[0].trim() || undefined, email: comma[1].trim() }
+  if (comma.length >= 2 && comma[1]?.trim().includes("@")) {
+    const phone = comma[2]?.trim()?.match(/\+?[\d\s\-()]{7,}/)?.[0]?.trim()
+    return {
+      name: comma[0].trim() || undefined,
+      email: comma[1].trim(),
+      phone: phone || undefined,
+    }
   }
+
+  // Format: Name  email  phone (double-space separated)
   const doubleSpace = trimmed.replace(/^"+|"+$/g, "").split(/\s{2,}/)
-  if (doubleSpace.length === 2 && doubleSpace[1]?.includes("@")) {
-    return { name: doubleSpace[0].trim() || undefined, email: doubleSpace[1].trim() }
+  if (doubleSpace.length >= 2 && doubleSpace[1]?.includes("@")) {
+    const phone = doubleSpace[2]?.match(/\+?[\d\s\-()]{7,}/)?.[0]?.trim()
+    return {
+      name: doubleSpace[0].trim() || undefined,
+      email: doubleSpace[1].trim(),
+      phone: phone || undefined,
+    }
   }
+
   return { email: trimmed.replace(/^<|>$/g, "") }
 }
 
@@ -54,12 +85,14 @@ export default function PromosPage() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Status | "all">("all")
   const [message, setMessage] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null)
+  const [whatsappConfigured, setWhatsappConfigured] = useState(false)
 
-  const [form, setForm] = useState({ name: "", email: "", business_name: "", notes: "" })
+  const [form, setForm] = useState({ name: "", email: "", phone: "", business_name: "", notes: "" })
   const [adding, setAdding] = useState(false)
   const [bulkText, setBulkText] = useState("")
   const [addingBulk, setAddingBulk] = useState(false)
   const [sending, setSending] = useState(false)
+  const [sendingWa, setSendingWa] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -87,8 +120,20 @@ export default function PromosPage() {
     return () => clearTimeout(t)
   }, [message])
 
+  useEffect(() => {
+    fetch("/api/promos/whatsapp-status")
+      .then((r) => r.json())
+      .then((d) => setWhatsappConfigured(d.configured ?? false))
+      .catch(() => setWhatsappConfigured(false))
+  }, [])
+
   const pendingCount = useMemo(
     () => recipients.filter((r) => r.status === "pending").length,
+    [recipients]
+  )
+
+  const pendingWaCount = useMemo(
+    () => recipients.filter((r) => r.whatsapp_status === "pending" && r.phone).length,
     [recipients]
   )
 
@@ -120,6 +165,7 @@ export default function PromosPage() {
         body: JSON.stringify({
           name: form.name.trim() || null,
           email: form.email.trim(),
+          phone: form.phone.trim() || null,
           business_name: form.business_name.trim() || null,
           notes: form.notes.trim() || null,
         }),
@@ -131,7 +177,7 @@ export default function PromosPage() {
         showError(`No añadido: ${skipped.reason}`)
       } else {
         showSuccess(`Contacto añadido: ${form.email}`)
-        setForm({ name: "", email: "", business_name: "", notes: "" })
+        setForm({ name: "", email: "", phone: "", business_name: "", notes: "" })
       }
       load()
     } catch (e) {
@@ -149,7 +195,7 @@ export default function PromosPage() {
     try {
       const payload = lines.map((line) => {
         const parsed = parseBulkLine(line)
-        return { name: parsed.name || null, email: parsed.email }
+        return { name: parsed.name || null, email: parsed.email, phone: parsed.phone || null }
       })
       const res = await fetch("/api/promos", {
         method: "POST",
@@ -189,7 +235,7 @@ export default function PromosPage() {
 
   async function handleSend() {
     if (pendingCount === 0) {
-      showError("No hay contactos pendientes de envío")
+      showError("No hay contactos pendientes de envío por email")
       return
     }
     if (!window.confirm(`¿Enviar el email de promoción a ${pendingCount} contacto(s)?`)) return
@@ -201,33 +247,97 @@ export default function PromosPage() {
       if (!res.ok) throw new Error(data.error || "Error al enviar")
       showSuccess(
         data.sent
-          ? `Enviado a ${data.sent}.${data.failed ? ` Fallidos: ${data.failed}` : ""}`
+          ? `Email enviado a ${data.sent}.${data.failed ? ` Fallidos: ${data.failed}` : ""}`
           : `No se envió ninguno. Fallidos: ${data.failed}`
       )
       load()
     } catch (e) {
-      showError(e instanceof Error ? e.message : "Error al enviar")
+      showError(e instanceof Error ? e.message : "Error al enviar email")
     } finally {
       setSending(false)
     }
+  }
+
+  async function handleSendWhatsApp() {
+    if (pendingWaCount === 0) {
+      showError("No hay contactos con teléfono pendientes de envío por WhatsApp")
+      return
+    }
+    if (!window.confirm(`¿Enviar WhatsApp de promoción a ${pendingWaCount} contacto(s)?`)) return
+    setSendingWa(true)
+    setMessage(null)
+    try {
+      const res = await fetch("/api/promos/whatsapp-send", { method: "POST" })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || "Error al enviar WhatsApp")
+      showSuccess(
+        data.sent
+          ? `WhatsApp enviado a ${data.sent}.${data.failed ? ` Fallidos: ${data.failed}` : ""}`
+          : `No se envió ninguno. Fallidos: ${data.failed}`
+      )
+      load()
+    } catch (e) {
+      showError(e instanceof Error ? e.message : "Error al enviar WhatsApp")
+    } finally {
+      setSendingWa(false)
+    }
+  }
+
+  function handleOpenWhatsApp(r: Recipient) {
+    if (!r.phone) {
+      showError("Este contacto no tiene teléfono")
+      return
+    }
+    const name = r.name || "allá"
+    const business = r.business_name || "tu negocio"
+    const message = buildPromoMessage(name, business)
+    const link = buildWhatsAppLink(r.phone, message)
+    window.open(link, "_blank")
+
+    // Mark as sent via wa.me (manual)
+    fetch(`/api/promos/${r.id}/whatsapp-manual`, { method: "POST" })
+      .then(() => load())
+      .catch(() => {})
+  }
+
+  function handleCopyLink(r: Recipient) {
+    if (!r.phone) {
+      showError("Este contacto no tiene teléfono")
+      return
+    }
+    const name = r.name || "allá"
+    const business = r.business_name || "tu negocio"
+    const message = buildPromoMessage(name, business)
+    const link = buildWhatsAppLink(r.phone, message)
+    navigator.clipboard.writeText(link).then(
+      () => showSuccess("Enlace copiado al portapapeles"),
+      () => showError("No se pudo copiar el enlace")
+    )
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">📣 Emails de promoción</h2>
+          <h2 className="text-2xl font-bold">📣 Promociones</h2>
           <p className="text-gray-500">
-            Añade contactos y envíales el email de promoción de OpiniLab para convertirlos en clientes.
+            Añade contactos y envíales promociones por email y/o WhatsApp para convertirlos en clientes.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
           <span
             className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
               pendingCount > 0 ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-600"
             }`}
           >
-            {pendingCount} pendiente(s) de envío
+            ✉️ {pendingCount} email(s)
+          </span>
+          <span
+            className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+              pendingWaCount > 0 ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            💬 {pendingWaCount} WhatsApp
           </span>
         </div>
       </div>
@@ -275,15 +385,27 @@ export default function PromosPage() {
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Negocio</label>
-              <input
-                type="text"
-                value={form.business_name}
-                onChange={(e) => setForm((p) => ({ ...p, business_name: e.target.value }))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                placeholder="Restaurante La Plaza"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Negocio</label>
+                <input
+                  type="text"
+                  value={form.business_name}
+                  onChange={(e) => setForm((p) => ({ ...p, business_name: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="Restaurante La Plaza"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono (WhatsApp)</label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="+34600000000"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
@@ -309,9 +431,10 @@ export default function PromosPage() {
           <div>
             <h3 className="font-semibold">📥 Añadir varios a la vez</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Un contacto por línea. Formatos aceptados:{" "}
-              <code>email@ejemplo.com</code>, <code>Nombre, email@ejemplo.com</code> o{" "}
-              <code>Nombre &lt;email@ejemplo.com&gt;</code>.
+              Un contacto por línea. Formatos:{" "}
+              <code>email</code>, <code>Nombre, email</code>,{" "}
+              <code>Nombre &lt;email&gt;</code>, o{" "}
+              <code>Nombre, email, +34600000000</code>.
             </p>
           </div>
           <textarea
@@ -319,7 +442,7 @@ export default function PromosPage() {
             onChange={(e) => setBulkText(e.target.value)}
             rows={5}
             className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono"
-            placeholder={"maria@ejemplo.com\nPedro, pedro@ejemplo.com\nAna <ana@ejemplo.com>"}
+            placeholder={"maria@ejemplo.com\nPedro, pedro@ejemplo.com\nAna <ana@ejemplo.com> +34611223344\nLuis, luis@ejemplo.com, +34655443322"}
           />
           <button
             type="button"
@@ -331,31 +454,65 @@ export default function PromosPage() {
           </button>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
             Los emails que ya sean <strong>clientes</strong>, <strong>leads</strong> o que ya estén en la
-            lista se omiten automáticamente.
+            lista se omiten automáticamente. El teléfono es opcional pero necesario para WhatsApp.
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">✉️ Enviar promoción</h3>
+      {/* Send section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">✉️ Enviar por Email</h3>
+          </div>
+          <p className="text-sm text-gray-500">
+            Envía el email de promoción a los contactos pendientes. Se usa la plantilla{" "}
+            <code>promo_1</code> de{" "}
+            <strong>Configuración → Email</strong>.
+          </p>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={sending || pendingCount === 0}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50"
+          >
+            {sending ? "Enviando..." : `Enviar email (${pendingCount})`}
+          </button>
         </div>
-        <p className="text-sm text-gray-500">
-          Envía el email de promoción a todos los contactos pendientes. El texto del email se edita en{" "}
-          <strong>Configuración → Email</strong> (plantilla <code>promo_1</code>, variables{" "}
-          <code>{"{name}"}</code>, <code>{"{business}"}</code>, <code>{"{company}"}</code>). Cada envío
-          queda registrado en el historial de email.
-        </p>
-        <button
-          type="button"
-          onClick={handleSend}
-          disabled={sending || pendingCount === 0}
-          className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50"
-        >
-          {sending ? "Enviando..." : `Enviar email de promoción (${pendingCount})`}
-        </button>
+
+        <div className="bg-white rounded-xl border p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">💬 Enviar por WhatsApp</h3>
+            {!whatsappConfigured && (
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                API no configurada
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500">
+            {whatsappConfigured
+              ? "Envía el mensaje de promoción por WhatsApp a los contactos con teléfono pendiente."
+              : "Modo manual: pulsa el botón de WhatsApp en la tabla para abrir wa.me con el mensaje pre-rellenado. Para envío automático, configura la API de WhatsApp Business."}
+          </p>
+          {whatsappConfigured ? (
+            <button
+              type="button"
+              onClick={handleSendWhatsApp}
+              disabled={sendingWa || pendingWaCount === 0}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 transition disabled:opacity-50"
+            >
+              {sendingWa ? "Enviando..." : `Enviar WhatsApp (${pendingWaCount})`}
+            </button>
+          ) : (
+            <p className="text-xs text-gray-400">
+              Configura <code>WHATSAPP_PHONE_NUMBER_ID</code> y{" "}
+              <code>WHATSAPP_ACCESS_TOKEN</code> en Vercel para activar el envío automático.
+            </p>
+          )}
+        </div>
       </div>
 
+      {/* Recipients table */}
       <div className="bg-white rounded-xl border p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="font-semibold">📋 Lista de contactos</h3>
@@ -392,10 +549,11 @@ export default function PromosPage() {
                 <tr>
                   <th className="text-left px-4 py-2 font-medium text-gray-500">Nombre</th>
                   <th className="text-left px-4 py-2 font-medium text-gray-500">Email</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-500">Teléfono</th>
                   <th className="text-left px-4 py-2 font-medium text-gray-500">Negocio</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-500">Estado</th>
-                  <th className="text-left px-4 py-2 font-medium text-gray-500">Enviado</th>
-                  <th className="text-right px-4 py-2 font-medium text-gray-500">Acción</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-500">Email</th>
+                  <th className="text-left px-4 py-2 font-medium text-gray-500">WhatsApp</th>
+                  <th className="text-right px-4 py-2 font-medium text-gray-500">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -403,6 +561,7 @@ export default function PromosPage() {
                   <tr key={r.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2 font-medium">{r.name || "—"}</td>
                     <td className="px-4 py-2">{r.email}</td>
+                    <td className="px-4 py-2 text-gray-500">{r.phone || "—"}</td>
                     <td className="px-4 py-2 text-gray-500">{r.business_name || "—"}</td>
                     <td className="px-4 py-2">
                       <span
@@ -418,18 +577,50 @@ export default function PromosPage() {
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-2 text-gray-400">
-                      {r.sent_at ? new Date(r.sent_at).toLocaleString("es-ES") : "—"}
+                    <td className="px-4 py-2">
+                      {r.phone ? (
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                            waStatusLabels[r.whatsapp_status].classes
+                          }`}
+                        >
+                          {waStatusLabels[r.whatsapp_status].label}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">Sin teléfono</span>
+                      )}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(r.id)}
-                        disabled={deletingId === r.id}
-                        className="text-red-600 hover:text-red-800 transition text-xs font-medium disabled:opacity-50"
-                      >
-                        {deletingId === r.id ? "..." : "Eliminar"}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        {r.phone && r.whatsapp_status === "pending" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenWhatsApp(r)}
+                              className="text-green-600 hover:text-green-800 transition text-xs font-medium"
+                              title="Abrir en WhatsApp"
+                            >
+                              WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyLink(r)}
+                              className="text-blue-600 hover:text-blue-800 transition text-xs font-medium"
+                              title="Copiar enlace wa.me"
+                            >
+                              Copiar
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(r.id)}
+                          disabled={deletingId === r.id}
+                          className="text-red-600 hover:text-red-800 transition text-xs font-medium disabled:opacity-50"
+                        >
+                          {deletingId === r.id ? "..." : "Eliminar"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -444,10 +635,18 @@ export default function PromosPage() {
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>
             Envía promociones solo a contactos que hayan dado su consentimiento (RGPD). Guarda de dónde
-            salió cada email en la nota.
+            salió cada contacto en la nota.
           </li>
           <li>Si alguien responde &quot;no interesado&quot;, elimínalo de la lista para no volver a escribirle.</li>
           <li>El email sale de <code>EMAIL_FROM</code> y queda registrado en <code>email_sends</code>.</li>
+          <li>
+            Los mensajes de WhatsApp se envían desde tu número de WhatsApp Business y quedan registrados en{" "}
+            <code>whatsapp_sends</code>.
+          </li>
+          <li>
+            Para usar la API de WhatsApp necesitas: <code>WHATSAPP_PHONE_NUMBER_ID</code>,{" "}
+            <code>WHATSAPP_ACCESS_TOKEN</code> y una cuenta de Meta Business verificada.
+          </li>
         </ul>
       </div>
     </div>

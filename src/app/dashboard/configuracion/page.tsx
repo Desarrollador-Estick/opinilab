@@ -77,7 +77,7 @@ export default function ConfiguracionPage() {
   const [teamEmail, setTeamEmail] = useState("")
   const [teamLoading, setTeamLoading] = useState(false)
   const [teamMessage, setTeamMessage] = useState("")
-  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "scraper" | "api" | "marketing" | "security">("company")
+  const [activeSection, setActiveSection] = useState<"company" | "invoice" | "email" | "team" | "automation" | "scraper" | "api" | "marketing" | "security" | "whatsapp">("company")
   const [apiStatus, setApiStatus] = useState<Record<string, boolean> | null>(null)
   const [apiLoading, setApiLoading] = useState(false)
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
@@ -401,7 +401,7 @@ export default function ConfiguracionPage() {
   }, [])
 
   useEffect(() => {
-    if (activeSection === "api") {
+    if (activeSection === "api" || activeSection === "whatsapp") {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       loadApiStatus()
     }
@@ -606,6 +606,7 @@ export default function ConfiguracionPage() {
     { id: "company" as const, label: "Empresa", icon: "🏢" },
     { id: "invoice" as const, label: "Facturación", icon: "💰" },
     { id: "email" as const, label: "Email", icon: "📧" },
+    { id: "whatsapp" as const, label: "WhatsApp", icon: "💬" },
     { id: "team" as const, label: "Equipo", icon: "👥" },
     { id: "automation" as const, label: "Automatización", icon: "⚙️" },
     { id: "scraper" as const, label: "Captura", icon: "🔍" },
@@ -1591,6 +1592,103 @@ export default function ConfiguracionPage() {
               Próximamente: subida directa desde el panel. Por ahora, sustituye el archivo{" "}
               <code>public/logo.png</code> en el repositorio y despliega.
             </p>
+          </div>
+        </div>
+      )}
+
+      {activeSection === "whatsapp" && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h3 className="font-semibold">💬 WhatsApp Business</h3>
+            <p className="text-sm text-gray-500">
+              Promociones por WhatsApp a tus contactos. Hay dos modos:
+            </p>
+            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+              <li>
+                <strong>Modo manual (gratis):</strong> genera enlaces wa.me con el mensaje pre-rellenado
+                desde el panel de Promociones. Tú abres el enlace y envías.
+              </li>
+              <li>
+                <strong>Modo API (automatizado):</strong> envía automáticamente desde tu número de
+                WhatsApp Business. Requiere configurar la API Cloud de Meta.
+              </li>
+            </ul>
+          </div>
+
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h3 className="font-semibold">Estado de la configuración</h3>
+            {apiLoading ? (
+              <p className="text-sm text-gray-500">Comprobando estado...</p>
+            ) : apiStatus ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <StatusRow
+                  label="WhatsApp Phone Number ID"
+                  ok={!!apiStatus.whatsapp_phone_number_id}
+                  hint="WHATSAPP_PHONE_NUMBER_ID"
+                />
+                <StatusRow
+                  label="WhatsApp Access Token"
+                  ok={!!apiStatus.whatsapp_access_token}
+                  hint="WHATSAPP_ACCESS_TOKEN"
+                />
+                <StatusRow
+                  label="WhatsApp Verify Token"
+                  ok={!!apiStatus.whatsapp_verify_token}
+                  hint="WHATSAPP_VERIFY_TOKEN"
+                />
+              </div>
+            ) : (
+              <p className="text-sm text-red-600">No se pudo comprobar el estado.</p>
+            )}
+            <p className="text-xs text-gray-400">
+              Añade estas variables en el panel de variables de entorno de Vercel y redespliega.
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl border p-6 space-y-4">
+            <h3 className="font-semibold">📝 Mensaje de promoción</h3>
+            <p className="text-sm text-gray-500">
+              El mensaje por defecto se envía con los enlaces wa.me y con la API. Variables soportadas:{" "}
+              <code>{"{name}"}</code>, <code>{"{business}"}</code>, <code>{"{company}"}</code>.
+            </p>
+            <div className="bg-gray-50 border rounded-lg p-4 text-sm whitespace-pre-wrap text-gray-700">
+              {`Hola {name} 👋
+
+Somos {company}. Hemos visto {business} y creemos que podemos ayudarte a:
+• Conseguir más reseñas en Google
+• Mejorar tu presencia en redes sociales
+• Atraer más clientes con SEO local
+
+¿Te gustaría una consulta gratuita y sin compromiso?
+
+Responde a este mensaje y te contamos cómo podemos empezar 🚀`}
+            </div>
+            <p className="text-xs text-gray-400">
+              Para personalizar el mensaje, edita la plantilla <code>whatsapp_promo</code> en la tabla{" "}
+              <code>email_templates</code> de la base de datos.
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-700">
+            <p className="font-medium mb-1">📘 Cómo configurar la API de WhatsApp Business</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>Crea una cuenta en Meta Business Suite y verifica tu empresa.</li>
+              <li>
+                Crea una aplicación en{" "}
+                <code>developers.facebook.com</code> y añade el producto &quot;WhatsApp&quot;.
+              </li>
+              <li>Obtén tu número de teléfono de WhatsApp Business (o conecta uno existente).</li>
+              <li>Genera un token de acceso permanente para un usuario del sistema.</li>
+              <li>
+                Añade <code>WHATSAPP_PHONE_NUMBER_ID</code>, <code>WHATSAPP_ACCESS_TOKEN</code> y{" "}
+                <code>WHATSAPP_VERIFY_TOKEN</code> en Vercel y redespliega.
+              </li>
+              <li>
+                Configura el webhook en Meta con URL{" "}
+                <code>https://www.opinilab.com/api/whatsapp/webhook</code> y el verify token elegido
+                para recibir estados de entrega.
+              </li>
+            </ol>
           </div>
         </div>
       )}

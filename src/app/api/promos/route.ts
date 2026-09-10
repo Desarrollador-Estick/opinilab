@@ -4,6 +4,7 @@ import { requireTeamRole } from "@/lib/team-auth"
 interface PromoInput {
   name?: string | null
   email: string
+  phone?: string | null
   business_name?: string | null
   notes?: string | null
 }
@@ -96,15 +97,18 @@ export async function POST(request: Request) {
     }
 
     const name = cleanString(input.name)
+    const phone = cleanString(input.phone)
     const business_name = cleanString(input.business_name)
     const notes = cleanString(input.notes)
 
     const { error: insertError } = await supabase.from("promo_recipients").insert({
       email,
       name,
+      phone,
       business_name,
       notes,
       status: "pending",
+      whatsapp_status: phone ? "pending" : "skipped",
     })
 
     if (insertError) {

@@ -39,6 +39,9 @@ export async function GET() {
       supabase_service: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
       supabase_url: env("NEXT_PUBLIC_SUPABASE_URL"),
       app_url: env("NEXT_PUBLIC_APP_URL"),
+      whatsapp_phone_number_id: env("WHATSAPP_PHONE_NUMBER_ID"),
+      whatsapp_access_token: env("WHATSAPP_ACCESS_TOKEN"),
+      whatsapp_verify_token: env("WHATSAPP_VERIFY_TOKEN"),
     },
   })
 }

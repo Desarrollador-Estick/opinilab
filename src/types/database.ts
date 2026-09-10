@@ -873,10 +873,13 @@ export interface Database {
           id: string
           name: string | null
           email: string
+          phone: string | null
           business_name: string | null
           notes: string | null
           status: 'pending' | 'sent' | 'failed' | 'skipped'
+          whatsapp_status: 'pending' | 'sent' | 'failed' | 'skipped'
           sent_at: string | null
+          whatsapp_sent_at: string | null
           last_error: string | null
           created_at: string
           updated_at: string
@@ -885,10 +888,13 @@ export interface Database {
           id?: string
           name?: string | null
           email: string
+          phone?: string | null
           business_name?: string | null
           notes?: string | null
           status?: 'pending' | 'sent' | 'failed' | 'skipped'
+          whatsapp_status?: 'pending' | 'sent' | 'failed' | 'skipped'
           sent_at?: string | null
+          whatsapp_sent_at?: string | null
           last_error?: string | null
           created_at?: string
           updated_at?: string
@@ -897,15 +903,62 @@ export interface Database {
           id?: string
           name?: string | null
           email?: string
+          phone?: string | null
           business_name?: string | null
           notes?: string | null
           status?: 'pending' | 'sent' | 'failed' | 'skipped'
+          whatsapp_status?: 'pending' | 'sent' | 'failed' | 'skipped'
           sent_at?: string | null
+          whatsapp_sent_at?: string | null
           last_error?: string | null
           created_at?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      whatsapp_sends: {
+        Row: {
+          id: string
+          recipient_id: string | null
+          phone: string
+          message: string
+          status: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+          provider_message_id: string | null
+          error: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_id?: string | null
+          phone: string
+          message: string
+          status?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+          provider_message_id?: string | null
+          error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          recipient_id?: string | null
+          phone?: string
+          message?: string
+          status?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'
+          provider_message_id?: string | null
+          error?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'whatsapp_sends_recipient_id_fkey'
+            columns: ['recipient_id']
+            isOneToOne: false
+            referencedRelation: 'promo_recipients'
+            referencedColumns: ['id']
+          }
+        ]
       }
       email_suppressions: {
         Row: {
