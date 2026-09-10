@@ -494,6 +494,13 @@ export default function PromosPage() {
               ? "Envía el mensaje de promoción por WhatsApp a los contactos con teléfono pendiente."
               : "Modo manual: pulsa el botón de WhatsApp en la tabla para abrir wa.me con el mensaje pre-rellenado. Para envío automático, configura la API de WhatsApp Business."}
           </p>
+          {whatsappConfigured && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700">
+              Cron activo: <strong>10:30 AM</strong> diario. Envía WhatsApp a contactos que{" "}
+              <strong>no recibieron email</strong> y tienen teléfono. Si el email fue enviado con
+              éxito, se omite WhatsApp.
+            </div>
+          )}
           {whatsappConfigured ? (
             <button
               type="button"
