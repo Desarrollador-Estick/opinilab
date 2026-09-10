@@ -524,12 +524,17 @@ async function runLeadScraper(forced = false) {
     for (const lead of priorityLeads.slice(0, Math.max(remaining, 0))) {
       if (!lead) continue
 
-      // Deduplicar por business_name + city
+      // Deduplicar por business_name + city (normalizado para evitar duplicados por
+// variaciones de mayúsculas/espacios). Se usa .ilike para búsqueda insensible a
+// mayúsculas y .trim() para quitar espacios sobrantes.
+      const normalizedName = (lead.business_name || "").toString().toLowerCase().trim()
+      const normalizedCity = (lead.city || "").toString().toLowerCase().trim()
+
       const { data: existing } = await adminSupabase
         .from("leads")
         .select("id")
-        .eq("business_name", lead.business_name)
-        .eq("city", lead.city || "")
+        .ilike("business_name", normalizedName)
+        .ilike("city", normalizedCity)
         .limit(1)
 
       if (existing && existing.length > 0) {
