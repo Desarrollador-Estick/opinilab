@@ -17,6 +17,9 @@ export interface SendEmailOptions {
   clientId?: string | null
   leadId?: string | null
   data?: Record<string, unknown>
+  /** Dirección Reply-To explícita (p.ej. el dominio entrante del agente). Si
+   *  no se pasa y es un email promocional, se usa INBOUND_REPLY_TO. */
+  replyTo?: string
   /** Emails comerciales (promociones/campaña de captación): se añade el
    *  enlace de baja y se respeta la lista de emails dados de baja. */
   promotional?: boolean
@@ -60,10 +63,13 @@ export async function sendEmail({
   clientId,
   leadId,
   data,
+  replyTo,
   promotional,
 }: SendEmailOptions): Promise<SendEmailResult> {
   const resend = getResend()
   const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev"
+  const replyToEmail =
+    replyTo || (promotional ? process.env.INBOUND_REPLY_TO : undefined)
   const dataJson: Json | null = data ? (data as unknown as Json) : null
 
   const record = async (status: string, resendId: string | null) => {
@@ -111,6 +117,7 @@ export async function sendEmail({
       to: [to],
       subject,
       html: finalHtml,
+      ...(replyToEmail ? { reply_to: replyToEmail } : {}),
     })
 
     await record(error ? "failed" : "sent", emailData?.id || null)

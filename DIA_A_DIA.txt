@@ -1,6 +1,6 @@
 ================================================================================
 OPINILAB — GUÍA DEL DÍA A DÍA (operación diaria, semanal y mensual)
-Versión: 07/09/2026 · Proyecto: F:\agencia-marketing · Prod: https://opinilab.com
+Versión: 11/09/2026 · Proyecto: F:\agencia-marketing · Prod: https://opinilab.com
 ================================================================================
 
 QUÉ ES OPINILAB EN UNA FRASE
@@ -17,8 +17,9 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
    2. NADA MÁS haber dirección de correo (en la ficha o encontrada en el
       seguimiento), la campaña arranca SOLA de inmediato: envía outbound_1.
       No espera al cron de las 09:00 ni al botón manual. Luego sigue sola
-      con followup_1 → followup_2 (7 días entre toques; se detiene al
-      tercero). Oferta de lanzamiento: "49€/mes SIN cuota de gestión de
+      con followup_1 → followup_2 (desde el 11/09/2026: 3 días entre toques
+      por defecto, configurable con lead_outreach_next_days 1-30; se detiene
+      al tercero). Oferta de lanzamiento: "49€/mes SIN cuota de gestión de
       datos". ON/OFF en /dashboard/configuracion → Automatización →
       "Auto-contacto de leads".
    3. Los textos se editan en /dashboard/configuracion → Email → plantillas
@@ -76,18 +77,23 @@ CAMPAÑA EN CURSO (desde el 07/09/2026) — OBJETIVO: PRIMEROS 5 CLIENTES REALES
                    de factura (cron /api/invoices/run-monthly).
   Todos, 06:00     Procesa la cola de tareas IA (cron /api/ai-tasks/run,
                    hasta 20 por ejecución, respeta el cupo).
-  Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
+Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
                    /api/lead-scraper/run) si la Captura está activada. Prioriza
                    negocios con EMAIL y REDES SOCIALES (columna "Redes" en
                    /dashboard/leads), y les busca el email a negocios sin correo
                    (sigue su web / búsqueda; reintenta cada 7 días, límite diario
-                   en Configuración → Captura).
-Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
-                    (reprograma a +7 días) + AUTO-CONTACTO DE LEADS DEL SCRAPER
-                    (outbound_1 → followup_1 → followup_2, 7 días entre toques)
-                    + informes mensuales + [si activado] envío automático de
-                    informes, solicitudes de reseñas y borradores IA de
-                    respuestas (cron /api/automation).
+                   en Configuración → Captura). AL TERMINAR ejecuta la
+                   AUTOMATIZACIÓN COMPLETA (desde el 11/09/2026 el scraper
+                   llama al motor único /api/automation → runAutomationFull:
+                   seguimientos, facturas vencidas, informes y reseñas).
+  Todos, 09:00     Mismo motor único que el de las 07:00, como respaldo (cron
+                   /api/automation): AUTO-CONTACTO DE LEADS DEL SCRAPER
+                   (outbound_1 → followup_1 → followup_2, cadencia por defecto
+                   3 DÍAS, configurable lead_outreach_next_days 1-30) +
+                   recordatorios de facturas vencidas + informes mensuales +
+                   [si activado] envío automático de informes, solicitudes de
+                   reseñas y borradores IA de respuestas. Redundante pero
+                   seguro: los guards de dedupe impiden envíos duplicados.
   Todos, 10:30    WhatsApp automático a contactos de promociones que NO
                    recibieron email y tienen teléfono (cron
                    /api/automation/whatsapp-promo). Si el email fue enviado con
@@ -102,7 +108,7 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
   NOTA: para verificar que llevan a cabo su trabajo revisa cada pocos días
   Supabase → tabla email_sends (qué se envió, estado y remitente; desde la
   Fase 1 el estado se actualiza SOLO con los eventos del webhook de Resend) y
-  la pestaña Cron de Vercel (que las 4 tareas run).
+  la pestaña Cron de Vercel (que los 5 cron jobs run).
 
 --------------------------------------------------------------------------------
 3. TU DÍA A DÍA (si tienes solo 10-15 minutos por la mañana)
@@ -396,6 +402,30 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
     /dashboard/configuracion (no hace falta tocar código).
   - Documentación completa: C:\Users\jordi\Desktop\changes_summary.txt
     (manual completo) + F:\agencia-marketing\configuracion.txt (config).
+
+  ESTADO AL 11/09/2026 — MOTOR ÚNICO DE AUTOMATIZACIÓN (fix "la campaña no
+  lanzaba"):
+  - CAUSA RAÍZ confirmada: el cron 09:00 (Vercel) que llamaba /api/automation
+    NO corría (automation_logs = 0); solo el scraper de las 07:00 (que sí
+    corre) hacía el primer toque en frío. La secuencia completa (follow-ups,
+    recordatorios, informes, reseñas) quedaba huérfana por depender de ese
+    cron que no se ejecutaba.
+  - FIX: motor ÚNICO en src/lib/automation/run.ts (runAutomationFull). El
+    scraper de las 07:00 ahora lo ejecuta completa al final de cada corrida;
+    ya no hay nada en el flujo que dependa de un cron fantasma. Commit 156c703
+    desplegado en Vercel el 11/09/2026 (build OK).
+  - CADENCIA de la campaña: de 7 a 3 DÍAS por defecto entre toques
+    (configurable lead_outreach_next_days, rango 1-30, en
+    /dashboard/configuracion → Automatización). 42 leads reprogramados para su
+    siguiente toque inmediato (41 a followup_1, 1 a followup_2).
+  - RESULTADO VERIFICADO (11/09/2026): 30 envíos de follow-up disparados ya
+    desde producción (24 followup_1 + 1 followup_2 + 5 que, al no tener
+    historial, se registraron como outbound_1; cero duplicados). Los 12 leads
+    tocados por el scraper a las 07:14 hoy recibirán su followup_1 mañana a
+    las 07:00 (guard "no dos toques el mismo día"). Revisa mañana Supabase →
+    email_sends y automation_logs.
+  - Para disparar la automatización manualmente desde terminal (sin esperar al
+    cron):  cd F:\agencia-marketing  →  node scripts/kick-automation.mjs
 ================================================================================
 FIN DEL DOCUMENTO
 ================================================================================

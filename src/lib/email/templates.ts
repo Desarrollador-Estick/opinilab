@@ -284,6 +284,32 @@ export function adminReviewDraft(businessName: string, reviewerName: string, dra
   }
 }
 
+export function salesAgentAdminNotify(businessName: string, fromEmail: string, intent: string, quote: string): EmailTemplate {
+  const company = process.env.COMPANY_NAME || "OpiniLab"
+  return {
+    subject: `🤖 Agente IA: ${intent} — ${businessName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #7c3aed, #2563eb); padding: 28px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">🤖 El agente de ventas IA necesita tu visto bueno</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <h3 style="color: #111827; margin: 0 0 8px;">${businessName}</h3>
+          <p style="color: #6b7280; margin: 0 0 18px;">${fromEmail} · Intención: <strong>${intent}</strong></p>
+          <div style="background: white; border: 1px dashed #c4b5fd; border-radius: 8px; padding: 16px; margin: 0 0 18px; color: #4b5563; font-size: 14px;">
+            "${quote}"
+          </div>
+          <p style="line-height: 1.7; margin: 0 0 18px;">Revisa este lead en <strong>/dashboard/leads</strong>. Si es un <strong>sí</strong>, convierte el lead en cliente para enviar contrato y factura (eso sí requiere tu acción). El agente NO cierra contratos solo.</p>
+          <p style="margin: 0; color: #6b7280; font-size: 13px;">— Equipo de ${company}</p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
+}
+
 export function followUpEmail(leadName: string, businessName: string): EmailTemplate {
   return {
     subject: `¿Podemos ayudarte con tu marketing? - ${process.env.COMPANY_NAME || 'OpiniLab'}`,

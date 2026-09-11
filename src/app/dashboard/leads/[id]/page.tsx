@@ -36,6 +36,37 @@ interface StatusChange {
   changed_at: string
 }
 
+interface EmailReply {
+  id: string
+  email_from: string
+  subject: string | null
+  text_body: string | null
+  reply_type: string | null
+  reply_status: string | null
+  ai_reply: string | null
+  reason: string | null
+  created_at: string
+}
+
+const replyTypeLabels: Record<string, string> = {
+  yes: "Sí, quiere contratar",
+  no: "No interesado",
+  question: "Pregunta",
+  objection: "Objeción",
+  unsubscribe: "Pide baja",
+  unresolved: "Sin clasificar",
+}
+
+const replyStatusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  draft: "Borrador sin enviar",
+  auto_sent: "Respondido (IA)",
+  sent_manual: "Enviado",
+  skipped: "Sin respuesta",
+  error: "Error de envío",
+  unresolved: "Sin clasificar",
+}
+
 const statusLabels: Record<string, string> = {
   new: "Nuevo",
   contacted: "Contactado",
@@ -78,6 +109,8 @@ export default function LeadDetailPage() {
   const [converting, setConverting] = useState(false)
   const [followUpDate, setFollowUpDate] = useState("")
   const [notes, setNotes] = useState("")
+  const [replies, setReplies] = useState<EmailReply[]>([])
+  const [sendingReplyId, setSendingReplyId] = useState<string | null>(null)
 
   async function fetchLead() {
     const { data, error } = await supabase.from("leads").select("*").eq("id", leadId).single()
@@ -99,10 +132,20 @@ export default function LeadDetailPage() {
     if (data) setStatusHistory(data)
   }
 
+  async function fetchReplies() {
+    const { data } = await supabase
+      .from("email_replies")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+    if (data) setReplies(data)
+  }
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLead()
     fetchStatusHistory()
+    fetchReplies()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId])
 
@@ -174,6 +217,26 @@ export default function LeadDetailPage() {
     } else {
       router.push("/dashboard/leads")
     }
+  }
+
+  async function sendAgentReply(replyId: string) {
+    setSendingReplyId(replyId)
+    setError("")
+    const res = await fetch(`/api/leads/${leadId}/replies/${replyId}/send`, {
+      method: "POST",
+    })
+    if (!res.ok) {
+      const json = await res.json().catch(() => null)
+      setError(json?.error || "No se pudo enviar la respuesta.")
+    } else {
+      const { data } = await supabase
+        .from("email_replies")
+        .select("*")
+        .eq("lead_id", leadId)
+        .order("created_at", { ascending: false })
+      if (data) setReplies(data)
+    }
+    setSendingReplyId(null)
   }
 
   if (loading) {
@@ -303,6 +366,69 @@ export default function LeadDetailPage() {
                       {statusLabels[change.new_status]}
                     </span>
                     <span className="text-gray-400 text-xs">{formatDateTime(change.changed_at)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border p-6">
+            <h3 className="font-semibold mb-1">Conversación (agente IA)</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Respuestas del lead recibidas por email (Resend Inbound). El agente las
+              clasifica y responde con tu visto bueno.
+            </p>
+            {replies.length === 0 ? (
+              <p className="text-sm text-gray-500">Aún no hay respuestas de este lead.</p>
+            ) : (
+              <div className="space-y-4">
+                {replies.map((reply) => (
+                  <div key={reply.id} className="border border-gray-100 rounded-lg p-4 space-y-2">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          reply.reply_type === "yes"
+                            ? "bg-green-100 text-green-700"
+                            : reply.reply_type === "no" || reply.reply_type === "unsubscribe"
+                              ? "bg-gray-100 text-gray-600"
+                              : "bg-purple-100 text-purple-700"
+                        }`}>
+                          {replyTypeLabels[reply.reply_type || ""] || reply.reply_type || "—"}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          reply.reply_status === "auto_sent" || reply.reply_status === "sent_manual"
+                            ? "bg-blue-50 text-blue-700"
+                            : reply.reply_status === "draft"
+                              ? "bg-amber-50 text-amber-700"
+                              : "bg-gray-50 text-gray-500"
+                        }`}>
+                          {replyStatusLabels[reply.reply_status || ""] || reply.reply_status || "—"}
+                        </span>
+                        <span className="text-xs text-gray-400">{formatDateTime(reply.created_at)}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 truncate max-w-[220px]">{reply.email_from}</span>
+                    </div>
+                    {reply.text_body && (
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap line-clamp-4">{reply.text_body}</p>
+                    )}
+                    {reply.reason && (
+                      <p className="text-xs text-gray-400 italic">{reply.reason}</p>
+                    )}
+                    {reply.ai_reply && (
+                      <div className="bg-purple-50 border border-purple-100 rounded-lg p-3">
+                        <p className="text-xs font-medium text-purple-500 mb-1">Respuesta preparada por el agente:</p>
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{reply.ai_reply}</p>
+                      </div>
+                    )}
+                    {reply.ai_reply && reply.reply_status !== "auto_sent" && reply.reply_status !== "sent_manual" && (
+                      <button
+                        onClick={() => sendAgentReply(reply.id)}
+                        disabled={sendingReplyId === reply.id}
+                        className="mt-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition disabled:opacity-50"
+                      >
+                        {sendingReplyId === reply.id ? "Enviando..." : "Aprobar y enviar respuesta"}
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

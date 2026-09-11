@@ -978,6 +978,79 @@ export interface Database {
         }
         Relationships: []
       }
+      email_replies: {
+        Row: {
+          id: string
+          lead_id: string | null
+          email_from: string
+          from_name: string | null
+          to_addr: string | null
+          subject: string | null
+          text_body: string | null
+          message_id: string | null
+          in_reply_to: string | null
+          reply_type: string | null
+          reply_status: string | null
+          confidence: number | null
+          reason: string | null
+          ai_reply: string | null
+          sent_email_id: string | null
+          handled_at: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          lead_id?: string | null
+          email_from: string
+          from_name?: string | null
+          to_addr?: string | null
+          subject?: string | null
+          text_body?: string | null
+          message_id?: string | null
+          in_reply_to?: string | null
+          reply_type?: string | null
+          reply_status?: string | null
+          confidence?: number | null
+          reason?: string | null
+          ai_reply?: string | null
+          sent_email_id?: string | null
+          handled_at?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          lead_id?: string | null
+          email_from?: string
+          from_name?: string | null
+          to_addr?: string | null
+          subject?: string | null
+          text_body?: string | null
+          message_id?: string | null
+          in_reply_to?: string | null
+          reply_type?: string | null
+          reply_status?: string | null
+          confidence?: number | null
+          reason?: string | null
+          ai_reply?: string | null
+          sent_email_id?: string | null
+          handled_at?: string | null
+          created_at?: string
+        }
+                Relationships: [
+          {
+            foreignKeyName: 'email_replies_lead_id_fkey',
+            columns: ['lead_id'],
+            referencedRelation: 'leads',
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'email_replies_sent_email_id_fkey',
+            columns: ['sent_email_id'],
+            referencedRelation: 'email_sends',
+            referencedColumns: ['id']
+          }
+        ]
+      }
       tasks: {
         Row: {
           id: string

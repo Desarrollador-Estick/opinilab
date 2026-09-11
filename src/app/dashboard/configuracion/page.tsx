@@ -132,6 +132,8 @@ export default function ConfiguracionPage() {
     report_send_delay_hours: 1,
     report_send_only_if_paid: true,
     lead_auto_outreach_enabled: true,
+    sales_agent_enabled: true,
+    sales_agent_auto_reply: true,
   })
   const [autoLoading, setAutoLoading] = useState(false)
   const [autoSaving, setAutoSaving] = useState(false)
@@ -949,6 +951,34 @@ export default function ConfiguracionPage() {
                     <Switch
                       checked={autoConfig.lead_auto_outreach_enabled}
                       onChange={(v) => setAutoConfig((p) => ({ ...p, lead_auto_outreach_enabled: v }))}
+                    />
+                  </div>
+                </div>
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium">Agente de ventas IA (responde al email del lead)</p>
+                      <p className="text-xs text-gray-500">
+                        Lee las réplicas de los leads (Resend Inbound), las clasifica y responde con tu
+                        visto bueno. El &quot;sí&quot; se detiene en un borrador de aprobación y el resto de
+                        intenciones responden según la opción de abajo.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.sales_agent_enabled}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, sales_agent_enabled: v }))}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 pt-2 border-t border-gray-100">
+                    <div>
+                      <p className="text-sm">Responder automáticamente preguntas y objeciones</p>
+                      <p className="text-xs text-gray-400">
+                        Si se desactiva, el agente solo deja borradores para que los envíes tú.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={autoConfig.sales_agent_auto_reply}
+                      onChange={(v) => setAutoConfig((p) => ({ ...p, sales_agent_auto_reply: v }))}
                     />
                   </div>
                 </div>
