@@ -7,7 +7,7 @@
 -- 1. Tabla email_replies
 -- ============================================================
 create table if not exists public.email_replies (
-  id uuid default uuid_generate_v4() primary key,
+  id uuid default gen_random_uuid() primary key,
   lead_id uuid references public.leads(id) on delete set null,
   email_from text not null,
   from_name text,
