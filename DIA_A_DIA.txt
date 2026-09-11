@@ -424,8 +424,36 @@ Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
     tocados por el scraper a las 07:14 hoy recibirán su followup_1 mañana a
     las 07:00 (guard "no dos toques el mismo día"). Revisa mañana Supabase →
     email_sends y automation_logs.
-  - Para disparar la automatización manualmente desde terminal (sin esperar al
-    cron):  cd F:\agencia-marketing  →  node scripts/kick-automation.mjs
+- Para disparar la automatización manualmente desde terminal (sin esperar al
+     cron):  cd F:\agencia-marketing  →  node scripts/kick-automation.mjs
+
+  ESTADO AL 12/09/2026 — AGENTE DE VENTAS IA (responde a los leads que contestan):
+  - NUEVO: el agente lee las réplicas de los leads por EMAIL (Resend Inbound),
+    las clasifica y responde. Flujo: el lead responde a outbound_1/followup_1/
+    followup_2 → el webhook /api/email/inbound recibe el mensaje → lo clasifica
+    (SÍ / No / Pregunta / Objeción / Baja / Sin clasificar) → actúa así:
+      • SÍ: marca el lead "interested", el agente redacta el siguiente paso
+        (pide enlace Google Maps) y queda como BORRADOR que apruebas tú con
+        "Aprobar y enviar respuesta" en /dashboard/leads/[id] → Conversación.
+        Nunca cierra contratos solo (tu rol sigue siendo vender y supervisar).
+      • Pregunta/Objeción: responde automáticamente al momento (reglas: solo
+        datos reales del lead + oferta 49€/mes; sin inventar precios).
+      • No / Baja: lead perdido/suprimido y sin más toques.
+      • El "sí" también alerta al admin por email (ADMIN_EMAIL) para que conviertas.
+  - ON/OFF en /dashboard/configuracion → Automatización → "Agente de ventas IA"
+    (sales_agent_enabled, sales_agent_auto_reply). Commits fdacc78 + af2edd8
+    desplegados; migración 028_sales_agent.sql APLICADA en producción.
+  - ⚠️ PENDIENTE TÚ (nuevo canal, ~15 min): activar Resend Inbound
+    1) Resend → Inbound → Create Domain entrante (recomendado:
+       inbound.opinilab.com, dirección responde@inbound.opinilab.com) → añade en
+       el DNS de opinilab.com los registros MX/TXT que Resend indique.
+    2) Resend → Inbound → Webhook: https://www.opinilab.com/api/email/inbound
+    3) Vercel → Settings → Environment Variables → INBOUND_REPLY_TO con el
+       dominio entrante (el código ya lo añade como Reply-To a los emails de la
+       campaña; sin esta env el Reply-To no se pone). REDESPLEGAR tras añadirla.
+    4) Test: mándate un correo desde una cuenta externa a la dirección entrante
+       y comprueba que se guarda en Supabase → tabla email_replies.
+  - Más detalles en C:\Users\jordi\Desktop\changes_summary.txt.
 ================================================================================
 FIN DEL DOCUMENTO
 ================================================================================
