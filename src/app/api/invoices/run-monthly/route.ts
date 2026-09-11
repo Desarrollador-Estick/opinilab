@@ -232,7 +232,7 @@ async function runMonthly(request: Request) {
       await sendEmail({
         to: client.email,
         template: "invoice",
-        subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || "Agencia Marketing"}`,
+        subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || "OpiniLab"}`,
         html: invoiceWithLinkEmail(invoiceNumber, total, issueDate, client.contact_name || client.business_name, payUrl).html,
         clientId: client.id,
         data: { invoiceNumber, total, dueDate: issueDate, clientName: client.business_name, payUrl },

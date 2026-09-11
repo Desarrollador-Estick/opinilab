@@ -2,10 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
-import {
-  autoLeadOutreach,
-  getAutomationEmailsConfig,
-} from "@/lib/automation/lead-outreach"
+import { runAutomationFull } from "@/lib/automation/run"
 import type { Json } from "@/types/database"
 
 // El endpoint principal rechaza con 406 las peticiones sin User-Agent
@@ -703,23 +700,21 @@ async function runLeadScraper(forced = false) {
       }
     }
 
-    // 5b. AUTO-CONTACTO INMEDIATO: nada más haber leads con email (recién
-    //     capturados o enriquecidos en esta ejecución), se lanza la campaña
-    //     automáticamente (outbound_1). No espera al cron de las 09:00 ni al
-    //     botón manual. El envío real solo ocurre si "Auto-contacto de leads"
-    //     está activado en Configuración → Automatización.
+    // 5b. AUTOMATIZACIÓN COMPLETA TRAS CADA EJECUCIÓN: nada más haber leads
+    //     nuevos (recién capturados o enriquecidos), se ejecuta todo el motor de
+    //     automatización: auto-contacto en frío (outbound_1) a los leads nuevos
+    //     con email, seguimiento rotativo de los ya contactados (followup_1 →
+    //     followup_2), recordatorios de facturas, informes mensuales y reseñas.
+    //     Así la automatización no depende de que el cron de las 09:00 corra.
     let leadsOutreached = 0
     try {
-      const automationConfig = await getAutomationEmailsConfig(adminSupabase)
-      const outreachLogs: Array<{
-        action: string
-        details: string
-        timestamp: string
-      }> = []
-      await autoLeadOutreach(adminSupabase, automationConfig, new Date(), outreachLogs)
-      leadsOutreached = outreachLogs.filter(
+      const automationResult = await runAutomationFull(new Date())
+      leadsOutreached = automationResult.logs.filter(
         (l) => l.action === "lead_outbound" && l.details.includes("success")
       ).length
+      if (!automationResult.success) {
+        errors.push(`automation: ${automationResult.error || "unknown"}`)
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error"
       errors.push(`outreach: ${msg}`)

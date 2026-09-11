@@ -459,7 +459,7 @@ async function chargeInitialInvoice(supabase: SupabaseClient<Database>, clientId
     await sendEmail({
       to: client.email,
       template: "invoice",
-      subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || "Agencia Marketing"}`,
+      subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || "OpiniLab"}`,
       html: invoiceWithLinkEmail(invoiceNumber, total, dueDate, client.contact_name || client.business_name, payUrl).html,
       clientId: clientId,
       data: { invoiceNumber, total, dueDate, clientName: client.business_name, payUrl },

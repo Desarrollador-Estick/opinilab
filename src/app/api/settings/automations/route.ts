@@ -12,6 +12,7 @@ export const AUTOMATION_EMAILS_DEFAULT = {
   report_send_delay_hours: 1,
   report_send_only_if_paid: true,
   lead_auto_outreach_enabled: true,
+  lead_outreach_next_days: 3,
 }
 
 function parseBool(v: unknown): boolean {
@@ -78,6 +79,7 @@ export async function POST(request: Request) {
         : parseNum(body.report_send_delay_hours, 1, 0, 720),
     report_send_only_if_paid: parseBool(body.report_send_only_if_paid),
     lead_auto_outreach_enabled: parseBool(body.lead_auto_outreach_enabled),
+    lead_outreach_next_days: parseNum(body.lead_outreach_next_days, 3, 1, 30),
   }
 
   const { error } = await supabase.from("settings").upsert(

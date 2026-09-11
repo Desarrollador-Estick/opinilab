@@ -88,6 +88,11 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
                     + informes mensuales + [si activado] envío automático de
                     informes, solicitudes de reseñas y borradores IA de
                     respuestas (cron /api/automation).
+  Todos, 10:30    WhatsApp automático a contactos de promociones que NO
+                   recibieron email y tienen teléfono (cron
+                   /api/automation/whatsapp-promo). Si el email fue enviado con
+                   éxito → se omite WhatsApp. Requiere WHATSAPP_PHONE_NUMBER_ID
+                   y WHATSAPP_ACCESS_TOKEN en Vercel.
   En tiempo real   Webhook de Stripe: al pagar una factura pasa a "paid", se
                    registra el pago, se activa el cliente y se le da las gra
                    cias por email.
@@ -143,7 +148,7 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
   [ ] Revisar automatizaciones activadas (/dashboard/configuracion →
       Automatización) y que sigan funcionando.
   [ ] Logs de Vercel por errores (https://vercel.com/dashboard/esticks-projects/opinilab).
-  [ ] Que los 4 crons se ejecutan (Vercel → Cron).
+  [ ] Que los 5 crons se ejecutan (Vercel → Cron).
   [ ] Accesos de herramientas pendientes (clientes que aún no aportan las suyas).
 
 --------------------------------------------------------------------------------
@@ -346,6 +351,40 @@ Todos, 09:00     Recordatorios de facturas vencidas + follow-ups a leads
   - Todo en commit d335b5f (main local + push). Comprobar que el deploy en
     Vercel queda "Ready" y opinilab.com responde 200. (El token de Supabase
     Management API válido es el de Apy resend.txt; el de token.txt da 401.)
+
+  ESTADO AL 10/09/2026 — EL SCRAPER YA EXTRAE TELÉFONOS + SCRIPT PARA COMPLETAR
+  LOS LEADS SIN EMAIL:
+  - El scraper vuelve a captar teléfono de contacto (OSM: tags phone /
+    contact:phone / contact:mobile; y la web oficial del negocio). Se guarda en
+    leads.phone, mejora su prioridad (+2) y su score (+10), y lo ves en
+    /dashboard/leads. ANTES (681bea6) se había quitado el teléfono como canal.
+  - OJO con los teléfonos sospechosos: solo se aceptan los que vienen de la WEB
+    OFICIAL del negocio. Los que aparecen en buscadores/directorios se
+    descartan porque son falsos (el mismo número repetido en decenas de
+    negocios: +34 768 258 901 era inventado). No te extrañe ver webs sin
+    número: es el filtro anti-basura funcionando.
+  - SCRIPT NUEVO para terminar de completar los leads sin email/teléfono:
+        cd F:\agencia-marketing
+        node scripts/enrich-leads-emails.mjs --verify     (solo mira, no toca)
+        node scripts/enrich-leads-emails.mjs              (escribe en la BD)
+    (El límite se pasa con =: --limit=10. Es standalone: no depende de Vercel.)
+  - Ejecutado el 10/09/2026: 68 leads revisados, 18 completados con datos
+    reales (restaurante Eslava, Hotel Catalonia Giralda, Roland, A Barbería,
+    Ababa, FG Male Image, Quare Saúde, Focus Fitness, Javier Quintanero...).
+  - POR QUÉ EL DASHBOARD DICE "36 LEADS SIN FOLLOW-UP": esa alerta cuenta los
+    leads que llevan +3 días sin ser contactados (40 nunca tocados), y en la
+    práctica coincide con los leads SIN EMAIL (38). NO es un error del sistema.
+    La mayoría son bares/cadenas sin web visible (McDonald's, Starbucks,
+    Domino's...) → el script no puede inventar su email; se contactan
+    manualmente vía su página/cadena si se quiere.
+  - Desplegado en producción el 10/09/2026 (commit 9a4ecd5 → Vercel "Ready").
+  - La tabla /dashboard/leads ahora muestra también la columna TELÉFONO (enlace
+    tel: para llamar directo) y el buscador filtra por teléfono. Desplegado en
+    commit 9629cf3 (10/09/2026, confirmar "Ready" en Vercel).
+  - MAÑANA / PRÓXIME DÍA: en /dashboard/leads los 18 enriquecidos ya son
+    contactables por email/teléfono (a los auto_scraped el cron 09:00 les lanza
+    outbound_1); revisa email_sends (template outbound_1) y automation_logs
+    (action lead_outbound).
 
 --------------------------------------------------------------------------------
 10. NOTAS RÁPIDAS

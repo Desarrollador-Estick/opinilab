@@ -75,7 +75,7 @@ export default function LoginMfaSetupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">🚀 Agencia Marketing</h1>
+          <h1 className="text-2xl font-bold text-gray-900">⭐ OpiniLab</h1>
           <p className="text-gray-500 mt-2">Configura la verificación en dos pasos</p>
         </div>
 

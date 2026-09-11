@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     })
 
     // Construir el contenido HTML unificado: welcome + onboardingGuide + report
-    const companyName = process.env.COMPANY_NAME || "Agencia Marketing"
+    const companyName = process.env.COMPANY_NAME || "OpiniLab"
 
     // Cuerpo del informe formateado a HTML (simple)
     let reportHtml = ""

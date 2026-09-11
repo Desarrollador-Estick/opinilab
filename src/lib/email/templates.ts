@@ -44,7 +44,7 @@ export function welcomeEmail(businessName: string, contactName: string): EmailTe
           <div style="text-align: center; margin: 36px 0 12px; padding-top: 28px; border-top: 1px solid #eef2f7;">
             <p style="margin: 0; color: #6b7280; font-size: 13px;">¡Mucho éxito y bienvenido a bordo!</p>
             <p style="margin: 6px 0 0; color: #111827; font-size: 14px;"><strong>El equipo de ${company}</strong></p>
-            <p style="margin: 4px 0 0; color: #9ca3af; font-size: 12px;">www.opinilab.com</p>
+            <p style="margin: 4px 0 0; color: #9ca3af; font-size: 12px;"><a href="https://opinilab.com" style="color: #9ca3af; text-decoration: none;">https://opinilab.com</a></p>
           </div>
         </div>
       </body>
@@ -57,7 +57,7 @@ export function onboardingGuideEmail(
   businessName: string,
   contactName: string
 ): EmailTemplate {
-  const company = process.env.COMPANY_NAME || "Agencia Marketing"
+  const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
     subject: `Así trabajamos juntos - ${company}`,
     html: `
@@ -79,8 +79,8 @@ export function onboardingGuideEmail(
           </ol>
           <h3 style="margin-top: 24px;">¿Qué necesitamos de ti?</h3>
           <p>Para empezar, será muy útil que nos facilites el enlace de tu perfil de Google Business Profile (Google Maps). Si no lo tienes, ¡nosotros te ayudamos a crearlo!</p>
-          <p>Si tienes cualquier duda, responde directamente a este email.</p>
-          <p>¡Vamos a por ello!<br><strong>Equipo de ${company}</strong></p>
+          <p>Si tienes cualquier duda, escríbenos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
+          <p>¡Vamos a por ello!<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -90,7 +90,7 @@ export function onboardingGuideEmail(
 
 export function invoiceEmail(invoiceNumber: string, total: number, dueDate: string, clientName: string): EmailTemplate {
   return {
-    subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || 'Agencia Marketing'}`,
+    subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -119,7 +119,7 @@ export function invoiceEmail(invoiceNumber: string, total: number, dueDate: stri
           </div>
           <p>Por favor, realiza el pago antes de la fecha de vencimiento.</p>
           <p>Si ya has realizado el pago, puedes ignorar este mensaje.</p>
-          <p>Gracias por tu confianza.<br><strong>${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p>Gracias por tu confianza.<br><strong>${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -129,7 +129,7 @@ export function invoiceEmail(invoiceNumber: string, total: number, dueDate: stri
 
 export function invoiceWithLinkEmail(invoiceNumber: string, total: number, dueDate: string, clientName: string, payUrl: string): EmailTemplate {
   return {
-    subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || 'Agencia Marketing'}`,
+    subject: `Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -164,7 +164,7 @@ export function invoiceWithLinkEmail(invoiceNumber: string, total: number, dueDa
           </div>
           <p style="font-size: 12px; color: #9ca3af;">Si el botón no funciona, copia este enlace en tu navegador: <a href="${payUrl}" style="color: #2563eb;">${payUrl}</a></p>
           <p>Si ya has realizado el pago, puedes ignorar este mensaje.</p>
-          <p>Gracias por tu confianza.<br><strong>${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p>Gracias por tu confianza.<br><strong>${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -174,7 +174,7 @@ export function invoiceWithLinkEmail(invoiceNumber: string, total: number, dueDa
 
 export function paymentReminder(invoiceNumber: string, total: number, daysOverdue: number, clientName: string): EmailTemplate {
   return {
-    subject: `Recordatorio: Factura ${invoiceNumber} vencida - ${process.env.COMPANY_NAME || 'Agencia Marketing'}`,
+    subject: `Recordatorio: Factura ${invoiceNumber} vencida - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -190,7 +190,7 @@ export function paymentReminder(invoiceNumber: string, total: number, daysOverdu
           </div>
           <p>Por favor, realiza el pago lo antes posible.</p>
           <p>Si ya has realizado el pago, por favor ignora este mensaje.</p>
-          <p>Gracias.<br><strong>${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p>Gracias.<br><strong>${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -276,7 +276,7 @@ export function adminReviewDraft(businessName: string, reviewerName: string, dra
             "${draft}"
           </div>
           <p style="color: #b45309;"><strong>Importante:</strong> el borrador NO se ha publicado. Revísalo, edítalo si lo necesitas y publícalo desde el panel de reseñas.</p>
-          <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -286,7 +286,7 @@ export function adminReviewDraft(businessName: string, reviewerName: string, dra
 
 export function followUpEmail(leadName: string, businessName: string): EmailTemplate {
   return {
-    subject: `¿Podemos ayudarte con tu marketing? - ${process.env.COMPANY_NAME || 'Agencia Marketing'}`,
+    subject: `¿Podemos ayudarte con tu marketing? - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -305,12 +305,12 @@ export function followUpEmail(leadName: string, businessName: string): EmailTemp
           </ul>
           <p>Ofrecemos una <strong>consulta gratuita</strong> sin compromiso.</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=Consulta%20gratuita" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+            <a href="mailto:info@opinilab.com?subject=Consulta%20gratuita" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
               Responder a este email
             </a>
           </div>
           <p>¡Esperamos poder trabajar juntos!</p>
-          <p><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -319,7 +319,7 @@ export function followUpEmail(leadName: string, businessName: string): EmailTemp
 }
 
 export function coldLeadEmail(name: string, businessName: string): EmailTemplate {
-  const company = process.env.COMPANY_NAME || "Agencia Marketing"
+  const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
     subject: `Reseñas y visibilidad para ${businessName} (oferta 49€/mes)`,
     html: `
@@ -341,12 +341,12 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
           <p>Para tu zona, solo durante el lanzamiento: <strong>49€/mes</strong> sin cuota de alta.</p>
           <p>Te enviamos un <strong>análisis gratuito de tu ficha de Google</strong> sin compromiso:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito%20para%20${encodeURIComponent(businessName)}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            <a href="mailto:info@opinilab.com?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito%20para%20${encodeURIComponent(businessName)}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
               Quiero mi análisis gratuito →
             </a>
           </div>
-          <p style="font-size: 12px; color: #9ca3af;">También puedes simplemente responder a este email.</p>
-          <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
+          <p style="font-size: 12px; color: #9ca3af;">También puedes simplemente responder a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
+          <p>Un saludo,<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -355,7 +355,7 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
 }
 
 export function finalFollowUpEmail(name: string, businessName: string): EmailTemplate {
-  const company = process.env.COMPANY_NAME || "Agencia Marketing"
+  const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
     subject: `Último aviso: 49€/mes para ${businessName}`,
     html: `
@@ -369,14 +369,14 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
           <p>Hola <strong>${name}</strong>,</p>
           <p>Esta es nuestra última comunicación sobre <strong>${businessName}</strong>.</p>
           <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>49€/mes</strong> y sin cuota de gestión de datos.</p>
-          <p>Si todavía te interesa ver tu análisis gratuito, responde a este email.</p>
+          <p>Si todavía te interesa ver tu análisis gratuito, responde a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="mailto:${process.env.EMAIL_FROM || 'hola@opinilab.com'}?subject=S%C3%AD%2C%20quiero%20mi%20an%C3%A1lisis%20gratuito" style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            <a href="mailto:info@opinilab.com?subject=S%C3%AD%2C%20quiero%20mi%20an%C3%A1lisis%20gratuito" style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
               Sí, quiero mi análisis gratuito →
             </a>
           </div>
-          <p style="font-size: 12px; color: #9ca3af;">Si ya no te interesa, responde con "no interesado" y no volveremos a escribirte.</p>
-          <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
+          <p style="font-size: 12px; color: #9ca3af;">Si ya no te interesa, responde con "no interesado" a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a> y no volveremos a escribirte.</p>
+          <p>Un saludo,<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -385,7 +385,7 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
 }
 
 export function promotionEmail(name: string, businessName: string): EmailTemplate {
-  const company = process.env.COMPANY_NAME || "Agencia Marketing"
+  const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
     subject: `Haz crecer ${businessName} con ${company}`,
     html: `
@@ -405,8 +405,8 @@ export function promotionEmail(name: string, businessName: string): EmailTemplat
             <li>✅ Atraer más clientes a través de redes sociales</li>
           </ul>
           <p>Te ofrecemos una <strong>consulta gratuita y sin compromiso</strong> para analizar tu presencia online.</p>
-          <p>Responde a este email y te contamos cómo podemos empezar.</p>
-          <p>Un saludo,<br><strong>Equipo de ${company}</strong></p>
+          <p>Escríbenos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a> y te contamos cómo podemos empezar.</p>
+          <p>Un saludo,<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -418,7 +418,7 @@ export type EmailTemplateKey = "welcome" | "onboardingGuide" | "invoice" | "paym
 
 export function paymentThanksEmail(businessName: string, contactName: string, invoiceNumber: string, total: number): EmailTemplate {
   return {
-    subject: `✅ Pago recibido - Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || 'Agencia Marketing'}`,
+    subject: `✅ Pago recibido - Factura ${invoiceNumber} - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -430,8 +430,8 @@ export function paymentThanksEmail(businessName: string, contactName: string, in
           <p>Hola <strong>${contactName}</strong>,</p>
           <p>Hemos recibido correctamente el pago de <strong>${total.toFixed(2)}€</strong> correspondiente a la factura <strong>${invoiceNumber}</strong> de <strong>${businessName}</strong>.</p>
           <p>Gracias por tu confianza. Estamos trabajando para que tu negocio crezca.</p>
-          <p>Si tienes cualquier duda, no dudes en contactarnos.</p>
-          <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p>Si tienes cualquier duda, no dudes en escribirnos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
+          <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -457,7 +457,7 @@ export function projectReadyEmail(contactName: string, businessName: string, ser
             <a href="${payUrl}" style="background: #7c3aed; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold;">Abonar y recibir mi proyecto</a>
           </p>
           <p>En cuanto confirmemos el pago, te lo entregamos de inmediato.</p>
-          <p>¡Gracias por tu confianza!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p>¡Gracias por tu confianza!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -489,9 +489,9 @@ export function reportNotification(clientName: string, businessName: string, per
           <p>Hola <strong>${clientName}</strong>,</p>
           <p>Tu informe de marketing de <strong>${businessName}</strong> para <strong>${period}</strong> ya está disponible.</p>
           <p>Encontrarás un resumen de todas las actividades realizadas y los resultados obtenidos.</p>
-          <p>Si tienes alguna pregunta sobre el informe, no dudes en contactarnos.</p>
+          <p>Si tienes alguna pregunta sobre el informe, no dudes en escribirnos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
           <p>¡Seguimos trabajando para hacer crecer tu negocio!</p>
-          <p><strong>Equipo de ${process.env.COMPANY_NAME || 'Agencia Marketing'}</strong></p>
+          <p><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>

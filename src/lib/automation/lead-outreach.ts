@@ -44,10 +44,11 @@ export async function autoLeadOutreach(
   logs: OutreachLog[]
 ): Promise<void> {
   const startOfDay = new Date(now.toDateString()).toISOString()
+  const outreachNextDays = Math.max(Number(cfg.lead_outreach_next_days as number) || 7, 1)
   const leadVars = (lead: { contact_name: string | null; business_name: string }) => ({
     name: lead.contact_name || lead.business_name,
     business: lead.business_name,
-    company: process.env.COMPANY_NAME || "Agencia Marketing",
+    company: process.env.COMPANY_NAME || "OpiniLab",
   })
 
   // 1) Primer toque en frío: leads recién captados por el scraper (status new)
@@ -116,7 +117,7 @@ export async function autoLeadOutreach(
               .from("leads")
               .update({
                 status: "contacted",
-                next_follow_up_at: new Date(now.getTime() + 7 * DAY_MS).toISOString(),
+                next_follow_up_at: new Date(now.getTime() + outreachNextDays * DAY_MS).toISOString(),
                 last_contact_at: now.toISOString(),
                 updated_at: now.toISOString(),
               })
@@ -221,7 +222,7 @@ export async function autoLeadOutreach(
           const next =
             tplKey === "followup_2"
               ? null
-              : new Date(now.getTime() + 7 * DAY_MS).toISOString()
+              : new Date(now.getTime() + outreachNextDays * DAY_MS).toISOString()
           await supabase
             .from("leads")
             .update({

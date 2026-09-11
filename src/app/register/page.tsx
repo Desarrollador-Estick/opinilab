@@ -12,7 +12,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="text-2xl font-bold text-gray-900">
-            🚀 Agencia Marketing
+            ⭐ OpiniLab
           </Link>
           <p className="text-gray-500 mt-2">Registro</p>
         </div>
