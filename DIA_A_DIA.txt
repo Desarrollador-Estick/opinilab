@@ -454,6 +454,34 @@ Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
     4) Test: mándate un correo desde una cuenta externa a la dirección entrante
        y comprueba que se guarda en Supabase → tabla email_replies.
   - Más detalles en C:\Users\jordi\Desktop\changes_summary.txt.
+  ----------------------------------------------------------------------------
+  ESTADO AL 12/09/2026 (tarde) — PROTECCIÓN DE DATOS (RGPD/LSSI) + INFORME:
+  - PIE LEGAL en todos los emails comerciales: identidad del responsable
+    (COMPANY_NAME/NIF/COMPANY_ADDRESS), finalidad, base de interés legítimo
+    (art. 6.1.f RGPD / art. 21 LSSI-CE), enlace de baja (oposición gratuita),
+    enlace /proteccion-datos y /privacidad, contacto.
+  - ANALÍTICA CONSENTIDA: TrackingProvider solo manda eventos si el usuario
+    aceptó el banner de cookies (localStorage cookie-consent).
+  - /proteccion-datos (página pública): informe + formulario de derechos
+    (ARCO + baja). Envía solicitudes a la tabla privacy_requests y avisa al
+    equipo por email (ADMIN_EMAIL). Honeypot anti-bots.
+  - Panel /dashboard/proteccion-datos: informe vivo de cumplimiento (checklist,
+    leads lost/anonimizados, bajas) + listado de solicitudes con botón
+    "Resolver y borrar datos" (borra réplicas y envíos del email, anonimiza
+    los leads y añade el email a la lista de bajas).
+  - RETENCIÓN automática (corre en /api/automation, cron 09:00): leads lost →
+    120 días; new/contacted sin respuesta → 120 días; page_events → 12 meses;
+    email_sends → 24 meses (anonimización/borrado automático).
+  - Informe ROPA completo: docs/proteccion-datos/INFORME_PROTECCION_DATOS.md.
+  - Migración 029_privacy_compliance.sql APLICADA en producción (vía Management
+    API); CTA "reservar llamada" (BOOKING_URL) en emails de captación
+    (primer toque / seguimiento / promos / último aviso).
+  - Commit b7f7782 push + deploy ok. Smoke test: alta-baja resuelta y suprimida.
+  - ⚠️ PENDIENTE TÚ: COMPANY_NIF y COMPANY_ADDRESS YA están en Vercel desde el
+    05/09/2026 (X-4554348-J, C/ Barcelona, La Coruña 15010) — comprobar que el
+    pie legal de un email real salga completo; opcional BOOKING_URL (Calendly/
+    Meet) para el botón de llamada; seguir pendiente el setup Resend Inbound de
+    la sección anterior.
 ================================================================================
 FIN DEL DOCUMENTO
 ================================================================================

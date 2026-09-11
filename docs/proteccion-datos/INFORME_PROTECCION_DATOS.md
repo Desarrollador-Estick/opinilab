@@ -12,12 +12,16 @@
 | Campo | Valor |
 |---|---|
 | Denominación | OpiniLab (empresa prestadora de servicios de marketing digital) |
-| NIF | Pendiente de confirmar — configurar `COMPANY_NIF` en el entorno de producción |
-| Domicilio | Pendiente de confirmar — configurar `COMPANY_ADDRESS` en el entorno de producción |
+| NIF | X-4554348-J (`COMPANY_NIF`, en Vercel Production) |
+| Domicilio | C/ Barcelona, La Coruña 15010 (`COMPANY_ADDRESS`, en Vercel Production) |
 | Contacto | `info@opinilab.com` |
 | Fecha de entrada en vigor de medidas documentadas | 12/09/2026 |
 
-**Nota operativa:** la identidad del responsable (nombre comercial + NIF + dirección) debe quedar configurada en el pie legal de los emails y en las páginas legales. Los valores de entorno son: `COMPANY_NAME`, `COMPANY_NIF`, `COMPANY_ADDRESS`, `COMPANY_EMAIL`.
+**Nota operativa:** la identidad del responsable (nombre comercial + NIF +
+dirección) queda reflejada en el pie legal de los emails y en las páginas legales.
+Los valores de entorno en Vercel Production son: `COMPANY_NAME`, `COMPANY_NIF`
+(verificado 05/09/2026), `COMPANY_ADDRESS` (verificado 05/09/2026) y
+`COMPANY_EMAIL`.
 
 ---
 
@@ -112,6 +116,5 @@ oposición gratuito y efectivo**, **ROPA** actualizado, **purga por retención**
 derechos funcional**.
 
 **Pendientes humanos (concretar con el responsable):**
-1. Configurar `COMPANY_NIF` y `COMPANY_ADDRESS` en Vercel para que la identidad del responsable sea completa en emails y páginas legales.
-2. Confirmar que existe el DPA firmado con los encargados anteriores (plantillas de proveedores).
-3. Si el scraping se amplía a otras fuentes, revisar este apartado y la base de interés legítimo.
+1. Confirmar que existe el DPA firmado con los encargados anteriores (plantillas de proveedores).
+2. Si el scraping se amplía a otras fuentes, revisar este apartado y la base de interés legítimo.
