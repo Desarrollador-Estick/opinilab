@@ -31,14 +31,31 @@ export interface SendEmailResult {
   skipped?: boolean
 }
 
-/** Footer de baja de email que se añade a todo correo comercial. */
+/** Identidad del responsable del tratamiento que se muestra en el pie legal. */
+function buildControllerLine(): string {
+  const company = process.env.COMPANY_NAME || "OpiniLab"
+  const nif = process.env.COMPANY_NIF
+  const address = process.env.COMPANY_ADDRESS
+  return [company, nif, address].filter(Boolean).join(" · ")
+}
+
+/**
+ * Footer legal completo (RGPD + LSSI-CE) que se añade a todo correo comercial:
+ * identidad del responsable, finalidad, base de interés legítimo, derecho de
+ * oposición/baja gratuito, enlaces a privacidad y contacto.
+ */
 function buildFooter(email: string): string {
   const link = buildUnsubscribeUrl(email)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
+  const contact = process.env.COMPANY_EMAIL || "info@opinilab.com"
+  const controller = buildControllerLine()
   return `
     <div style="margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb;">
-      <p style="margin:0; font-size:11px; color:#9ca3af; text-align:center; line-height:1.5;">
-        Recibes este correo porque contactamos contigo tras ver tu negocio en Google.
-        Si no quieres recibir más correos nuestros: <a href="${link}" style="color:#6b7280;">darse de baja aquí</a>.
+      <p style="margin:0; font-size:11px; color:#6b7280; text-align:center; line-height:1.6;">
+        Este correo es una comunicación comercial dirigida a ${controller} y la enviamos porque su negocio aparece en fuentes accesibles al público (p. ej. Google Maps) y consideramos que nuestros servicios pueden ser de interés para usted (base: interés legítimo, art. 6.1.f RGPD / art. 21 LSSI-CE).
+      </p>
+      <p style="margin:4px 0 0; font-size:11px; color:#9ca3af; text-align:center; line-height:1.6;">
+        Puede ejercer sus derechos y oponerse a este tratamiento de forma gratuita y sin explicar los motivos: <a href="${link}" style="color:#6b7280;">darse de baja aquí</a> · <a href="${baseUrl}/proteccion-datos" style="color:#6b7280;">derechos y protección de datos</a> · <a href="${baseUrl}/privacidad" style="color:#6b7280;">política de privacidad</a> · contacto: <a href="mailto:${contact}" style="color:#6b7280;">${contact}</a>
       </p>
     </div>`
 }

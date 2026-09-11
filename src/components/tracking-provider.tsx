@@ -4,6 +4,7 @@ import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
 const TRACK_ENDPOINT = "/api/analytics/track"
+const CONSENT_KEY = "cookie-consent"
 
 let visitorId: string | null = null
 function getVisitorId() {
@@ -21,7 +22,17 @@ function getVisitorId() {
   return visitorId
 }
 
+/** Analítica solo si el visitante dio su consentimiento (RGPD/ePrivacy). */
+function hasConsent(): boolean {
+  try {
+    return localStorage.getItem(CONSENT_KEY) === "accepted"
+  } catch {
+    return false
+  }
+}
+
 function fire(event_type: "visit" | "click", label?: string, url?: string) {
+  if (!hasConsent()) return
   let path = "/"
   try {
     path = window.location.pathname || "/"

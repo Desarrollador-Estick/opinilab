@@ -15,6 +15,7 @@ import {
   autoLeadOutreach,
   getAutomationEmailsConfig,
 } from "@/lib/automation/lead-outreach"
+import { runRetentionPurge } from "@/lib/privacy/retention"
 
 export interface AutomationLog {
   action: string
@@ -503,6 +504,10 @@ export async function runAutomationFull(now = new Date()): Promise<AutomationRes
     if (automationConfig.review_auto_response_enabled) {
       await autoDraftReviewResponses(supabase, automationConfig, now, logs)
     }
+
+    // 5. Retención de datos (RGPD): anonimiza leads sin interés legítimo y
+    //    purga eventos/registros de email antiguos.
+    await runRetentionPurge(supabase, now, logs)
 
     // 5. Log all automation actions
     if (logs.length > 0) {

@@ -3,6 +3,21 @@ export interface EmailTemplate {
   html: string
 }
 
+/** CTA de reserva de llamada. Si BOOKING_URL está configurado muestra un botón
+ *  de calendario; si no, invita a responder el email. */
+function bookingCta(): string {
+  const url = process.env.BOOKING_URL
+  if (url) {
+    return `
+      <p style="text-align:center; margin:14px 0 0;">
+        <a href="${url}" style="background:#059669; color:white; padding:12px 24px; text-decoration:none; border-radius:8px; font-weight:bold; font-size:14px;">
+          Reservar una llamada de 15 min →
+        </a>
+      </p>`
+  }
+  return `<p style="font-size:12px; color:#9ca3af; text-align:center; margin:12px 0 0;">¿Prefieres una llamada? Simplemente responde a este email y te llamamos nosotros.</p>`
+}
+
 export function welcomeEmail(businessName: string, contactName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
@@ -372,6 +387,7 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
             </a>
           </div>
           <p style="font-size: 12px; color: #9ca3af;">También puedes simplemente responder a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
+          ${bookingCta()}
           <p>Un saludo,<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
@@ -402,6 +418,7 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
             </a>
           </div>
           <p style="font-size: 12px; color: #9ca3af;">Si ya no te interesa, responde con "no interesado" a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a> y no volveremos a escribirte.</p>
+          ${bookingCta()}
           <p>Un saludo,<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
@@ -499,6 +516,49 @@ export const emailTemplates: Record<EmailTemplateKey, (data: Record<string, stri
   reviewRequest: (data) => reviewRequest(data.customerName as string, data.businessName as string, data.reviewUrl as string),
   followUp: (data) => followUpEmail(data.leadName as string, data.businessName as string),
   report: (data) => reportNotification(data.clientName as string, data.businessName as string, data.period as string),
+}
+
+export function privacyRequestNotify(
+  fullName: string | null,
+  email: string,
+  requestType: string,
+  details: string
+): EmailTemplate {
+  const company = process.env.COMPANY_NAME || "OpiniLab"
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
+  const labels: Record<string, string> = {
+    acceso: "Acceso",
+    rectificacion: "Rectificación",
+    supresion: "Supresión / derecho al olvido",
+    limitacion: "Limitación del tratamiento",
+    portabilidad: "Portabilidad",
+    oposicion: "Oposición",
+    baja_marketing: "Baja de comunicaciones comerciales",
+  }
+  return {
+    subject: `🛡️ Solicitud de derechos RGPD — ${requestType}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #0f172a; padding: 28px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h1 style="color: white; margin: 0;">🛡️ Nueva solicitud de protección de datos</h1>
+        </div>
+        <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
+          <p>Se ha recibido una solicitud de ejercicio de derechos RGPD en la web:</p>
+          <table style="width: 100%; border-collapse: collapse; margin: 18px 0;">
+            <tr><td style="padding: 8px 0; color: #6b7280;">Nombre:</td><td style="text-align: right; font-weight: bold;">${fullName || "No indicado"}</td></tr>
+            <tr><td style="padding: 8px 0; color: #6b7280;">Email:</td><td style="text-align: right; font-weight: bold;">${email}</td></tr>
+            <tr><td style="padding: 8px 0; color: #6b7280;">Derecho solicitado:</td><td style="text-align: right; font-weight: bold;">${labels[requestType] || requestType}</td></tr>
+          </table>
+          <div style="background: white; border: 1px dashed #94a3b8; border-radius: 8px; padding: 16px; margin: 0 0 18px; color: #4b5563; font-size: 14px; white-space: pre-wrap;">${details.replace(/</g, "&lt;")}</div>
+          <p>Gestiona la solicitud desde el panel: <a href="${baseUrl}/dashboard/proteccion-datos" style="color: #2563eb;">/dashboard/proteccion-datos</a>. Los derechos de supresión y oposición borran los datos asociados al email de inmediato al resolverlos.</p>
+          <p style="margin: 0; color: #6b7280; font-size: 13px;">— Equipo de ${company}</p>
+        </div>
+      </body>
+      </html>
+    `,
+  }
 }
 
 export function reportNotification(clientName: string, businessName: string, period: string): EmailTemplate {

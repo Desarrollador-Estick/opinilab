@@ -1051,6 +1051,42 @@ export interface Database {
           }
         ]
       }
+      privacy_requests: {
+        Row: {
+          id: string
+          full_name: string | null
+          email: string
+          request_type: string
+          details: string | null
+          status: string
+          notes: string | null
+          created_at: string
+          handled_at: string | null
+        }
+        Insert: {
+          id?: string
+          full_name?: string | null
+          email: string
+          request_type: string
+          details?: string | null
+          status?: string
+          notes?: string | null
+          created_at?: string
+          handled_at?: string | null
+        }
+        Update: {
+          id?: string
+          full_name?: string | null
+          email?: string
+          request_type?: string
+          details?: string | null
+          status?: string
+          notes?: string | null
+          created_at?: string
+          handled_at?: string | null
+        }
+                Relationships: []
+      }
       tasks: {
         Row: {
           id: string

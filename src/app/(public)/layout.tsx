@@ -119,6 +119,7 @@ export default function PublicLayout({
                 <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Pedir presupuesto</a></li>
                 <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Auditoría gratuita</a></li>
                 <li><Link href="/privacidad" className="hover:text-white transition-colors cursor-pointer">Política de privacidad</Link></li>
+                <li><Link href="/proteccion-datos" className="hover:text-white transition-colors cursor-pointer">Protección de datos y derechos</Link></li>
               </ul>
             </div>
           </div>
@@ -128,6 +129,7 @@ export default function PublicLayout({
               <Link href="/terminos" className="hover:text-white transition-colors cursor-pointer">Términos</Link>
               <Link href="/privacidad" className="hover:text-white transition-colors cursor-pointer">Privacidad</Link>
               <Link href="/cookies" className="hover:text-white transition-colors cursor-pointer">Cookies</Link>
+              <Link href="/proteccion-datos" className="hover:text-white transition-colors cursor-pointer">Protección de datos</Link>
             </div>
           </div>
         </div>
