@@ -498,6 +498,8 @@ Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
     auto_scraped, social_media Json). tsc --noEmit + eslint limpios.
   - Deploy `vercel --prod` OK: alias https://www.opinilab.com, 81 rutas,
     build + TypeScript en Vercel correctos.
+  - Commit/push 414a558 (main → origin/main) con la edición de leads y el
+    CSV de leads contactados.
 ================================================================================
 FIN DEL DOCUMENTO
 ================================================================================
