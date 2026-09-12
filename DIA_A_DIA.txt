@@ -482,6 +482,22 @@ Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
     pie legal de un email real salga completo; opcional BOOKING_URL (Calendly/
     Meet) para el botón de llamada; seguir pendiente el setup Resend Inbound de
     la sección anterior.
+
+  ESTADO AL 12/09/2026 (noche) — REPORTE LEADS + EDICIÓN EN FICHA:
+  - CSV de los 49 leads `contacted` con su historial de envíos (qué plantillas
+    recibió cada uno, nº de envíos, primera/última fecha) generado en
+    C:\Users\jordi\Desktop\leads_contacted_49.csv (79 email_sends; outbound_1 x48,
+    followup_1 x24, followup_2 x1; 1 lead sin envíos). Sirve para priorizar el
+    contacto humano (llamada/email) sobre los que más seguimiento llevan.
+  - Ficha de lead (/dashboard/leads/[id]): botón "Editar" con formulario para
+    contact_name, email, phone, website, city, industry, source (selector),
+    score (0-100). Guarda vía cliente a la tabla leads (RLS, mismo rol de
+    team). Añadida card "Historial de envíos" (email_sends) con plantilla,
+    asunto, estado y fecha.
+  - Tipos: interface Lead ajustada a los tipos generados (source enum con
+    auto_scraped, social_media Json). tsc --noEmit + eslint limpios.
+  - Deploy `vercel --prod` OK: alias https://www.opinilab.com, 81 rutas,
+    build + TypeScript en Vercel correctos.
 ================================================================================
 FIN DEL DOCUMENTO
 ================================================================================

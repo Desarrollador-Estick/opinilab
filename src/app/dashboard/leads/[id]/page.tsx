@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
+import type { Json } from "@/types/database"
 import { formatDateTime, getStatusColor } from "@/lib/utils"
 import { convertLeadToClientAction } from "@/app/dashboard/leads/actions"
 
@@ -12,6 +13,7 @@ interface Lead {
   business_name: string
   contact_name: string | null
   email: string | null
+  phone: string | null
   website: string | null
   city: string | null
   industry: string | null
@@ -19,11 +21,22 @@ interface Lead {
   status: string
   score: number
   notes: string | null
+  social_media: Json | null
   last_contact_at: string | null
   next_follow_up_at: string | null
   converted_client_id: string | null
   created_at: string
   updated_at: string
+}
+
+interface EmailSend {
+  id: string
+  template: string | null
+  subject: string | null
+  to: string | null
+  status: string | null
+  created_at: string
+  resend_id: string | null
 }
 
 interface StatusChange {
@@ -84,7 +97,18 @@ const sourceLabels: Record<string, string> = {
   referral: "Referido",
   cold_outreach: "Cold Outreach",
   social: "Redes Sociales",
+  auto_scraped: "Scraper automático",
 }
+
+const SOURCE_OPTIONS: { value: string; label: string }[] = [
+  { value: "auto_scraped", label: "Scraper automático" },
+  { value: "google_maps", label: "Google Maps" },
+  { value: "directory", label: "Directorio" },
+  { value: "website", label: "Web" },
+  { value: "referral", label: "Referido" },
+  { value: "cold_outreach", label: "Cold Outreach" },
+  { value: "social", label: "Redes Sociales" },
+]
 
 const statusFlow: Record<string, string[]> = {
   new: ["contacted"],
@@ -109,6 +133,10 @@ export default function LeadDetailPage() {
   const [converting, setConverting] = useState(false)
   const [followUpDate, setFollowUpDate] = useState("")
   const [notes, setNotes] = useState("")
+  const [editMode, setEditMode] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sendHistory, setSendHistory] = useState<EmailSend[]>([])
+  const [form, setForm] = useState<Partial<Lead>>({})
   const [replies, setReplies] = useState<EmailReply[]>([])
   const [sendingReplyId, setSendingReplyId] = useState<string | null>(null)
 
@@ -141,11 +169,21 @@ export default function LeadDetailPage() {
     if (data) setReplies(data)
   }
 
+  async function fetchSends() {
+    const { data } = await supabase
+      .from("email_sends")
+      .select("*")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false })
+    if (data) setSendHistory(data)
+  }
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLead()
     fetchStatusHistory()
     fetchReplies()
+    fetchSends()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadId])
 
@@ -191,6 +229,60 @@ export default function LeadDetailPage() {
     } else {
       setLead((prev) => (prev ? { ...prev, next_follow_up_at: followUpDate } : prev))
     }
+  }
+
+  function startEdit() {
+    if (!lead) return
+    setForm({
+      contact_name: lead.contact_name || "",
+      email: lead.email || "",
+      phone: lead.phone || "",
+      website: lead.website || "",
+      city: lead.city || "",
+      industry: lead.industry || "",
+      source: lead.source || "auto_scraped",
+      score: lead.score,
+    })
+    setEditMode(true)
+  }
+
+  function updateForm(field: keyof Lead, value: string | number) {
+    setForm((prev) => ({ ...prev, [field]: value } as Partial<Lead>))
+  }
+
+  async function saveLeadEdit() {
+    if (!lead || !form) return
+    setSaving(true)
+    setError("")
+    const { error } = await supabase
+      .from("leads")
+      .update({
+        contact_name: form.contact_name ?? null,
+        email: form.email ?? null,
+        phone: form.phone ?? null,
+        website: form.website ?? null,
+        city: form.city ?? null,
+        industry: form.industry ?? null,
+        source: form.source as
+          | "google_maps"
+          | "directory"
+          | "website"
+          | "referral"
+          | "cold_outreach"
+          | "social"
+          | "auto_scraped"
+          | null,
+        score: form.score ?? lead.score,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", leadId)
+    if (error) {
+      setError(error.message)
+    } else {
+      setLead((prev) => (prev ? { ...prev, ...form } : prev))
+      setEditMode(false)
+    }
+    setSaving(false)
   }
 
   async function convertToClient() {
@@ -292,45 +384,154 @@ export default function LeadDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-xl border p-6">
-            <h3 className="font-semibold mb-4">Datos del Lead</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-gray-500">Contacto</p>
-                <p className="font-medium">{lead.contact_name || "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Email</p>
-                <p className="font-medium">{lead.email || "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Web</p>
-                <p className="font-medium">
-                  {lead.website ? (
-                    <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                      {lead.website}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-500">Ciudad</p>
-                <p className="font-medium">{lead.city || "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Industria</p>
-                <p className="font-medium">{lead.industry || "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Fuente</p>
-                <p className="font-medium">{sourceLabels[lead.source || ""] || "—"}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Creado</p>
-                <p className="font-medium">{formatDateTime(lead.created_at)}</p>
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Datos del Lead</h3>
+              {!editMode ? (
+                <button
+                  onClick={startEdit}
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition"
+                >
+                  Editar
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditMode(false)}
+                    className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-200 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={saveLeadEdit}
+                    disabled={saving}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition disabled:opacity-50"
+                  >
+                    {saving ? "Guardando..." : "Guardar cambios"}
+                  </button>
+                </div>
+              )}
             </div>
+            {!editMode ? (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-gray-500">Contacto</p>
+                  <p className="font-medium">{lead.contact_name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Email</p>
+                  <p className="font-medium">{lead.email || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Teléfono</p>
+                  <p className="font-medium">{lead.phone || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Web</p>
+                  <p className="font-medium">
+                    {lead.website ? (
+                      <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        {lead.website}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Ciudad</p>
+                  <p className="font-medium">{lead.city || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Industria</p>
+                  <p className="font-medium">{lead.industry || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Fuente</p>
+                  <p className="font-medium">{sourceLabels[lead.source || ""] || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Creado</p>
+                  <p className="font-medium">{formatDateTime(lead.created_at)}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <label className="block text-gray-500 mb-1">Contacto</label>
+                  <input
+                    value={form.contact_name || ""}
+                    onChange={(e) => updateForm("contact_name", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={form.email || ""}
+                    onChange={(e) => updateForm("email", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Teléfono</label>
+                  <input
+                    value={form.phone || ""}
+                    onChange={(e) => updateForm("phone", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Web</label>
+                  <input
+                    value={form.website || ""}
+                    onChange={(e) => updateForm("website", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Ciudad</label>
+                  <input
+                    value={form.city || ""}
+                    onChange={(e) => updateForm("city", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Industria</label>
+                  <input
+                    value={form.industry || ""}
+                    onChange={(e) => updateForm("industry", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Fuente</label>
+                  <select
+                    value={form.source || "auto_scraped"}
+                    onChange={(e) => updateForm("source", e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+                  >
+                    {SOURCE_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-gray-500 mb-1">Score (0-100)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={form.score ?? 0}
+                    onChange={(e) => updateForm("score", parseInt(e.target.value, 10) || 0)}
+                    className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border p-6">
@@ -431,6 +632,39 @@ export default function LeadDetailPage() {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border p-6">
+            <h3 className="font-semibold mb-1">Historial de envíos</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Emails enviados desde OpiniLab a este lead (outbound_1, followups, promos...).
+            </p>
+            {sendHistory.length === 0 ? (
+              <p className="text-sm text-gray-500">No hay envíos registrados para este lead.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-gray-500 border-b">
+                      <th className="pb-2 pr-4 font-medium">Plantilla</th>
+                      <th className="pb-2 pr-4 font-medium">Asunto</th>
+                      <th className="pb-2 pr-4 font-medium">Estado</th>
+                      <th className="pb-2 font-medium">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sendHistory.map((s) => (
+                      <tr key={s.id} className="border-b border-gray-50">
+                        <td className="py-2 pr-4 font-mono text-xs">{s.template || "—"}</td>
+                        <td className="py-2 pr-4 text-gray-700">{s.subject || "—"}</td>
+                        <td className="py-2 pr-4 text-gray-500">{s.status || "—"}</td>
+                        <td className="py-2 whitespace-nowrap text-gray-500">{formatDateTime(s.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
