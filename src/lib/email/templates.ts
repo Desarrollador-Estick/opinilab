@@ -277,20 +277,20 @@ export function reviewRequestAuto(customerName: string, businessName: string, re
 
 export function adminReviewDraft(businessName: string, reviewerName: string, draft: string): EmailTemplate {
   return {
-    subject: `✍️ Borrador de respuesta a reseña listo - ${businessName}`,
+    subject: `🤖 Respuesta automática a reseña - ${businessName}`,
     html: `
       <!DOCTYPE html>
       <html>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: #7c3aed; padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0;">✍️ Borrador de respuesta</h1>
+          <h1 style="color: white; margin: 0;">🤖 Respuesta automática</h1>
         </div>
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
-          <p>La IA ha preparado un borrador de respuesta para una reseña de <strong>${reviewerName}</strong> en <strong>${businessName}</strong>.</p>
+          <p>La IA ha respondido automáticamente a una reseña de <strong>${reviewerName}</strong> en <strong>${businessName}</strong>. La respuesta ya está guardada en el panel de reseñas.</p>
           <div style="background: white; border: 1px dashed #c4b5fd; border-radius: 8px; padding: 20px; margin: 20px 0; color: #4b5563;">
             "${draft}"
           </div>
-          <p style="color: #b45309;"><strong>Importante:</strong> el borrador NO se ha publicado. Revísalo, edítalo si lo necesitas y publícalo desde el panel de reseñas.</p>
+          <p style="color: #b45309;"><strong>Importante:</strong> la respuesta está registrada y guardada, pero debe publicarse en la ficha de Google. Revísala en el panel de reseñas y publícala en Google Maps si estás conforme.</p>
           <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>

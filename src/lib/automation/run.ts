@@ -259,6 +259,7 @@ async function autoDraftReviewResponses(
     .select(
       "id, client_id, platform, reviewer_name, rating, review_text, clients(business_name)"
     )
+    .eq("platform", "google")
     .eq("status", "new")
     .is("response_text", null)
 
@@ -299,7 +300,11 @@ async function autoDraftReviewResponses(
 
       await supabase
         .from("reviews")
-        .update({ response_text: draft })
+        .update({
+          response_text: draft,
+          response_date: now.toISOString(),
+          status: "responded",
+        })
         .eq("id", review.id)
 
       if (notifyAdmin) {
@@ -315,8 +320,8 @@ async function autoDraftReviewResponses(
       }
 
       logs.push({
-        action: "review_ai_draft",
-        details: `Borrador IA para reseña de ${reviewer} (${businessName}), plataforma ${review.platform}.${notifyAdmin ? " Notificado admin." : ""}`,
+        action: "review_auto_respond",
+        details: `Respuesta IA automática para reseña de ${reviewer} (${businessName}), plataforma ${review.platform}.${notifyAdmin ? " Notificado admin." : ""}`,
         timestamp: now.toISOString(),
       })
     } catch (err) {

@@ -8,7 +8,7 @@ import { formatDate, getStatusColor } from "@/lib/utils"
 interface Review {
   id: string
   client_id: string
-  clients?: { business_name: string } | null
+  clients?: { business_name: string; google_maps_url: string | null } | null
   platform: string
   reviewer_name: string | null
   rating: number | null
@@ -39,17 +39,20 @@ export default function ResenasPage() {
   const supabase = createClient()
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterPlatform, setFilterPlatform] = useState("all")
+  const [filterPlatform, setFilterPlatform] = useState("google")
   const [filterStatus, setFilterStatus] = useState("all")
   const [respondingTo, setRespondingTo] = useState<string | null>(null)
   const [responseText, setResponseText] = useState("")
   const [sending, setSending] = useState(false)
+  const [aiGenerating, setAiGenerating] = useState<string | null>(null)
+  const [aiError, setAiError] = useState("")
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   async function loadReviews() {
     setLoading(true)
     const { data } = await supabase
       .from("reviews")
-      .select("*, clients(business_name)")
+      .select("*, clients(business_name, google_maps_url)")
       .order("created_at", { ascending: false })
     setReviews((data as Review[]) || [])
     setLoading(false)
@@ -92,6 +95,38 @@ export default function ResenasPage() {
       loadReviews()
     }
     setSending(false)
+  }
+
+  async function handleAiDraft(review: Review) {
+    setAiGenerating(review.id)
+    setAiError("")
+    try {
+      const res = await fetch("/api/reviews/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ review_id: review.id }),
+      })
+      const data = await res.json()
+      if (data.success && data.draft) {
+        setResponseText(data.draft)
+      } else {
+        setAiError(data.error || "No se pudo generar el borrador")
+      }
+    } catch {
+      setAiError("Error al contactar con la IA")
+    } finally {
+      setAiGenerating(null)
+    }
+  }
+
+  async function handleCopy(text: string, reviewId: string) {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(reviewId)
+      setTimeout(() => setCopiedId(null), 2000)
+    } catch {
+      setAiError("No se pudo copiar la respuesta")
+    }
   }
 
   return (
@@ -223,6 +258,16 @@ export default function ResenasPage() {
                             </button>
                           ))}
                         </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleAiDraft(review)}
+                            disabled={aiGenerating === review.id}
+                            className="text-xs px-2 py-1 bg-purple-600 text-white border rounded hover:bg-purple-700 transition disabled:opacity-50"
+                          >
+                            {aiGenerating === review.id ? "Generando..." : "Responder con IA"}
+                          </button>
+                          {aiError && <span className="text-xs text-red-600">{aiError}</span>}
+                        </div>
                         <textarea
                           rows={3}
                           value={responseText}
@@ -230,18 +275,37 @@ export default function ResenasPage() {
                           className="w-full border rounded-lg px-3 py-2 text-sm"
                           placeholder="Escribe tu respuesta..."
                         />
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 flex-wrap">
                           <button
                             onClick={() => handleRespond(review.id)}
                             disabled={sending || !responseText.trim()}
                             className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
                           >
-                            {sending ? "Enviando..." : "Enviar Respuesta"}
+                            {sending ? "Enviando..." : "Guardar Respuesta"}
                           </button>
+                          {responseText.trim() && (
+                            <button
+                              onClick={() => handleCopy(responseText, review.id)}
+                              className="px-3 py-1.5 rounded-lg text-sm border hover:bg-gray-100"
+                            >
+                              {copiedId === review.id ? "Copiado ✓" : "Copiar respuesta"}
+                            </button>
+                          )}
+                          {review.clients?.google_maps_url && (
+                            <a
+                              href={review.clients.google_maps_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1.5 rounded-lg text-sm border hover:bg-gray-100"
+                            >
+                              Abrir en Google Maps
+                            </a>
+                          )}
                           <button
                             onClick={() => {
                               setRespondingTo(null)
                               setResponseText("")
+                              setAiError("")
                             }}
                             className="px-3 py-1.5 rounded-lg text-sm border hover:bg-gray-50"
                           >
