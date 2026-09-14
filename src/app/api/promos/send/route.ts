@@ -37,10 +37,51 @@ export async function POST(request: Request) {
     const name = recipient.name || "allá"
     const business = recipient.business_name || "tu negocio"
 
+    // El botón de contratación del template promo_1 (y los CTA de pago por lead)
+    // apuntan a /pagar/lead/{lead_token}. El token es el id del lead: se reutiliza
+    // el lead existente del mismo email o se crea uno (source=cold_outreach)
+    // para que el enlace de pago funcione y las respuestas entren al agente.
+    let leadToken: string | null = null
+    try {
+      const { data: existingLead } = await supabase
+        .from("leads")
+        .select("id")
+        .ilike("email", recipient.email)
+        .maybeSingle()
+      if (existingLead) {
+        leadToken = existingLead.id
+      } else {
+        const { data: newLead, error: createError } = await supabase
+          .from("leads")
+          .insert({
+            business_name: business,
+            contact_name: name,
+            email: recipient.email,
+            source: "cold_outreach",
+            status: "new",
+            notes: `Alta desde campaña promocional (${new Date().toISOString().split("T")[0]})`,
+          })
+          .select("id")
+          .maybeSingle()
+        if (createError) {
+          failed.push({ email: recipient.email, reason: createError.message })
+          continue
+        }
+        leadToken = newLead?.id ?? null
+      }
+    } catch (err) {
+      failed.push({
+        email: recipient.email,
+        reason: err instanceof Error ? err.message : "Error al crear el lead de pago",
+      })
+      continue
+    }
+
     const dbTemplate = await getDbEmailTemplate(supabase, "promo_1", {
       name,
       business,
       company,
+      lead_token: leadToken,
     })
 
     const { subject, html } = dbTemplate
@@ -52,7 +93,7 @@ export async function POST(request: Request) {
       template: "promo",
       subject,
       html,
-      data: { name, business },
+      data: { name, business, leadId: leadToken },
       promotional: true,
     })
 
