@@ -28,14 +28,13 @@ b) TOTP_ENC_KEY NO estaba en Vercel Production → RESUELTO el 05/09/2026.
    Añadida (necesaria para 2FA en src/lib/auth/totp.ts:24 y mfa-cookie.ts:24).
    El 2FA ya funciona en producción.
 
-c) NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY NO está en Vercel Production. AÚN PENDIENTE.
-   Se usa en las páginas públicas de pago (src/app/pagar/[token]/page.tsx:9 y
-   src/app/dashboard/clientes/[id]/pagar/page.tsx:10). Sin ella, Stripe Elements
-   no puede cargar. Se añadirá junto al paso a Stripe LIVE. Desde el commit b53dbe0
-   las páginas de pago detectan si Stripe está LIVE (STRIPE_SECRET_KEY sk_live_) y
-   ocultan las indicaciones de tarjeta de test (4242...). Stripe sigue en TEST:
-   STRIPE_SECRET_KEY y STRIPE_WEBHOOK_SECRET existen (test), pk no está, y la tabla
-   payments está vacía.
+c) NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY configurada en .env.local/.env.prod con prefijo pk_live_.
+   Se usa en las páginas públicas de pago. Stripe ya detecta el modo LIVE cuando
+   STRIPE_SECRET_KEY comienza con sk_live_ (código en src/app/api/stripe/create-payment-intent/route.ts:173
+   y src/app/api/public/pay/[token]/route.ts:87). Pendiente: sustituir las claves placeholder
+   por claves reales de Stripe Dashboard y actualizar STRIPE_WEBHOOK_SECRET con el secreto
+   LIVE desde el dashboard de Stripe. El webhook en producción debe ser:
+   https://opinilab.com/api/stripe/webhook
 
 d) NEXT_PUBLIC_APP_NAME NO está en Vercel Production.
    Se usa en la página /pagar (fallback "Agencia Marketing").
