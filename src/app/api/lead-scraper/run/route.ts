@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { isCronRequestAuthorized, unauthorizedResponse } from "@/lib/cron-auth"
 import { runAutomationFull } from "@/lib/automation/run"
+import { normalizeSingleEmail, splitEmails } from "@/lib/email/normalize"
 import type { Json } from "@/types/database"
 
 // El endpoint principal rechaza con 406 las peticiones sin User-Agent
@@ -305,7 +306,14 @@ function extractLeadFromElement(el: OverpassElement) {
   if (!name) return null
 
   const website = tags.website || tags["contact:website"] || tags["url"] || null
-  const email = tags.email || tags["contact:email"] || null
+  // El tag email de OSM puede contener varios emails separados por `;`, `,` o
+  // espacios. Se usa solo el primer email válido; los secundarios se anotan.
+  const emailRaw = tags.email || tags["contact:email"] || null
+  const email = emailRaw ? normalizeSingleEmail(emailRaw) : null
+  const emailAltNotes =
+    emailRaw && email
+      ? splitEmails(emailRaw).slice(1).join(", ")
+      : ""
   // Teléfono de contacto de OpenStreetMap (varias claves según el mapeo).
   // Puede venir con separadores o extensiones; se normaliza a formato +34.
   const phoneRaw =
@@ -337,6 +345,7 @@ function extractLeadFromElement(el: OverpassElement) {
     osm_id: el.id,
     osm_type: el.type,
     social_media,
+    email_alt: emailAltNotes || null,
   }
 }
 
@@ -765,6 +774,9 @@ async function runLeadScraper(forced = false) {
           lead.reviews ? `${lead.reviews} reseñas` : null,
           lead.address ? `Dirección: ${lead.address}` : null,
           lead.osm_id ? `OSM: ${lead.osm_type}/${lead.osm_id}` : null,
+          (lead as any).email_alt
+            ? `Emails alternativos: ${(lead as any).email_alt}`
+            : null,
         ]
           .filter(Boolean)
           .join(" | "),

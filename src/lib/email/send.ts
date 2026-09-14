@@ -2,6 +2,7 @@ import { Resend } from "resend"
 import { createServerAdminClient } from "@/lib/supabase/admin"
 import type { Json } from "@/types/database"
 import { isEmailSuppressed, buildUnsubscribeUrl } from "@/lib/email/unsubscribe"
+import { normalizeSingleEmail } from "@/lib/email/normalize"
 
 const resendToken = process.env.RESEND_API_KEY
 
@@ -83,6 +84,10 @@ export async function sendEmail({
   replyTo,
   promotional,
 }: SendEmailOptions): Promise<SendEmailResult> {
+  // Un campo "email" capturado en el scraping puede llegar con varios emails
+  // separados por `;`/`,`/espacios (tags OSM, listados). Se normaliza a un
+  // único destinatario válido; si no hay ninguno no se puede enviar.
+  const normalizedTo = normalizeSingleEmail(to) ?? to
   const resend = getResend()
   const fromEmail = process.env.EMAIL_FROM || "onboarding@resend.dev"
   const replyToEmail =
@@ -93,7 +98,7 @@ export async function sendEmail({
     try {
       const client = await createServerAdminClient()
       await client.from("email_sends").insert({
-        to,
+        to: normalizedTo,
         from: fromEmail,
         subject,
         template,
@@ -110,19 +115,19 @@ export async function sendEmail({
   if (promotional) {
     try {
       const adminClient = await createServerAdminClient()
-      if (await isEmailSuppressed(adminClient, to)) {
+      if (await isEmailSuppressed(adminClient, normalizedTo)) {
         await record("skipped", null)
-        console.log(`[email] ${to} (${template}) omitido: destinatario dado de baja.`)
+        console.log(`[email] ${normalizedTo} (${template}) omitido: destinatario dado de baja.`)
         return { ok: true, skipped: true }
       }
     } catch {}
   }
 
-  const finalHtml = promotional ? appendFooter(html, buildFooter(to)) : html
+  const finalHtml = promotional ? appendFooter(html, buildFooter(normalizedTo)) : html
 
   if (!resend) {
     console.warn(
-      `[email] RESEND_API_KEY no configurada. Email a ${to} (${template}) no enviado.`
+      `[email] RESEND_API_KEY no configurada. Email a ${normalizedTo} (${template}) no enviado.`
     )
     await record("failed", null)
     return { ok: false }
@@ -131,7 +136,7 @@ export async function sendEmail({
   try {
     const { data: emailData, error } = await resend.emails.send({
       from: fromEmail,
-      to: [to],
+      to: [normalizedTo],
       subject,
       html: finalHtml,
       ...(replyToEmail ? { reply_to: replyToEmail } : {}),
@@ -141,7 +146,7 @@ export async function sendEmail({
 
     return { ok: !error }
   } catch (e) {
-    console.error(`[email] Error enviando email a ${to} (${template}):`, e)
+    console.error(`[email] Error enviando email a ${normalizedTo} (${template}):`, e)
     return { ok: false }
   }
 }
