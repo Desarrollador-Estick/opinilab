@@ -6,6 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const LAUNCH_PLAN_NAME = "Plan Lanzamiento 49€/mes"
 const LAUNCH_PRICE_EUR = 49
+const SETUP_FEE_EUR = 30
 
 async function getAdminClient() {
   if (isServiceRoleConfigured()) {
@@ -65,6 +66,7 @@ export async function GET(
       offer: {
         name: LAUNCH_PLAN_NAME,
         price: LAUNCH_PRICE_EUR,
+        setupFee: SETUP_FEE_EUR,
         currency: "eur",
         description:
           "Gestión y respuesta automática de tus reseñas de Google + visibilidad online.",
@@ -146,7 +148,7 @@ export async function POST(
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: LAUNCH_PRICE_EUR * 100,
+      amount: (LAUNCH_PRICE_EUR + SETUP_FEE_EUR) * 100,
       currency: "eur",
       customer: customer.id,
       setup_future_usage: "off_session",
@@ -162,7 +164,7 @@ export async function POST(
       clientSecret: paymentIntent.client_secret,
       publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
       businessName: lead.business_name,
-      offer: { name: LAUNCH_PLAN_NAME, price: LAUNCH_PRICE_EUR, currency: "eur" },
+      offer: { name: LAUNCH_PLAN_NAME, price: LAUNCH_PRICE_EUR, setupFee: SETUP_FEE_EUR, currency: "eur" },
       stripeLive: process.env.STRIPE_SECRET_KEY?.startsWith("sk_live_") === true,
     })
   } catch (e) {

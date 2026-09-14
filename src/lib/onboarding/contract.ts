@@ -39,7 +39,7 @@ export async function createOnboardingContract(opts: {
       .insert({
         client_id: opts.clientId,
         contract_number: contractNumber,
-        title: `Contrato de prestación de servicios - ${opts.businessName}`,
+        title: `Contrato de respuesta automática a reseñas - ${opts.businessName}`,
         content,
         status: "draft",
         value: opts.value ?? 0,
@@ -70,12 +70,12 @@ function buildContractContent(opts: {
 }): string {
   const today = new Date().toLocaleDateString("es-ES")
   const company = process.env.COMPANY_NAME || "OpiniLab"
-  const service = opts.serviceName || "los servicios de marketing digital contratados"
+  const service = opts.serviceName || "Respuesta automática a reseñas de Google Business Profile"
   const value = opts.value
     ? `${Number(opts.value).toLocaleString("es-ES")} euros (IVA incluido)`
     : "el importe acordado entre las partes"
 
-  return `CONTRATO DE PRESTACIÓN DE SERVICIOS DE MARKETING DIGITAL
+  return `CONTRATO DE PRESTACIÓN DE SERVICIOS DE RESPUESTA AUTOMÁTICA A RESEÑAS DE GOOGLE
 
 Entre las partes:
 
@@ -84,31 +84,39 @@ PRESTADOR: ${company} (CIF: ${process.env.COMPANY_NIF || "B00000000"})
 CLIENTE: ${opts.businessName}${opts.contactName ? `, representado por ${opts.contactName}` : ""}.
 
 1. OBJETO DEL CONTRATO
-El presente contrato tiene por objeto la prestación de servicios de marketing digital por parte del Prestador para el Cliente, sin perjuicio de los detalles y anexos que ambas partes puedan acordar. Servicios inicialmente contratados: ${service}.
+El presente contrato tiene por objeto la prestación de servicios de respuesta automática a reseñas de Google Business Profile mediante inteligencia artificial por parte del Prestador para el Cliente. El servicio consiste en la gestión integral de las reseñas que los clientes del Negocio publican en su ficha de Google, incluyendo la generación automática de respuestas personalizadas, la solicitud proactiva de nuevas reseñas y el seguimiento de la reputación online.
 
 2. DURACIÓN
 El contrato tendrá una duración desde el ${today}, renovable por periodos iguales salvo notificación en contrario con 30 días de antelación.
 
-3. SERVICIOS
-Los servicios incluidos serán los acordados por ambas partes y detallados en el anexo correspondiente. El Prestador se compromete a tramitar documentalmente y ejecutar los servicios con la diligencia profesional que corresponde a su actividad.
+3. SERVICIOS INCLUIDOS
+El servicio incluye:
+   a) Respuesta automática con IA a todas las reseñas de Google (positivas y negativas).
+   b) Personalización del tono de respuesta según las directrices del Cliente.
+   c) Solicitud automática de reseñas a los clientes del Negocio.
+   d) Panel de control para visualizar reseñas, respuestas e historial.
+   e) Informe mensual de evolución de la reputación en Google.
 
 4. PRECIO Y FORMA DE PAGO
-El precio total del contrato asciende a ${value}, pagadero según la frecuencia acordada.
+El precio total del contrato asciende a ${value}, pagadero según la frecuencia acordada. El Primer pago incluye la mensualidad del mes corriente y la cuota de gestión de datos (alta del servicio).
 
-5. CONFIDENCIALIDAD
+5. ACCESO AL PERFIL DE GOOGLE
+El Cliente facilitará el enlace a su ficha de Google Business Profile. El Prestador NO solicitará acceso a la cuenta de Google del Cliente. Las respuestas generadas por la IA serán publicadas por el Cliente o, en su caso, por el Prestador con autorización explícita.
+
+6. CONFIDENCIALIDAD
 Ambas partes se comprometen a mantener la confidencialidad de toda la información compartida durante la vigencia del contrato y durante un periodo de 2 años tras su finalización.
 
-6. TRATAMIENTO DE DATOS
-El Prestador tratará los datos personales del Cliente únicamente para la prestación de los servicios contratados, de conformidad con el RGPD.
+7. TRATAMIENTO DE DATOS
+El Prestador tratará los datos personales del Cliente y de los usuarios que dejen reseñas únicamente para la prestación de los servicios contratados, de conformidad con el RGPD. Las respuestas generadas por IA se publican en la plataforma Google y son visibles públicamente.
 
-7. TERMINACIÓN
+8. TERMINACIÓN
 Cualquiera de las partes podrá dar por terminado el contrato con un preaviso de 30 días por escrito.
 
 Firmado en Madrid, a día de ${today}.
 
-_________________________________
+_______________________________
 Por el Prestador (${company})
 
-_________________________________
+_______________________________
 Por el Cliente (${opts.businessName})`
 }

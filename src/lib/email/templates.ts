@@ -21,37 +21,37 @@ function bookingCta(): string {
 export function welcomeEmail(businessName: string, contactName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
-    subject: `¡Bienvenido a ${company}! Tu presencia online empieza ahora`,
+    subject: `¡Bienvenido a ${company}! Tus reseñas de Google ya se responden solas`,
     html: `
       <!DOCTYPE html>
       <html>
       <body style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f5f7;">
         <div style="background: #2563eb; background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 40px 30px 44px; border-radius: 14px 14px 0 0; text-align: center;">
           <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: -0.5px;">⭐ OpiniLab</h1>
-          <p style="color: #ffffff; margin: 10px 0 0; font-size: 15px; font-weight: 500; letter-spacing: 0.2px;">Tu presencia online, gestionada por expertos</p>
+          <p style="color: #ffffff; margin: 10px 0 0; font-size: 15px; font-weight: 500; letter-spacing: 0.2px;">Respuestas automáticas a reseñas de Google con IA</p>
         </div>
         <div style="background: #ffffff; padding: 32px 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 14px 14px;">
           <p style="color: #111827; font-size: 16px; margin: 0 0 22px;">Hola <strong>${contactName}</strong>,</p>
-          <p style="color: #374151; line-height: 1.8; margin: 0 0 0;">Gracias por confiar en OpiniLab para hacer crecer <strong>${businessName}</strong>. Ya has dado el primer paso para que más clientes encuentren tu negocio.</p>
+          <p style="color: #374151; line-height: 1.8; margin: 0 0 0;">Bienvenido a ${company}. A partir de ahora, cada reseña que recibas en Google será respondida automáticamente con inteligencia artificial, en menos de 1 hora.</p>
 
           <h3 style="color: #111827; margin: 34px 0 18px; font-size: 15px;">¿Qué ocurre ahora?</h3>
           <table style="width: 100%; border-collapse: collapse;">
             <tr>
               <td style="padding: 10px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">1.</td>
-              <td style="padding: 10px 0; color: #374151; line-height: 1.8;">Auditamos tu ficha de Google y tu presencia online actual.</td>
+              <td style="padding: 10px 0; color: #374151; line-height: 1.8;">Accede a tu panel de ${company} y comprueba las reseñas de tu negocio.</td>
             </tr>
             <tr>
               <td style="padding: 12px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">2.</td>
-              <td style="padding: 12px 0; color: #374151; line-height: 1.8;">Activamos tu estrategia de reseñas, visibilidad y captación de clientes.</td>
+              <td style="padding: 12px 0; color: #374151; line-height: 1.8;">La IA empezará a responder automáticamente a cada reseña nueva.</td>
             </tr>
             <tr>
               <td style="padding: 12px 0; vertical-align: top; width: 36px; color: #2563eb; font-weight: bold;">3.</td>
-              <td style="padding: 12px 0; color: #374151; line-height: 1.8;">Recibes tu primer informe de resultados en los próximos 7 días.</td>
+              <td style="padding: 12px 0; color: #374151; line-height: 1.8;">En 7 días recibirás tu primer informe de evolución de tu reputación.</td>
             </tr>
           </table>
 
           <div style="background: #eef2ff; border-radius: 10px; padding: 18px 20px; margin: 34px 0 30px;">
-            <p style="margin: 0; color: #3730a3; font-size: 13px; line-height: 1.8;">💡 <strong>Consejo:</strong> comparte con nosotros el enlace de tu perfil de Google (Google Maps) para que nuestro equipo empiece cuanto antes.</p>
+            <p style="margin: 0; color: #3730a3; font-size: 13px; line-height: 1.8;">💡 <strong>Consejo:</strong> comparte con nosotros el enlace de tu perfil de Google (Google Maps) para que la IA pueda empezar a responder tus reseñas.</p>
           </div>
 
           <p style="color: #374151; line-height: 1.8; margin: 0;">Si tienes cualquier duda, escríbenos a <a href="mailto:info@opinilab.com" style="color: #2563eb; text-decoration: underline;">info@opinilab.com</a>. Estamos aquí para ayudarte.</p>
@@ -74,28 +74,29 @@ export function onboardingGuideEmail(
 ): EmailTemplate {
   const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
-    subject: `Así trabajamos juntos - ${company}`,
+    subject: `Así funciona OpiniLab — Respuestas automáticas a reseñas`,
     html: `
       <!DOCTYPE html>
       <html>
       <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-          <h1 style="color: white; margin: 0;">📋 Así trabajamos juntos</h1>
+          <h1 style="color: white; margin: 0;">📋 Así funciona tu servicio</h1>
         </div>
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${contactName}</strong>,</p>
-          <p>Te explicamos con detalle cómo vamos a hacer crecer <strong>${businessName}</strong> con ${company}:</p>
+          <p>Te explicamos cómo OpiniLab gestiona las reseñas de <strong>${businessName}</strong> en Google:</p>
           <h3 style="margin-top: 24px;">Nuestro proceso:</h3>
           <ol style="line-height: 1.8;">
-            <li><strong>Análisis inicial gratuito</strong> — revisamos tu presencia online, tus reseñas en Google y tu posicionamiento actual.</li>
-            <li><strong>Plan personalizado</strong> — te proponemos los servicios que mejor se adaptan a tu negocio y a tu presupuesto.</li>
-            <li><strong>Nos ponemos en marcha</strong> — activamos tu estrategia y empezamos a conseguir resultados.</li>
-            <li><strong>Seguimiento mensual</strong> — te enviamos un informe con todo lo que hemos hecho y los resultados obtenidos.</li>
+            <li><strong>Conectamos tu ficha de Google</strong> — analizamos tus reseñas actuales y la valoración media de tu negocio.</li>
+            <li><strong>La IA aprende tu tono</strong> — personalizamos las respuestas según el estilo de tu negocio: profesional, cercano o formal.</li>
+            <li><strong>Respuestas automáticas 24/7</strong> — cada reseña nueva recibe una respuesta personalizada en menos de 1 hora.</li>
+            <li><strong>Solicitud de reseñas</strong> — enviamos emails a tus pidiéndoles que dejen una reseña en Google.</li>
+            <li><strong>Informe mensual</strong> — recibes un informe con el número de reseñas, la evolución de tu valoración y las respuestas enviadas.</li>
           </ol>
           <h3 style="margin-top: 24px;">¿Qué necesitamos de ti?</h3>
-          <p>Para empezar, será muy útil que nos facilites el enlace de tu perfil de Google Business Profile (Google Maps). Si no lo tienes, ¡nosotros te ayudamos a crearlo!</p>
+          <p>El enlace de tu perfil de Google Business Profile (Google Maps). Si no lo tienes, ¡nosotros te ayudamos a configurarlo!</p>
           <p>Si tienes cualquier duda, escríbenos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
-          <p>¡Vamos a por ello!<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
+          <p>¡Vamos a mejorar tu reputación!<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
       </html>
@@ -326,23 +327,23 @@ export function salesAgentAdminNotify(businessName: string, fromEmail: string, i
 }
 
 // CTA de contratación directa (pago por lead): enlace público seguro a /pagar/lead/:id
-export function paymentCtaButton(leadId: string, price = 49): string {
+export function paymentCtaButton(leadId: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
   const href = `${appUrl}/pagar/lead/${leadId}`
   return `
       <div style="text-align: center; margin: 30px 0;">
         <a href="${href}" style="background: #16a34a; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
-          Contratar ahora · ${price}€/mes →
+          Activar respuesta automática · 79€ primer mes →
         </a>
-        <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">Pago seguro con Stripe · Sin cuota de alta</p>
+        <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">49€/mes + 30€ alta · Pago seguro Stripe · Sin permanencia</p>
       </div>
     `
 }
 
 // Añade el botón de contratación de forma independiente del template usado, para
 // que TODOS los correos de oferta incluyan el enlace de pago por lead.
-export function appendPaymentCta(html: string, leadId: string, price = 49): string {
-  const cta = paymentCtaButton(leadId, price)
+export function appendPaymentCta(html: string, leadId: string): string {
+  const cta = paymentCtaButton(leadId)
   if (!html) return cta
   if (html.includes("</body>")) {
     return html.replace("</body>", `${cta}</body>`)
@@ -352,7 +353,7 @@ export function appendPaymentCta(html: string, leadId: string, price = 49): stri
 
 export function followUpEmail(leadName: string, businessName: string): EmailTemplate {
   return {
-    subject: `¿Podemos ayudarte con tu marketing? - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
+    subject: `¿Tus reseñas de Google se responden solas? - ${process.env.COMPANY_NAME || 'OpiniLab'}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -362,20 +363,20 @@ export function followUpEmail(leadName: string, businessName: string): EmailTemp
         </div>
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${leadName}</strong>,</p>
-          <p>Hace unos días nos pusimos en contacto con <strong>${businessName}</strong> sobre cómo podemos ayudaros con vuestra estrategia de marketing digital.</p>
+          <p>Hace unos días nos pusimos en contacto con <strong>${businessName}</strong> sobre cómo podemos mejorar vuestra reputación en Google.</p>
           <p>¿Te gustaría que te mostráramos cómo podemos:</p>
           <ul>
-            <li>✅ Aumentar tus reseñas en Google</li>
-            <li>✅ Mejorar tu posicionamiento en buscadores</li>
-            <li>✅ Atraer más clientes a través de redes sociales</li>
+            <li>✅ Responder automáticamente a cada reseña de Google</li>
+            <li>✅ Mejorar tu valoración media en menos de 30 días</li>
+            <li>✅ Conseguir más reseñas de forma automática</li>
           </ul>
-          <p>Ofrecemos una <strong>consulta gratuita</strong> sin compromiso.</p>
+          <p>Ofrecemos una <strong>análisis gratuito</strong> sin compromiso.</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="mailto:info@opinilab.com?subject=Consulta%20gratuita" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
+            <a href="mailto:info@opinilab.com?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold;">
               Responder a este email
             </a>
           </div>
-          <p>¡Esperamos poder trabajar juntos!</p>
+          <p>¡Esperamos poder mejorar tu reputación!</p>
           <p><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>
@@ -387,7 +388,7 @@ export function followUpEmail(leadName: string, businessName: string): EmailTemp
 export function coldLeadEmail(name: string, businessName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
-    subject: `Reseñas y visibilidad para ${businessName} (oferta 49€/mes)`,
+    subject: `Reseñas de Google: OpiniLab responde por ti (${businessName})`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -397,17 +398,17 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
         </div>
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${name}</strong>,</p>
-          <p>Hemos visto <strong>${businessName}</strong> en Google y en redes sociales, y creemos que puedes atraer más clientes de tu zona de una forma sencilla.</p>
-          <p>En ${company} nos encargamos de que tu ficha de Google y tus reseñas trabajen por ti:</p>
+          <p>Hemos visto <strong>${businessName}</strong> en Google y creemos que puedes atraer más clientes si cuidas tu reputación en las reseñas.</p>
+          <p>En ${company} nos encargamos de que cada reseña de tu ficha de Google tenga una respuesta profesional y personalizada:</p>
           <ul>
-            <li>✅ Conseguir reseñas nuevas de forma continuada</li>
-            <li>✅ Responderlas y cuidar tu reputación online</li>
-            <li>✅ Mejorar tu presencia para que te encuentren más vecinos</li>
+            <li>✅ Respuesta automática a reseñas positivas y negativas con IA</li>
+            <li>✅ Personalización del tono según tu negocio</li>
+            <li>✅ Solicitud automática de nuevas reseñas a tus clientes</li>
           </ul>
-          <p>Para tu zona, solo durante el lanzamiento: <strong>49€/mes</strong> sin cuota de alta.</p>
-          <p>Te enviamos un <strong>análisis gratuito de tu ficha de Google</strong> sin compromiso:</p>
+          <p>Para tu zona, solo durante el lanzamiento: <strong>49€/mes</strong> + 30€ de alta (solo el primer mes).</p>
+          <p>Te enviamos un <strong>análisis gratuito de tus reseñas en Google</strong> sin compromiso:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="mailto:info@opinilab.com?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito%20para%20${encodeURIComponent(businessName)}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+            <a href="mailto:info@opinilab.com?subject=Quiero%20mi%20an%C3%A1lisis%20gratuito%20de%20rese%C3%B1as%20para%20${encodeURIComponent(businessName)}" style="background: #2563eb; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
               Quiero mi análisis gratuito →
             </a>
           </div>
@@ -424,7 +425,7 @@ export function coldLeadEmail(name: string, businessName: string): EmailTemplate
 export function finalFollowUpEmail(name: string, businessName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
-    subject: `Último aviso: 49€/mes para ${businessName}`,
+    subject: `Último aviso: respuesta automática a reseñas por 49€/mes + 30€ alta`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -435,7 +436,7 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${name}</strong>,</p>
           <p>Esta es nuestra última comunicación sobre <strong>${businessName}</strong>.</p>
-          <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>49€/mes</strong> y sin cuota de gestión de datos.</p>
+          <p>La oferta de lanzamiento para los primeros negocios de tu zona es <strong>49€/mes + 30€ de alta</strong> (solo el primer mes).</p>
           <p>Si todavía te interesa ver tu análisis gratuito, responde a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="mailto:info@opinilab.com?subject=S%C3%AD%2C%20quiero%20mi%20an%C3%A1lisis%20gratuito" style="background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
@@ -455,7 +456,7 @@ export function finalFollowUpEmail(name: string, businessName: string): EmailTem
 export function promotionEmail(name: string, businessName: string): EmailTemplate {
   const company = process.env.COMPANY_NAME || "OpiniLab"
   return {
-    subject: `Haz crecer ${businessName} con ${company}`,
+    subject: `${company}: Responde a tus reseñas de Google automáticamente`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -465,14 +466,14 @@ export function promotionEmail(name: string, businessName: string): EmailTemplat
         </div>
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${name}</strong>,</p>
-          <p>Hemos visto a <strong>${businessName}</strong> y creemos que ${company} puede ayudarte a conseguir más clientes.</p>
+          <p>Hemos visto a <strong>${businessName}</strong> en Google y creemos que ${company} puede ayudarte a mejorar tu reputación con respuestas automáticas a reseñas.</p>
           <p>Podemos ayudarte a:</p>
           <ul>
-            <li>✅ Aumentar tus reseñas en Google</li>
-            <li>✅ Mejorar tu posicionamiento en buscadores</li>
-            <li>✅ Atraer más clientes a través de redes sociales</li>
+            <li>✅ Responder a cada reseña de Google con IA en menos de 1 hora</li>
+            <li>✅ Conseguir más reseñas de forma automática</li>
+            <li>✅ Mejorar tu valoración media en Google</li>
           </ul>
-          <p>Te ofrecemos una <strong>consulta gratuita y sin compromiso</strong> para analizar tu presencia online.</p>
+          <p>Te ofrecemos un <strong>análisis gratuito y sin compromiso</strong> de tus reseñas actuales.</p>
           <p>Escríbenos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a> y te contamos cómo podemos empezar.</p>
           <p>Un saludo,<br><strong>Equipo de ${company}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
@@ -497,7 +498,7 @@ export function paymentThanksEmail(businessName: string, contactName: string, in
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${contactName}</strong>,</p>
           <p>Hemos recibido correctamente el pago de <strong>${total.toFixed(2)}€</strong> correspondiente a la factura <strong>${invoiceNumber}</strong> de <strong>${businessName}</strong>.</p>
-          <p>Gracias por tu confianza. Estamos trabajando para que tu negocio crezca.</p>
+          <p>Gracias por tu confianza. La IA ya está respondiendo a tus reseñas de Google.</p>
           <p>Si tienes cualquier duda, no dudes en escribirnos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
           <p>¡Gracias!<br><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
@@ -588,7 +589,7 @@ export function privacyRequestNotify(
 
 export function reportNotification(clientName: string, businessName: string, period: string): EmailTemplate {
   return {
-    subject: `📊 Tu informe de marketing - ${period}`,
+    subject: `📊 Tu informe de reseñas de Google - ${period}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -598,10 +599,10 @@ export function reportNotification(clientName: string, businessName: string, per
         </div>
         <div style="background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb;">
           <p>Hola <strong>${clientName}</strong>,</p>
-          <p>Tu informe de marketing de <strong>${businessName}</strong> para <strong>${period}</strong> ya está disponible.</p>
-          <p>Encontrarás un resumen de todas las actividades realizadas y los resultados obtenidos.</p>
+          <p>Tu informe de reseñas de Google de <strong>${businessName}</strong> para <strong>${period}</strong> ya está disponible.</p>
+          <p>Encontrarás un resumen de las reseñas recibidas, las respuestas generadas y la evolución de tu valoración en Google.</p>
           <p>Si tienes alguna pregunta sobre el informe, no dudes en escribirnos a <a href="mailto:info@opinilab.com" style="color: #2563eb;">info@opinilab.com</a>.</p>
-          <p>¡Seguimos trabajando para hacer crecer tu negocio!</p>
+          <p>¡Seguimos mejorando tu reputación en Google!</p>
           <p><strong>Equipo de ${process.env.COMPANY_NAME || 'OpiniLab'}</strong><br><a href="https://opinilab.com" style="color: #9ca3af; font-size: 12px; text-decoration: none;">https://opinilab.com</a></p>
         </div>
       </body>

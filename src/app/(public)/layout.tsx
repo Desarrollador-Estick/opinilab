@@ -23,7 +23,7 @@ export default function PublicLayout({
             </Link>
             <div className="hidden md:flex items-center gap-1">
               {[
-                { href: "#servicios", label: "Servicios" },
+                { href: "#servicios", label: "Servicio" },
                 { href: "#como-funciona", label: "Cómo funciona" },
                 { href: "#resultados", label: "Resultados" },
                 { href: "#faq", label: "FAQ" },
@@ -48,7 +48,7 @@ export default function PublicLayout({
                 href="#contacto"
                 className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-light)] text-white px-5 py-2 rounded-lg text-sm font-semibold hover:from-[var(--color-primary-dark)] hover:to-[var(--color-primary)] transition-all duration-300 shadow-md shadow-blue-200/50 cursor-pointer"
               >
-                Pedir presupuesto
+                Activar respuesta automática
               </a>
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function PublicLayout({
                 <span className="text-lg font-bold text-white font-[family-name:var(--font-heading)]">OpiniLab</span>
               </div>
               <p className="text-sm leading-relaxed mb-6 max-w-xs">
-                Agencia de marketing digital. Gestionamos las reseñas de tu negocio en Google, tus redes sociales, tu SEO y tus anuncios para que tu negocio crezca.
+                Automatización de respuestas a reseñas de Google con inteligencia artificial. Respondemos a cada reseña de tu ficha de Google Business Profile para que tu reputación crezca sin que tengas que hacer nada.
               </p>
               <div className="flex gap-3">
                 {[
@@ -92,13 +92,13 @@ export default function PublicLayout({
             </div>
             <div>
               <h4 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider font-[family-name:var(--font-heading)]">
-                Servicios
+                Servicio
               </h4>
               <ul className="space-y-3 text-sm">
-                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Gestión de reseñas</a></li>
-                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Community Management</a></li>
-                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">SEO</a></li>
-                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Publicidad online</a></li>
+                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Respuestas automáticas con IA</a></li>
+                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Solicitud de reseñas</a></li>
+                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Panel de control</a></li>
+                <li><a href="#servicios" className="hover:text-white transition-colors cursor-pointer">Informes mensuales</a></li>
               </ul>
             </div>
             <div>
@@ -116,8 +116,8 @@ export default function PublicLayout({
                 Contacto
               </h4>
               <ul className="space-y-3 text-sm">
-                <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Pedir presupuesto</a></li>
-                <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Auditoría gratuita</a></li>
+                <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Activar respuesta automática</a></li>
+                <li><a href="#contacto" className="hover:text-white transition-colors cursor-pointer">Análisis gratuito</a></li>
                 <li><Link href="/privacidad" className="hover:text-white transition-colors cursor-pointer">Política de privacidad</Link></li>
                 <li><Link href="/proteccion-datos" className="hover:text-white transition-colors cursor-pointer">Protección de datos y derechos</Link></li>
               </ul>

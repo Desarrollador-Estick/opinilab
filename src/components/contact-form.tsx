@@ -95,7 +95,7 @@ export default function ContactForm() {
       />
       <textarea
         rows={3}
-        placeholder="¿En qué te podemos ayudar?"
+        placeholder="¿Cuántas reseñas tienes en Google? ¿Qué valoración media?"
         value={formData.message}
         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
         className="w-full bg-white/10 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/40 focus:outline-none focus:border-white/30 transition resize-none"
@@ -105,9 +105,9 @@ export default function ContactForm() {
         disabled={loading}
         className="w-full bg-white text-gray-900 py-3 rounded-xl font-semibold hover:bg-gray-100 transition disabled:opacity-50 text-lg"
       >
-        {loading ? "Enviando..." : "Enviar Consulta Gratis"}
+        {loading ? "Enviando..." : "Activar Respuesta Automática"}
       </button>
-      <p className="text-center text-xs text-white/40">Sin compromiso. Respondemos en menos de 24h.</p>
+      <p className="text-center text-xs text-white/40">Análisis gratuito · Sin compromiso · Respondemos en menos de 24h.</p>
     </form>
   )
 }

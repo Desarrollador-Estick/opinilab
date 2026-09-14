@@ -404,8 +404,8 @@ async function handleLeadOfferPayment(
   )
 }
 
-// Crea la factura PAGADA del Plan de Lanzamiento (precio total 49€ IVA incl.,
-// subtotal sin IVA + 21%). Devuelve la factura para poder usarla después.
+// Crea la factura PAGADA del Plan de Lanzamiento (precio total IVA incluido).
+// Primer pago: 49€ mensual + 30€ alta del servicio = 79€.
 async function createPaidLaunchInvoice(
   supabase: SupabaseClient<Database>,
   clientId: string,
@@ -418,7 +418,17 @@ async function createPaidLaunchInvoice(
   paymentIntent: Stripe.PaymentIntent,
   now: string
 ) {
-  const total = Math.round((Number(service.base_price) || 49) * 100) / 100
+  // Leer la cuota de alta desde settings (fallback 30€)
+  const { data: feeRow } = await supabase
+    .from("settings")
+    .select("value")
+    .eq("key", "setup_fee")
+    .maybeSingle()
+  const setupFee = Number(feeRow?.value ?? 30)
+  const monthlyPrice = Number(service.base_price) || 49
+
+  // Total del primer pago = mensualidad + alta
+  const total = Math.round((monthlyPrice + setupFee) * 100) / 100
   const tax_rate = 21
   const subtotal = Math.round((total / (1 + tax_rate / 100)) * 100) / 100
   const tax_amount = Math.round((total - subtotal) * 100) / 100
@@ -454,13 +464,28 @@ async function createPaidLaunchInvoice(
     return null
   }
 
-  await supabase.from("invoice_items").insert({
-    invoice_id: invoice.id,
+  // Dos líneas: alta (único) + primer mes
+  const items: Array<{ description: string; amount: number }> = []
+  if (setupFee > 0) {
+    items.push({
+      description: `Alta del servicio - ${service.name}`,
+      amount: Math.round(setupFee * 100) / 100,
+    })
+  }
+  items.push({
     description: `Servicios del mes ${period} - ${service.name}`,
-    quantity: 1,
-    unit_price: total,
-    total,
+    amount: Math.round(monthlyPrice * 100) / 100,
   })
+
+  await supabase.from("invoice_items").insert(
+    items.map((item) => ({
+      invoice_id: invoice.id,
+      description: item.description,
+      quantity: 1,
+      unit_price: item.amount,
+      total: item.amount,
+    }))
+  )
 
   await supabase.from("payments").insert({
     invoice_id: invoice.id,

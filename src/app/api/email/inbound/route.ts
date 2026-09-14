@@ -26,7 +26,7 @@ import { salesAgentAdminNotify } from "@/lib/email/templates"
 //      (outbound_1/followup_1/followup_2/promo) llevan Reply-To → las réplicas
 //      vuelven aquí solas.
 
-const OFFER = "49€/mes, sin cuota de gestión de datos"
+const OFFER = "49€/mes + 30€ de alta (solo el primer mes)"
 
 interface RawEventData {
   from?: string | { email: string; name?: string } | null

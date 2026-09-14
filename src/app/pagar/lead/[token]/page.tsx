@@ -91,8 +91,6 @@ export default function PublicLeadPayPage() {
     )
   }
 
-  const price = offer?.offer?.price ?? 49
-
   if (offer?.alreadyPaid) {
     return (
       <Shell>
@@ -124,12 +122,22 @@ export default function PublicLeadPayPage() {
             <div className="px-4 py-3 flex justify-between text-sm">
               <span>Gestión y respuesta automática de reseñas de Google</span>
             </div>
-            <div className="bg-gray-50 px-4 py-4 flex items-end justify-between">
-              <div>
-                <div className="text-4xl font-bold">{price},00€</div>
-                <div className="text-xs text-gray-500">/mes · IVA incluido · Sin cuota de alta</div>
+            <div className="bg-gray-50 px-4 py-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Alta del servicio (único pago)</span>
+                <span className="font-medium">30,00€</span>
               </div>
-              <span className="text-green-600 font-medium text-sm">Ahorra {price}€ este mes</span>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Primer mes</span>
+                <span className="font-medium">49,00€</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between items-end">
+                <span className="text-xs text-gray-500">Total primer mes · IVA incluido</span>
+                <div className="text-right">
+                  <div className="text-4xl font-bold">79,00€</div>
+                  <div className="text-xs text-green-600 font-medium">Los siguientes meses: 49€/mes</div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -147,18 +155,17 @@ export default function PublicLeadPayPage() {
             onClick={handleInitiatePayment}
             className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition font-medium"
           >
-            Pagar {price}€ ahora y empezar →
+            Pagar 79€ y empezar →
           </button>
           <p className="text-xs text-gray-400 text-center">
             Pago seguro procesado por Stripe. {stripeLive ? "En modo real." : "Solo en modo test."}
-            Al contratar crearemos tu cuenta de cliente y empezaremos a trabajar de inmediato.
+            Al pagar crearemos tu cuenta de cliente y empezaremos a responder tus reseñas de inmediato.
           </p>
         </div>
       ) : (
         <CheckoutForm
           clientSecret={clientSecret}
           businessName={offer?.businessName || ""}
-          price={price}
           stripeLive={stripeLive}
         />
       )}
@@ -169,12 +176,10 @@ export default function PublicLeadPayPage() {
 function CheckoutForm({
   clientSecret,
   businessName,
-  price,
   stripeLive,
 }: {
   clientSecret: string
   businessName: string
-  price: number
   stripeLive: boolean
 }) {
   const options: StripeElementsOptions = { clientSecret, appearance: { theme: "stripe" } }
@@ -182,7 +187,7 @@ function CheckoutForm({
   return (
     <div className="bg-white rounded-xl border p-6">
       <Elements stripe={stripePromise} options={options}>
-        <StripeForm businessName={businessName} price={price} stripeLive={stripeLive} />
+        <StripeForm businessName={businessName} stripeLive={stripeLive} />
       </Elements>
     </div>
   )
@@ -190,11 +195,9 @@ function CheckoutForm({
 
 function StripeForm({
   businessName,
-  price,
   stripeLive,
 }: {
   businessName: string
-  price: number
   stripeLive: boolean
 }) {
   const stripe = useStripe()
@@ -245,7 +248,7 @@ function StripeForm({
           </p>
         )}
         <p className="mt-1">
-          Plan de Lanzamiento · {price}€/mes · {businessName}
+          Plan de Lanzamiento · 79€ primer mes (49€ + 30€ alta) · {businessName}
         </p>
       </div>
       <button
@@ -253,7 +256,7 @@ function StripeForm({
         disabled={!stripe || processing}
         className="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition disabled:opacity-50 font-medium"
       >
-        {processing ? "Procesando pago..." : `Pagar ${price}€ ahora`}
+        {processing ? "Procesando pago..." : `Pagar 79€ ahora`}
       </button>
     </form>
   )
