@@ -17,6 +17,7 @@ const navigation = [
   { name: "Reportes", href: "/dashboard/reportes", icon: "📈" },
   { name: "Analítica web", href: "/dashboard/analytics", icon: "🔍" },
   { name: "Tareas", href: "/dashboard/tareas", icon: "✅" },
+  { name: "Calendario", href: "/dashboard/calendario", icon: "📅" },
   { name: "Tareas IA", href: "/dashboard/ai-tareas", icon: "🤖" },
   { name: "Configuración", href: "/dashboard/configuracion", icon: "⚙️" },
 ]

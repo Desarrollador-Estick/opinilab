@@ -325,6 +325,31 @@ export function salesAgentAdminNotify(businessName: string, fromEmail: string, i
   }
 }
 
+// CTA de contratación directa (pago por lead): enlace público seguro a /pagar/lead/:id
+export function paymentCtaButton(leadId: string, price = 49): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://opinilab.com"
+  const href = `${appUrl}/pagar/lead/${leadId}`
+  return `
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${href}" style="background: #16a34a; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">
+          Contratar ahora · ${price}€/mes →
+        </a>
+        <p style="font-size: 12px; color: #9ca3af; margin-top: 8px;">Pago seguro con Stripe · Sin cuota de alta</p>
+      </div>
+    `
+}
+
+// Añade el botón de contratación de forma independiente del template usado, para
+// que TODOS los correos de oferta incluyan el enlace de pago por lead.
+export function appendPaymentCta(html: string, leadId: string, price = 49): string {
+  const cta = paymentCtaButton(leadId, price)
+  if (!html) return cta
+  if (html.includes("</body>")) {
+    return html.replace("</body>", `${cta}</body>`)
+  }
+  return html + cta
+}
+
 export function followUpEmail(leadName: string, businessName: string): EmailTemplate {
   return {
     subject: `¿Podemos ayudarte con tu marketing? - ${process.env.COMPANY_NAME || 'OpiniLab'}`,

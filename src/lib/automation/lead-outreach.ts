@@ -5,6 +5,7 @@ import {
   coldLeadEmail,
   followUpEmail,
   finalFollowUpEmail,
+  appendPaymentCta,
 } from "@/lib/email/templates"
 import { getDbEmailTemplate } from "@/lib/email/db-templates"
 import { AUTOMATION_EMAILS_DEFAULT } from "@/app/api/settings/automations/route"
@@ -93,7 +94,7 @@ export async function autoLeadOutreach(
             to: lead.email,
             template: "outbound_1",
             subject: tplDb ? tplDb.subject : fallback.subject,
-            html: tplDb ? tplDb.body : fallback.html,
+            html: appendPaymentCta(tplDb ? tplDb.body : fallback.html, lead.id),
             leadId: lead.id,
             data: {
               leadName: lead.contact_name || lead.business_name,
@@ -203,7 +204,7 @@ export async function autoLeadOutreach(
           to: lead.email,
           template: tplKey,
           subject: tplDb ? tplDb.subject : fallback.subject,
-          html: tplDb ? tplDb.body : fallback.html,
+          html: appendPaymentCta(tplDb ? tplDb.body : fallback.html, lead.id),
           leadId: lead.id,
           data: {
             leadName: lead.contact_name || lead.business_name,
