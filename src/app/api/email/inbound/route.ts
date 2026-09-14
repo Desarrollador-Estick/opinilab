@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server"
+import { createHmac, timingSafeEqual } from "node:crypto"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { getAutomationEmailsConfig } from "@/lib/automation/lead-outreach"
 import {
@@ -18,15 +19,60 @@ import { salesAgentAdminNotify } from "@/lib/email/templates"
 // clasifica y responde, con puerta de aprobación humana para el cierre.
 //
 // SETUP (pendiente, requiere DNS):
-//   1. Resend → Inbound → crear dominio entrante (p. ej. `inbound.opinilab.com`)
-//      y añadir los registros MX/TXT que Resend indica en el DNS del dominio.
-//   2. Resend → Inbound → webhook con la URL https://www.opinilab.com/api/email/inbound
-//   3. En Vercel: INBOUND_REPLY_TO = la dirección entrante (p. ej.
-//      responde@inbound.opinilab.com). Desde ese momento los emails de campaña
-//      (outbound_1/followup_1/followup_2/promo) llevan Reply-To → las réplicas
-//      vuelven aquí solas.
+//   1. Resend → Domains → `inbound.opinilab.com` (receiving enabled) y añadir
+//      en el DNS las registros TXT/MX/CNAME que Resend indica (incluido el MX
+//      `inbound` → inbound-smtp.us-east-1.amazonaws.com).
+//   2. Resend → Webhooks → webhook tipo `email.received` con la URL
+//      https://www.opinilab.com/api/email/inbound
+//   3. En Vercel: INBOUND_REPLY_TO = responde@inbound.opinilab.com. Desde ese
+//      momento los emails de campaña llevan Reply-To → las réplicas vuelven aquí.
 
 const OFFER = "49€/mes + 30€ de alta (solo el primer mes)"
+
+/**
+ * Verifica la firma Svix de un webhook de Resend. Devuelve `true` si es válido.
+ * Si no hay secreto configurado, se acepta el evento (modo compatible).
+ */
+function verifyWebhookSignature(
+  rawBody: string,
+  headers: Headers,
+  secret: string | undefined
+): "valid" | "invalid" | "unconfigured" {
+  if (!secret) return "unconfigured"
+  const id = headers.get("svix-id")
+  const timestamp = headers.get("svix-timestamp")
+  const signature = headers.get("svix-signature")
+  if (!id || !timestamp || !signature) return "invalid"
+
+  // Antirreplay: rechazar firma con más de 10 minutos de antigüedad.
+  const ts = Number(timestamp)
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > 600) {
+    return "invalid"
+  }
+
+  const secretBytes = Buffer.from(
+    secret.replace(/^whsec_/, ""),
+    "base64"
+  )
+  const signedContent = `${id}.${timestamp}.${rawBody}`
+  const computed = createHmac("sha256", secretBytes)
+    .update(signedContent)
+    .digest("base64")
+
+  const provided = (signature || "")
+    .split(" ")
+    .map((s) => s.trim())
+    .filter((s) => s.startsWith("v1,"))
+    .map((s) => s.slice(3))
+  return provided.some((sig) => {
+    if (!sig) return false
+    const a = Buffer.from(computed)
+    const b = Buffer.from(sig)
+    return a.length === b.length && timingSafeEqual(a, b)
+  })
+    ? "valid"
+    : "invalid"
+}
 
 interface RawEventData {
   from?: string | { email: string; name?: string } | null
@@ -36,7 +82,39 @@ interface RawEventData {
   html?: string | null
   messageId?: string | null
   "Message-Id"?: string | null
+  message_id?: string | null
   inReplyTo?: string | null
+  email_id?: string | null
+  emailId?: string | null
+}
+
+/**
+ * El webhook moderno de Resend (evento `email.received`) solo envía metadatos:
+ * el cuerpo hay que descargarlo con GET /emails/receiving/{id}. Si ya vienen
+ * texto/html (payload legacy de inbound routes) no se descarga nada.
+ */
+async function fetchReceivedEmailBody(emailId: string): Promise<{
+  text: string | null
+  html: string | null
+  subject: string | null
+}> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey || !emailId) return { text: null, html: null, subject: null }
+  try {
+    const res = await fetch(
+      `https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    )
+    if (!res.ok) return { text: null, html: null, subject: null }
+    const data = await res.json()
+    return {
+      text: data.text ?? null,
+      html: data.html ?? null,
+      subject: data.subject ?? null,
+    }
+  } catch {
+    return { text: null, html: null, subject: null }
+  }
 }
 
 function isReplyEventType(type: string): boolean {
@@ -57,7 +135,7 @@ function normalizeEventData(d: RawEventData): InboundPayload {
     subject: d.subject ?? null,
     text: d.text ?? d.html ?? null,
     html: d.html ?? null,
-    messageId: d.messageId || d["Message-Id"] || null,
+    messageId: d.messageId || d["Message-Id"] || d.message_id || null,
     inReplyTo: d.inReplyTo ?? null,
   }
 }
@@ -277,10 +355,21 @@ export async function POST(_request: Request) {
   }
 
   let body: unknown
+  let rawBody = ""
   try {
-    body = await _request.json()
+    rawBody = await _request.text()
+    body = JSON.parse(rawBody)
   } catch {
     return NextResponse.json({ error: "JSON inválido" }, { status: 400 })
+  }
+
+  const signature = verifyWebhookSignature(
+    rawBody,
+    _request.headers,
+    process.env.RESEND_WEBHOOK_SECRET
+  )
+  if (signature === "invalid") {
+    return NextResponse.json({ error: "Firma de webhook inválida" }, { status: 400 })
   }
 
   const events: RawEventData[] = []
@@ -309,7 +398,18 @@ export async function POST(_request: Request) {
   const logged: string[] = []
   for (const ev of events) {
     try {
-      const result = await processOne(normalizeEventData(ev), logged)
+      const data = ev as RawEventData
+      const emailId = data.email_id || data.emailId
+      const lacksBody = !data.text && !data.html
+      if (emailId && lacksBody) {
+        const fetched = await fetchReceivedEmailBody(emailId)
+        if (fetched.text || fetched.html) {
+          data.text = fetched.text || fetched.html
+          data.html = fetched.html
+        }
+        if (fetched.subject && !data.subject) data.subject = fetched.subject
+      }
+      const result = await processOne(normalizeEventData(data), logged)
       if (result === "duplicate") continue
     } catch (e) {
       logged.push(

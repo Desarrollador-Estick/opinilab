@@ -37,6 +37,70 @@ const CATEGORY_TO_OSM: Record<string, string[]> = {
   photographer: ["shop=photo"],
 }
 
+// Mapeo de nombres en español a tags OSM (para configuración del dashboard)
+const SPANISH_CATEGORY_TO_OSM: Record<string, string[]> = {
+  "restaurante": ["amenity=restaurant"],
+  "restaurante italiano": ["amenity=restaurant"],
+  "restaurante japones": ["amenity=restaurant"],
+  "restaurante japonesa": ["amenity=restaurant"],
+  "restaurante mediterraneo": ["amenity=restaurant"],
+  "bar de tapas": ["amenity=bar", "amenity=pub"],
+  "cafeteria": ["amenity=cafe"],
+  "pizzeria": ["amenity=restaurant"],
+  "heladeria": ["amenity=ice_cream"],
+  "marisqueria": ["amenity=restaurant"],
+  "panaderia": ["shop=bakery"],
+  "pasteleria": ["shop=bakery", "shop=pastry"],
+  "hotel": ["tourism=hotel", "tourism=hostel"],
+  "apartamentos turisticos": ["tourism=apartment", "tourism=guest_house"],
+  "fontanero": ["craft=plumber"],
+  "electricista": ["craft=electrician"],
+  "cerrajero": ["craft=locksmith"],
+  "servicio tecnico de electrodomesticos": ["craft=electronics_repair"],
+  "servicio de aire acondicionado": ["craft=hvac"],
+  "pintor": ["craft=painter"],
+  "carpintero": ["craft=carpenter"],
+  "albanil": ["craft=builder"],
+  "jardinero": ["craft=gardener"],
+  "limpieza de hogar": ["craft=cleaning"],
+  "clinica dental": ["amenity=dentist"],
+  "dentista": ["amenity=dentist"],
+  "ortodoncista": ["amenity=dentist"],
+  "medico de familia": ["amenity=doctors"],
+  "fisioterapeuta": ["healthcare=physiotherapist"],
+  "psicologo": ["healthcare=psychotherapist"],
+  "optica": ["shop=optician"],
+  "farmacia": ["amenity=pharmacy"],
+  "centro de estetica": ["shop=beauty", "shop=cosmetics"],
+  "peluqueria": ["shop=hairdresser", "shop=beauty"],
+  "barberia": ["shop=hairdresser", "craft=barber"],
+  "abogado": ["office=lawyer"],
+  "asesoria fiscal": ["office=accountant"],
+  "gestoria": ["office=administrative"],
+  "notaria": ["office=notary"],
+  "arquitecto": ["office=architect"],
+  "ingeniero industrial": ["office=engineer"],
+  "consultor de marketing": ["office=marketing"],
+  "consultor empresarial": ["office=consultant"],
+  "empresa de software": ["office=company"],
+  "tienda de ropa": ["shop=clothes"],
+  "zapateria": ["shop=shoes"],
+  "joyeria": ["shop=jewelry"],
+  "floristeria": ["shop=florist"],
+  "muebleria": ["shop=furniture"],
+  "ferreteria": ["shop=hardware"],
+  "papeleria": ["shop=stationery"],
+  "tienda de electrodomesticos": ["shop=appliance"],
+  "taller mecanico": ["shop=car_repair"],
+  "taller de chapa y pintura": ["shop=car_repair"],
+  "concesionario de coches": ["shop=car"],
+  "mudanzas": [],
+}
+
+function normalizeString(str: string): string {
+  return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim()
+}
+
 // Coordenadas de ciudades españolas (centro + radio)
 const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
   madrid: { lat: 40.4168, lon: -3.7038 },
@@ -58,6 +122,28 @@ const CITY_COORDS: Record<string, { lat: number; lon: number }> = {
   "a coruna": { lat: 43.3713, lon: -8.396 },
   santander: { lat: 43.4623, lon: -3.81 },
   "san sebastian": { lat: 43.3183, lon: -1.9812 },
+  // Galicia
+  "santiago de compostela": { lat: 42.8782, lon: -8.5448 },
+  "pontevedra": { lat: 42.431, lon: -8.6444 },
+  "ourense": { lat: 42.3358, lon: -7.8639 },
+  "lugo": { lat: 43.0099, lon: -7.5566 },
+  "ferrol": { lat: 43.4847, lon: -8.2329 },
+  // Más ciudades útiles
+  "caceres": { lat: 39.4753, lon: -6.3724 },
+  "salamanca": { lat: 40.9701, lon: -5.6635 },
+  "leon": { lat: 42.5987, lon: -5.5671 },
+  "oviedo": { lat: 43.3619, lon: -5.8494 },
+  "burgos": { lat: 42.3439, lon: -3.6969 },
+  "logrono": { lat: 42.4654, lon: -2.4459 },
+  "huesca": { lat: 42.1362, lon: -0.4087 },
+  "teruel": { lat: 40.3456, lon: -1.1066 },
+  "ciudad real": { lat: 38.9863, lon: -3.9291 },
+  "albacete": { lat: 38.9942, lon: -1.8564 },
+  "cuenca": { lat: 40.0704, lon: -2.1374 },
+  "guadalajara": { lat: 40.6337, lon: -3.1674 },
+  "zamora": { lat: 41.5034, lon: -5.7441 },
+  "palencia": { lat: 42.0094, lon: -4.5264 },
+  "soria": { lat: 41.7636, lon: -2.465 },
 }
 
 // Tags de OpenStreetMap para redes sociales
@@ -139,12 +225,16 @@ function buildOverpassQuery(
   const queries: string[] = []
 
   for (const city of cities) {
-    const coords = CITY_COORDS[city.toLowerCase()]
+    const coords = CITY_COORDS[normalizeString(city)]
     if (!coords) continue
 
     const tagsForCity: string[] = []
     for (const cat of categories) {
-      const osmTags = CATEGORY_TO_OSM[cat.toLowerCase()] || [`amenity=${cat}`]
+      const normCat = normalizeString(cat)
+      const osmTags =
+        SPANISH_CATEGORY_TO_OSM[normCat] ||
+        CATEGORY_TO_OSM[cat.toLowerCase()] ||
+        [`amenity=${cat}`]
       for (const tag of osmTags) {
         const [key, value] = tag.split("=")
         if (value) {
