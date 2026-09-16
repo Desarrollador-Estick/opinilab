@@ -6,6 +6,13 @@ import { runAutomationFull } from "@/lib/automation/run"
 import { normalizeSingleEmail, splitEmails } from "@/lib/email/normalize"
 import type { Json } from "@/types/database"
 
+// Capturar decenas de ciudades en una sola consulta de Overpass devuelve
+// cientos de miles de elementos y supera los límites del endpoint y el
+// timeout del cron. Se divide la captura en lotes de ciudades; cada lote se
+// consulta, filtra y prioriza de forma independiente hasta llenar la cuota
+// diaria configurada.
+export const maxDuration = 300
+
 // El endpoint principal rechaza con 406 las peticiones sin User-Agent
 // identificativo (reglas anti-bots de overpass-api.de). Se intentan espejos
 // si el principal responde 406/429/5xx.
@@ -255,7 +262,7 @@ function buildOverpassQuery(
   }
 
   return `
-    [out:json][timeout:30];
+    [out:json][timeout:120];
     ${queries.join("\n")}
     out center body;
   `
@@ -668,9 +675,13 @@ async function runLeadScraper(forced = false) {
       .gte("created_at", today.toISOString())
 
     const dailyLimit = Number(config.daily_limit) || 20
-    const remaining = dailyLimit - (todayLeads || 0)
+    let remaining = dailyLimit - (todayLeads || 0)
 
-    // 3. Construir query Overpass
+    // 3. Captura por lotes de ciudades. Consultar decenas de ciudades en una
+    //    sola query de Overpass devuelve cientos de miles de elementos y supera
+    //    los límites del endpoint y el timeout del cron. Se procesa cada lote
+    //    de forma independiente (query → filtro → prioridad → inserción) y se
+    //    detiene al agotar la cuota diaria configurada.
     const categories = (config.categories as string[]) || ["beauty", "hairdresser", "spa"]
     const cities = (config.cities as string[]) || ["Madrid"]
     const radius = Number(config.search_radius_m) || 5000
@@ -678,114 +689,134 @@ async function runLeadScraper(forced = false) {
     const thresholdReviews = Number(config.min_reviews) || 0
     const excludeWithoutWebsite = Boolean(config.exclude_without_website)
 
-    const query = buildOverpassQuery(categories, cities, radius)
-    const elements = await queryOverpass(query)
-
-    // 4. Convertir a leads, filtrar y priorizar (con email/redes primero)
-    const candidates = elements
-      .map(extractLeadFromElement)
-      .filter(Boolean) as Array<ReturnType<typeof extractLeadFromElement> & {}>
-
-    const filtered = candidates.filter((lead) => {
-      if (lead.rating !== null && thresholdRating > 0 && lead.rating < thresholdRating) {
-        return false
-      }
-      if (lead.reviews !== null && thresholdReviews > 0 && lead.reviews < thresholdReviews) {
-        return false
-      }
-      if (excludeWithoutWebsite && !lead.website) {
-        return false
-      }
-      return true
-    })
-
-    const priorityLeads = [...filtered].sort(
-      (a, b) => leadPriority(b) - leadPriority(a)
-    )
+    const CHUNK_SIZE = 5
+    const cityChunks: string[][] = []
+    for (let i = 0; i < cities.length; i += CHUNK_SIZE) {
+      cityChunks.push(cities.slice(i, i + CHUNK_SIZE))
+    }
 
     let created = 0
     let skipped = 0
+    let leadsFound = 0
     const errors: string[] = []
 
     const adminSupabase = await createServerAdminClient()
 
-    for (const lead of priorityLeads.slice(0, Math.max(remaining, 0))) {
-      if (!lead) continue
+    for (const cityChunk of cityChunks) {
+      if (remaining <= 0) break
 
-      // Deduplicar por business_name + city (normalizado para evitar duplicados
-      // por variaciones de mayúsculas/espacios). Se usa ilike (insensible a
-      // mayúsculas). Si la ciudad es null/"" se busca solo por nombre, porque
-      // ilike(null) nunca coincide en PostgreSQL.
-      const normalizedName = ((lead.business_name || "").toString().trim())
-        .replace(/[%_\\]/g, (ch) => "\\" + ch)
-      const normalizedCity = (lead.city || "").toString().trim()
-
-      let dedupQuery = adminSupabase
-        .from("leads")
-        .select("id")
-        .ilike("business_name", normalizedName)
-      if (normalizedCity) {
-        dedupQuery = dedupQuery.ilike("city", normalizedCity)
-      } else {
-        dedupQuery = dedupQuery.or("city.is.null,city.eq.''")
-      }
-      const { data: existing } = await dedupQuery.limit(1)
-
-      if (existing && existing.length > 0) {
-        skipped++
+      let elements: OverpassElement[]
+      try {
+        const query = buildOverpassQuery(categories, cityChunk, radius)
+        elements = await queryOverpass(query)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Unknown error"
+        errors.push(`overpass(${cityChunk.join(", ")}): ${msg}`)
         continue
       }
 
-      // Calcular score basado en datos disponibles
-      const socialCount = lead.social_media ? Object.keys(lead.social_media).length : 0
-      let score = 50
-      if (lead.website) score += 10
-      if (lead.email) score += 15
-      if (lead.phone) score += 10
-      if (socialCount > 0) score += Math.min(socialCount, 2) * 10
-      if (lead.rating && lead.rating >= 4) score += 10
-      if (lead.reviews && lead.reviews >= 20) score += 10
-      if (lead.reviews && lead.reviews >= 50) score += 5
-      score = Math.min(score, 100)
+      // 4. Convertir a leads, filtrar y priorizar (con email/redes primero)
+      const candidates = elements
+        .map(extractLeadFromElement)
+        .filter(Boolean) as Array<ReturnType<typeof extractLeadFromElement> & {}>
 
-      const socialMediaJson = lead.social_media && socialCount > 0 ? lead.social_media : {}
-
-      const { error } = await adminSupabase.from("leads").insert({
-        business_name: lead.business_name,
-        contact_name: null,
-        email: lead.email,
-        phone: lead.phone,
-        website: lead.website,
-        city: lead.city,
-        industry: null,
-        source: "auto_scraped",
-        status: "new",
-        score,
-        social_media: socialMediaJson as Json,
-        notes: [
-          socialCount > 0
-            ? `Redes: ${Object.entries(lead.social_media || {})
-                .map(([k, v]) => `${k} (${v})`)
-                .join(", ")}`
-            : null,
-          lead.email ? "Email en ficha OSM" : "Sin email: se buscará email automáticamente",
-          lead.phone ? `Teléfono: ${lead.phone}` : null,
-          lead.rating ? `Rating: ${lead.rating}/5` : null,
-          lead.reviews ? `${lead.reviews} reseñas` : null,
-          lead.address ? `Dirección: ${lead.address}` : null,
-          lead.osm_id ? `OSM: ${lead.osm_type}/${lead.osm_id}` : null,
-          (lead as any).email_alt
-            ? `Emails alternativos: ${(lead as any).email_alt}`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" | "),
+      const filtered = candidates.filter((lead) => {
+        if (lead.rating !== null && thresholdRating > 0 && lead.rating < thresholdRating) {
+          return false
+        }
+        if (lead.reviews !== null && thresholdReviews > 0 && lead.reviews < thresholdReviews) {
+          return false
+        }
+        if (excludeWithoutWebsite && !lead.website) {
+          return false
+        }
+        return true
       })
+      leadsFound += filtered.length
 
-      if (error) {
-        errors.push(`${lead.business_name}: ${error.message}`)
-      } else {
-        created++
+      const priorityLeads = [...filtered].sort(
+        (a, b) => leadPriority(b) - leadPriority(a)
+      )
+
+      for (const lead of priorityLeads.slice(0, Math.max(remaining, 0))) {
+        if (!lead) continue
+
+        // Deduplicar por business_name + city (normalizado para evitar duplicados
+        // por variaciones de mayúsculas/espacios). Se usa ilike (insensible a
+        // mayúsculas). Si la ciudad es null/"" se busca solo por nombre, porque
+        // ilike(null) nunca coincide en PostgreSQL.
+        const normalizedName = ((lead.business_name || "").toString().trim())
+          .replace(/[%_\\]/g, (ch) => "\\" + ch)
+        const normalizedCity = (lead.city || "").toString().trim()
+
+        let dedupQuery = adminSupabase
+          .from("leads")
+          .select("id")
+          .ilike("business_name", normalizedName)
+        if (normalizedCity) {
+          dedupQuery = dedupQuery.ilike("city", normalizedCity)
+        } else {
+          dedupQuery = dedupQuery.or("city.is.null,city.eq.''")
+        }
+        const { data: existing } = await dedupQuery.limit(1)
+
+        if (existing && existing.length > 0) {
+          skipped++
+          continue
+        }
+
+        // Calcular score basado en datos disponibles
+        const socialCount = lead.social_media ? Object.keys(lead.social_media).length : 0
+        let score = 50
+        if (lead.website) score += 10
+        if (lead.email) score += 15
+        if (lead.phone) score += 10
+        if (socialCount > 0) score += Math.min(socialCount, 2) * 10
+        if (lead.rating && lead.rating >= 4) score += 10
+        if (lead.reviews && lead.reviews >= 20) score += 10
+        if (lead.reviews && lead.reviews >= 50) score += 5
+        score = Math.min(score, 100)
+
+        const socialMediaJson = lead.social_media && socialCount > 0 ? lead.social_media : {}
+
+        const { error } = await adminSupabase.from("leads").insert({
+          business_name: lead.business_name,
+          contact_name: null,
+          email: lead.email,
+          phone: lead.phone,
+          website: lead.website,
+          city: lead.city,
+          industry: null,
+          source: "auto_scraped",
+          status: "new",
+          score,
+          social_media: socialMediaJson as Json,
+          notes: [
+            socialCount > 0
+              ? `Redes: ${Object.entries(lead.social_media || {})
+                  .map(([k, v]) => `${k} (${v})`)
+                  .join(", ")}`
+              : null,
+            lead.email ? "Email en ficha OSM" : "Sin email: se buscará email automáticamente",
+            lead.phone ? `Teléfono: ${lead.phone}` : null,
+            lead.rating ? `Rating: ${lead.rating}/5` : null,
+            lead.reviews ? `${lead.reviews} reseñas` : null,
+            lead.address ? `Dirección: ${lead.address}` : null,
+            lead.osm_id ? `OSM: ${lead.osm_type}/${lead.osm_id}` : null,
+            (lead as any).email_alt
+              ? `Emails alternativos: ${(lead as any).email_alt}`
+              : null,
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        })
+
+        if (error) {
+          errors.push(`${lead.business_name}: ${error.message}`)
+        } else {
+          created++
+          remaining--
+        }
       }
     }
 
@@ -825,7 +856,7 @@ async function runLeadScraper(forced = false) {
     // 6. Log de la ejecución
     const duration = Date.now() - startTime
     await adminSupabase.from("lead_scraper_log").insert({
-      leads_found: filtered.length,
+      leads_found: leadsFound,
       leads_created: created,
       leads_skipped: skipped,
       leads_enriched: enriched,
@@ -838,12 +869,12 @@ async function runLeadScraper(forced = false) {
     return NextResponse.json({
       ok: true,
       message: "Lead scraper completado",
-      leads_found: filtered.length,
+      leads_found: leadsFound,
       leads_created: created,
       leads_skipped: skipped,
       leads_enriched: enriched,
       leads_outreached: leadsOutreached,
-      remaining: Math.max(remaining - created, 0),
+      remaining: Math.max(remaining, 0),
       duration_ms: duration,
       errors: errors.length > 0 ? errors : undefined,
     })
