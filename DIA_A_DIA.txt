@@ -500,6 +500,32 @@ Todos, 07:00     Busca leads nuevos en Google Maps/OSM (cron
     build + TypeScript en Vercel correctos.
   - Commit/push 414a558 (main → origin/main) con la edición de leads y el
     CSV de leads contactados.
+ESTADO AL 16/09/2026 — EMAILS DE MARCA OPINILAB + CTA DE CONTRATACIÓN CON PAGO:
+  - NUEVO DISEÑO de TODOS los emails (src/lib/email/templates.ts reescrito):
+    identidad visual de opinilab.com — logo «O» con gradiente azul
+    #2563EB → #3B82F6, Poppins/Open Sans, tarjeta blanca, pie con la web. Mismo
+    look que la landing y globals.css. Se mantuvieron nombres y firmas de todas
+    las plantillas (bienvenida, onboarding, facturas, recordatorios, reseñas,
+    informes, promos, avisos RGPD...), así que ningún flujo se rompe.
+  - BOTÓN DE CONTRATACIÓN CON PAGO en TODOS los correos promocionales:
+    «Darme de alta · 79€ primer mes →» apunta a un enlace público y seguro
+    /pagar/lead/{lead_token} (pago directo por Stripe). Se inyecta SIEMPRE con
+    appendPaymentCta (en la ruta /api/promos/send y en el agent de captación
+    lead-outreach.ts), y sin duplicarse si la plantilla editable ya lo lleva.
+  - PÁGINAS /pagar/* ALINEADAS con la marca: /pagar/lead/[token] (Plan
+    Lanzamiento 79€ primer mes) y /pagar/[token] (facturas) usan ya el shell
+    OpiniLab con logo gradiente, fondo --color-background y botones en
+    --color-primary (antes verde/azul genérico). Stripe Elements intacto.
+  - VALIDADO: npx tsc --noEmit (0 errores) + npm run lint (0 errores/0 warnings).
+    NO ejecutar npm run build en F: (USB FAT32, ver sección 8) → validar build
+    en Vercel.
+  - CORREGIDO typo en .env.local: la clave de Stripe estaba como TRIPE_SECRET_KEY
+    (faltaba la S) → renombrada a STRIPE_SECRET_KEY (el valor sk_live_ no cambió).
+  - ⚠️ PENDIENTE: 1) desplegar (commit + push → Vercel) y probar envío real del
+    email de marca a citijordi2@live.com mirando que el botón lleve el enlace
+    /pagar/lead/{id}; 2) comprobar cómo quedan las plantillas editables en
+    Supabase (promo_1, outbound_1, followup_1, followup_2) con el nuevo CTA
+    azul.
 ================================================================================
 FIN DEL DOCUMENTO
 ================================================================================

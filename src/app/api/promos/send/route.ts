@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireTeamRole } from "@/lib/team-auth"
 import { getDbEmailTemplate } from "@/lib/email/db-templates"
-import { promotionEmail } from "@/lib/email/templates"
+import { promotionEmail, appendPaymentCta } from "@/lib/email/templates"
 import { sendEmail } from "@/lib/email/send"
 
 // Envía el email de promoción a los destinatarios pendientes
@@ -84,9 +84,18 @@ export async function POST(request: Request) {
       lead_token: leadToken,
     })
 
+    // Siempre se añade el CTA de contratación/pago por lead (si la plantilla ya
+    // lo incluye, appendPaymentCta no lo duplica). Así TODOS los correos de
+    // promoción llevan el botón de pago directo por Stripe.
     const { subject, html } = dbTemplate
-      ? { subject: dbTemplate.subject, html: dbTemplate.body }
-      : promotionEmail(name, business)
+      ? {
+          subject: dbTemplate.subject,
+          html: appendPaymentCta(dbTemplate.body, leadToken ?? ""),
+        }
+      : {
+          subject: promotionEmail(name, business).subject,
+          html: appendPaymentCta(promotionEmail(name, business).html, leadToken ?? ""),
+        }
 
     const res = await sendEmail({
       to: recipient.email,

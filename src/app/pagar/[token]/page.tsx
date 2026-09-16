@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import Link from "next/link"
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { loadStripe, type StripeElementsOptions } from "@stripe/stripe-js"
 
@@ -88,7 +87,7 @@ export default function PublicPayPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--color-primary)]" />
       </div>
     )
   }
@@ -153,7 +152,7 @@ export default function PublicPayPage() {
 
           <button
             onClick={handleInitiatePayment}
-            className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition font-medium"
+            className="w-full bg-[var(--color-primary)] text-white px-4 py-3 rounded-lg hover:opacity-90 transition font-medium"
           >
             Continuar al pago
           </button>
@@ -280,13 +279,20 @@ function StripeForm({
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-center">
-        <Link href="/" className="text-xl font-bold">{process.env.NEXT_PUBLIC_APP_NAME || "Agencia Marketing"}</Link>
+    <div className="min-h-screen bg-[var(--color-background)] flex flex-col">
+      <header className="bg-white/80 backdrop-blur-xl border-b border-[var(--color-border)] px-6 py-4">
+        <div className="max-w-lg mx-auto flex items-center gap-2.5">
+          <div className="w-8 h-8 bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] rounded-lg flex items-center justify-center shadow-md shadow-blue-200/50">
+            <span className="text-white text-sm font-bold font-[family-name:var(--font-heading)]">O</span>
+          </div>
+          <span className="text-lg font-bold text-[var(--color-foreground)] font-[family-name:var(--font-heading)]">
+            {process.env.NEXT_PUBLIC_APP_NAME || "OpiniLab"}
+          </span>
+        </div>
       </header>
       <main className="flex-1 w-full max-w-lg mx-auto px-4 py-8">{children}</main>
       <footer className="py-6 text-center text-xs text-gray-400">
-        <p>Pago procesado por Stripe · {process.env.NEXT_PUBLIC_APP_NAME || "Agencia Marketing"}</p>
+        <p>Pago procesado por Stripe · {process.env.NEXT_PUBLIC_APP_NAME || "OpiniLab"}</p>
       </footer>
     </div>
   )
