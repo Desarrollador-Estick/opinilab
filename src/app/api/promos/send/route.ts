@@ -3,6 +3,7 @@ import { requireTeamRole } from "@/lib/team-auth"
 import { getDbEmailTemplate } from "@/lib/email/db-templates"
 import { promotionEmail, appendPaymentCta } from "@/lib/email/templates"
 import { sendEmail } from "@/lib/email/send"
+import { getEmailQuotaUsage } from "@/lib/email/quota"
 
 // Envía el email de promoción a los destinatarios pendientes
 // (o solo a los IDs recibidos en el body, si `ids` viene informado).
@@ -28,14 +29,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: recError.message }, { status: 500 })
   }
 
+  // Cuota diaria gratuita de Resend: nunca se sobrepasa el límite. Si no queda
+  // hueco hoy, los destinatarios permanecen 'pending' y se envían mañana.
+  const quota = await getEmailQuotaUsage()
+  let remainingSlots = quota.remaining
+  if (remainingSlots <= 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        error: `Cuota diaria de email agotada (${quota.used}/${quota.limit}). Vuelve a intentarlo mañana o sube RESEND_DAILY_QUOTA si cambias de plan.`,
+      },
+      { status: 429 }
+    )
+  }
+
   const company = process.env.COMPANY_NAME || "OpiniLab"
   const sent: string[] = []
   const skipped: string[] = []
   const failed: { email: string; reason: string }[] = []
 
   for (const recipient of recipients || []) {
-    const name = recipient.name || "allá"
-    const business = recipient.business_name || "tu negocio"
+    if (remainingSlots <= 0) break
+
+    const name = recipient.name?.trim() || "allá"
+    // business_name puede venir vacío o null: no dejar placeholders ni
+    // gramática rota ("Tu tu negocio...") en asunto/body.
+    const business = recipient.business_name?.trim() || recipient.name?.trim() || "tu negocio"
 
     // El botón de contratación del template promo_1 (y los CTA de pago por lead)
     // apuntan a /pagar/lead/{lead_token}. El token es el id del lead: se reutiliza
@@ -105,6 +127,15 @@ export async function POST(request: Request) {
       data: { name, business, leadId: leadToken },
       promotional: true,
     })
+
+    if (res.reason === "quota_daily") {
+      // Cuota agotada a mitad de campaña: el destinatario actual y el resto
+      // siguen 'pending' y se enviarán mañana. No se marca como skipped.
+      remainingSlots = 0
+      break
+    }
+
+    if (res.ok && !res.skipped) remainingSlots--
 
     const { error: updateError } = await supabase
       .from("promo_recipients")

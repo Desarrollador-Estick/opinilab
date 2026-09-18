@@ -48,9 +48,6 @@ next-env.d.ts
 /supabase/.branches/
 /supabase/.vscode/
 
-# Local Netlify folder
-.netlify
-
 # Documento de acceso local (no subir al repo por seguridad)
 ACCESSO.md
 

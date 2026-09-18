@@ -103,6 +103,17 @@ export async function autoLeadOutreach(
             promotional: true,
           })
 
+          if (emailResult.reason === "quota_daily") {
+            // Cuota diaria agotada: el lead sigue en "new" sin contacto y se
+            // reintentará en la próxima ejecución. No se marca contactado.
+            logs.push({
+              action: "lead_outbound_quota",
+              details: `Cuota diaria agotada; ${lead.business_name} (${lead.email}) queda pendiente.`,
+              timestamp: now.toISOString(),
+            })
+            break
+          }
+
           if (emailResult.skipped) {
             // Dado de baja: se marca como contactado sin más seguimiento.
             await supabase
@@ -212,6 +223,17 @@ export async function autoLeadOutreach(
           },
           promotional: true,
         })
+
+        if (emailResult.reason === "quota_daily") {
+          // Cuota diaria agotada: se deja next_follow_up_at como está para
+          // que el seguimiento se reintente en la próxima ejecución.
+          logs.push({
+            action: "lead_follow_up_quota",
+            details: `Cuota diaria agotada; ${tplKey} a ${lead.business_name} (${lead.email}) queda pendiente.`,
+            timestamp: now.toISOString(),
+          })
+          break
+        }
 
         if (emailResult.skipped) {
           // Dado de baja: se para la secuencia (no más toques).

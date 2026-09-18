@@ -3,6 +3,7 @@ import { Resend } from "resend"
 import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { emailTemplates, type EmailTemplateKey } from "@/lib/email/templates"
+import { getEmailQuotaUsage } from "@/lib/email/quota"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -20,6 +21,18 @@ export async function POST(request: Request) {
 
     const templateFn = emailTemplates[template as EmailTemplateKey]
     const { subject, html } = templateFn(data)
+
+    // Cuota diaria gratuita de Resend.
+    const quota = await getEmailQuotaUsage()
+    if (quota.remaining <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Cuota diaria de email agotada (${quota.used}/${quota.limit}). Vuelve a intentarlo mañana o sube RESEND_DAILY_QUOTA si cambias de plan.`,
+        },
+        { status: 429 }
+      )
+    }
 
     const fromEmail = from || process.env.EMAIL_FROM || "onboarding@resend.dev"
 

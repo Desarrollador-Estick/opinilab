@@ -3,6 +3,7 @@ import { createServerAdminClient } from "@/lib/supabase/admin"
 import type { Json } from "@/types/database"
 import { isEmailSuppressed, buildUnsubscribeUrl } from "@/lib/email/unsubscribe"
 import { normalizeSingleEmail } from "@/lib/email/normalize"
+import { getEmailQuotaUsage, DAILY_EMAIL_QUOTA } from "@/lib/email/quota"
 
 const resendToken = process.env.RESEND_API_KEY
 
@@ -28,8 +29,10 @@ export interface SendEmailOptions {
 
 export interface SendEmailResult {
   ok: boolean
-  /** true cuando el destinatario ya se dio de baja y no se envió. */
+  /** true cuando el destinatario ya se dio de baja o se agotó la cuota y no se envió. */
   skipped?: boolean
+  /** Motivo del no-envío: "suppressed" (dado de baja) | "quota_daily" (cuota agotada). */
+  reason?: "suppressed" | "quota_daily"
 }
 
 /** Identidad del responsable del tratamiento que se muestra en el pie legal. */
@@ -118,7 +121,7 @@ export async function sendEmail({
       if (await isEmailSuppressed(adminClient, normalizedTo)) {
         await record("skipped", null)
         console.log(`[email] ${normalizedTo} (${template}) omitido: destinatario dado de baja.`)
-        return { ok: true, skipped: true }
+        return { ok: true, skipped: true, reason: "suppressed" }
       }
     } catch {}
   }
@@ -132,6 +135,19 @@ export async function sendEmail({
     await record("failed", null)
     return { ok: false }
   }
+
+  // Cuota diaria gratuita de Resend: si se agotó, no se envía y se respeta el
+  // límite. No se registra en `email_sends` (no es un envío) y los
+  // destinatarios siguen pendientes para el próximo día.
+  try {
+    const { remaining } = await getEmailQuotaUsage()
+    if (remaining <= 0) {
+      console.warn(
+        `[email] Cuota diaria de ${DAILY_EMAIL_QUOTA} emails agotada. Email a ${normalizedTo} (${template}) no enviado; se reintentará mañana.`
+      )
+      return { ok: true, skipped: true, reason: "quota_daily" }
+    }
+  } catch {}
 
   try {
     const { data: emailData, error } = await resend.emails.send({

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server"
 import { createServerAdminClient, isServiceRoleConfigured } from "@/lib/supabase/admin"
 import { generateGbpReport } from "@/lib/ai/gbp-report"
 import { isFeatureEnabled, FEATURE_KEYS } from "@/lib/settings"
+import { getEmailQuotaUsage } from "@/lib/email/quota"
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -210,15 +211,28 @@ export async function POST(request: Request) {
     </html>
     `
 
-    await sendEmail(
-      email,
-      `${name}, tu diagnóstico gratuito de Google está a un paso`,
-      unifiedHtml
-    )
+    // Respetar la cuota diaria gratuita de Resend: el lead se crea igual, pero
+    // si la cuota está agotada el email de bienvenida se difiere.
+    const quota = await getEmailQuotaUsage()
+    let emailDeferred = false
+    if (quota.remaining > 0) {
+      await sendEmail(
+        email,
+        `${name}, tu diagnóstico gratuito de Google está a un paso`,
+        unifiedHtml
+      )
+    } else {
+      emailDeferred = true
+      console.warn(
+        `[contact] Cuota diaria de email agotada (${quota.used}/${quota.limit}); lead ${email} creado sin email de bienvenida.`
+      )
+    }
 
     return NextResponse.json({
       success: true,
-      message: "Lead creado y email de bienvenida enviado",
+      message: emailDeferred
+        ? "Lead creado. El email de bienvenida se enviará cuando se restablezca la cuota diaria."
+        : "Lead creado y email de bienvenida enviado",
       lead: data,
     })
   } catch (error) {

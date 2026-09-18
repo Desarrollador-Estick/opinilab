@@ -179,7 +179,6 @@ Generado/a mano para tipar todas las queries. Define `Database["public"]["Tables
 
 - Pensado para **Vercel** (cron vía `vercel.json` o plataforma) + **Supabase cloud** + **Resend** + **Stripe**.
 - Variables de entorno críticas (ver `.env.local.example`): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` (solo servidor), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `EMAIL_FROM`, `COMPANY_NAME`, `NEXT_PUBLIC_APP_NAME`, `GROQ_API_KEY`.
-- Registrado también `@netlify/plugin-nextjs` en devDependencies (hosting alternativo Netlify).
 
 ---
 

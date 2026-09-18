@@ -3,6 +3,51 @@ OPINILAB — GUÍA DEL DÍA A DÍA (operación diaria, semanal y mensual)
 Versión: 11/09/2026 · Proyecto: F:\agencia-marketing · Prod: https://opinilab.com
 ================================================================================
 
+ÚLTIMA ACTUALIZACIÓN (16/09/2026, tarde) — FIX INTERPOLACIÓN PROMO + RUTA DNS
+--------------------------------------------------------------------------------
+1. FIX "Tu tu negocio..." / "Tu natiss..." / "Tu restaruador..." en la promo:
+   - CAUSA: subject de promo_1 en BD = "Tu {business} necesita gestionar sus
+     resenas en Google". Cuando el lead NO tenía business_name, el fallback de
+     código devolvía "tu negocio"... y el prefijo fijo "Tu " + la "t" minúscula
+     producían "Tu tu negocio...". Los leads con "natiss"/"restaruador" eran
+     tests manuales con nombres inventados (ya borrados; NO son datos reales).
+   - FIX APLICADO AL 16/09 (tarde):
+     * BD (Supabase, email_templates promo_1): subject → "¿Gestiona {business}
+       sus resenas en Google?" (pregunta que lee bien con nombre real y con
+       fallback: "¿Gestiona tu negocio sus resenas en Google?"). Body corregido:
+       "resenas"→"reseñas", "Gestion de resenas automatica"→"Gestión de
+       reseñas automática" (acentos y typos). YA NO queda ningún "resenas" sin
+       Ñ en promo_1.
+     * Código (src/app/api/promos/send/route.ts:37-40): fallback robusto →
+       `recipient.business_name?.trim() || recipient.name?.trim() ||
+       "tu negocio"` (nunca espacios ni caídas dobles, en subject y body).
+     * VERIFICADO: tsc --noEmit 0 errores · lint 0 errores/0 warnings.
+       Subject resultante en BD confirmado: null → "¿Gestiona tu negocio sus
+       resenas en Google?" · nombre → "¿Gestiona Restaurante El Sol sus resenas
+       en Google?".
+   - El subject se edita en /dashboard/configuracion → Email → templates
+     (promo_1). La interpolación ahora es a prueba de leads sin datos.
+
+2. DNS OPINILAB.COM A VERCEL — RUTA DECIDIDA (pendiente de TU acción):
+   - Verificado contra los servidores TLD .com y resolvers públicos: el
+     registro .com TODAVÍA sirve dns1/dns2.nominalia.com. El cambio de
+     nameservers a ns1/ns2.vercel-dns.com (hecho en el panel de Nominalia los
+     días 13-16/09) NO ha llegado al registro ni siquiera como pendiente, y
+     Vercel tampoco tiene la zona DNS habilitada ("Intended Nameservers"
+     vacío) → `vercel dns add` da 400 "not a DNS zone".
+   - RUTA A (RECOMENDADA por Vercel, y ELEGIDA): mantener DNS en Nominalia,
+     NO tocar nameservers ni DNSSEC (sigue desactivado). Cambiar SOLO 2
+     registros en el panel (controlpanel.nominalia.com → opinilab.com → DNS):
+     * A        opinilab.com        → 76.76.21.21   (reemplaza el 75.2.60.5)
+     * CNAME    www.opinilab.com    → cname.vercel-dns.com
+       (reemplaza opinilab.com.netlify.app)
+     Dejar MX (mail.nominalia.com), TXT SPF y el resto intactos.
+   - EN CUANTO lo apliques (respóndeme "hecho"): ejecuto
+     `vercel domains verify opinilab.com` → `vercel domains inspect` →
+     conecto el proyecto → deploy. Vercel ya tiene la verificación automática
+     ANTEADA (la lanzó `vercel domains add` al verificar).
+
+--------------------------------------------------------------------------------
 QUÉ ES OPINILAB EN UNA FRASE
   Plataforma que capta leads, hace seguimiento automático, factura y cobra por
   ti. Tú te encargas de VENDER (llamas y cierras), SUPERVISAR (contenido, IA,
